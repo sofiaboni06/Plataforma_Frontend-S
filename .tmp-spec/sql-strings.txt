@@ -1,0 +1,313 @@
+Plataforma
+ENCODING
+ENCODING
+SET client_encoding = 'UTF8';
+STDSTRINGS
+STDSTRINGS
+SET standard_conforming_strings = 'on';
+SEARCHPATH
+SEARCHPATH
+SELECT pg_catalog.set_config('search_path', '', false);
+Plataforma
+DATABASE
+CREATE DATABASE "Plataforma" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'Spanish_Colombia.1252';
+DROP DATABASE "Plataforma";
+postgres
+c_formacion
+CREATE TABLE public.c_formacion (
+    id_cformacion integer NOT NULL,
+    id_regional integer NOT NULL,
+    nombre character varying(150) NOT NULL
+DROP TABLE public.c_formacion;
+postgres
+c_formacion_id_cformacion_seq
+SEQUENCE
+CREATE SEQUENCE public.c_formacion_id_cformacion_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+DROP SEQUENCE public.c_formacion_id_cformacion_seq;
+postgres
+c_formacion_id_cformacion_seq
+SEQUENCE OWNED BY
+ALTER SEQUENCE public.c_formacion_id_cformacion_seq OWNED BY public.c_formacion.id_cformacion;
+postgres
+CREATE TABLE public.modulo (
+    id_modulo integer NOT NULL,
+    nombre character varying(100) NOT NULL,
+    descripcion text,
+    estado boolean DEFAULT true,
+    id_modulo_padre integer
+DROP TABLE public.modulo;
+postgres
+modulo_id_modulo_seq
+SEQUENCE
+CREATE SEQUENCE public.modulo_id_modulo_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+DROP SEQUENCE public.modulo_id_modulo_seq;
+postgres
+modulo_id_modulo_seq
+SEQUENCE OWNED BY
+ALTER SEQUENCE public.modulo_id_modulo_seq OWNED BY public.modulo.id_modulo;
+postgres
+modulo_perfil
+CREATE TABLE public.modulo_perfil (
+    id_modulo_perfil integer NOT NULL,
+    id_perfil integer NOT NULL,
+    id_modulo integer NOT NULL,
+    estado boolean DEFAULT true
+DROP TABLE public.modulo_perfil;
+postgres
+modulo_perfil_id_modulo_perfil_seq
+SEQUENCE
+CREATE SEQUENCE public.modulo_perfil_id_modulo_perfil_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+DROP SEQUENCE public.modulo_perfil_id_modulo_perfil_seq;
+postgres
+modulo_perfil_id_modulo_perfil_seq
+SEQUENCE OWNED BY
+ALTER SEQUENCE public.modulo_perfil_id_modulo_perfil_seq OWNED BY public.modulo_perfil.id_modulo_perfil;
+postgres
+CREATE TABLE public.perfil (
+    id_perfil integer NOT NULL,
+    nombre character varying(100) NOT NULL,
+    descripcion text,
+    estado boolean DEFAULT true
+DROP TABLE public.perfil;
+postgres
+perfil_id_perfil_seq
+SEQUENCE
+CREATE SEQUENCE public.perfil_id_perfil_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+DROP SEQUENCE public.perfil_id_perfil_seq;
+postgres
+perfil_id_perfil_seq
+SEQUENCE OWNED BY
+ALTER SEQUENCE public.perfil_id_perfil_seq OWNED BY public.perfil.id_perfil;
+postgres
+regional
+CREATE TABLE public.regional (
+    id_regional integer NOT NULL,
+    nombre character varying(150) NOT NULL
+DROP TABLE public.regional;
+postgres
+regional_id_regional_seq
+SEQUENCE
+CREATE SEQUENCE public.regional_id_regional_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+DROP SEQUENCE public.regional_id_regional_seq;
+postgres
+regional_id_regional_seq
+SEQUENCE OWNED BY
+ALTER SEQUENCE public.regional_id_regional_seq OWNED BY public.regional.id_regional;
+postgres
+CREATE TABLE public.usuario (
+    id_usuario integer NOT NULL,
+    id_cformacion integer NOT NULL,
+    id_perfil integer NOT NULL,
+    nombres character varying(100) NOT NULL,
+    apellidos character varying(100) NOT NULL,
+    tipo_documento character varying(30) NOT NULL,
+    numero_documento character varying(30) NOT NULL,
+    correo character varying(150) NOT NULL,
+    password text NOT NULL,
+    estado boolean DEFAULT true
+DROP TABLE public.usuario;
+postgres
+usuario_id_usuario_seq
+SEQUENCE
+CREATE SEQUENCE public.usuario_id_usuario_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+DROP SEQUENCE public.usuario_id_usuario_seq;
+postgres
+usuario_id_usuario_seq
+SEQUENCE OWNED BY
+ALTER SEQUENCE public.usuario_id_usuario_seq OWNED BY public.usuario.id_usuario;
+postgres
+c_formacion id_cformacion
+ALTER TABLE ONLY public.c_formacion ALTER COLUMN id_cformacion SET DEFAULT nextval('public.c_formacion_id_cformacion_seq'::regclass);
+ALTER TABLE public.c_formacion ALTER COLUMN id_cformacion DROP DEFAULT;
+postgres
+modulo id_modulo
+ALTER TABLE ONLY public.modulo ALTER COLUMN id_modulo SET DEFAULT nextval('public.modulo_id_modulo_seq'::regclass);
+ALTER TABLE public.modulo ALTER COLUMN id_modulo DROP DEFAULT;
+postgres
+modulo_perfil id_modulo_perfil
+ALTER TABLE ONLY public.modulo_perfil ALTER COLUMN id_modulo_perfil SET DEFAULT nextval('public.modulo_perfil_id_modulo_perfil_seq'::regclass);
+ALTER TABLE public.modulo_perfil ALTER COLUMN id_modulo_perfil DROP DEFAULT;
+postgres
+perfil id_perfil
+ALTER TABLE ONLY public.perfil ALTER COLUMN id_perfil SET DEFAULT nextval('public.perfil_id_perfil_seq'::regclass);
+ALTER TABLE public.perfil ALTER COLUMN id_perfil DROP DEFAULT;
+postgres
+regional id_regional
+ALTER TABLE ONLY public.regional ALTER COLUMN id_regional SET DEFAULT nextval('public.regional_id_regional_seq'::regclass);
+ALTER TABLE public.regional ALTER COLUMN id_regional DROP DEFAULT;
+postgres
+usuario id_usuario
+ALTER TABLE ONLY public.usuario ALTER COLUMN id_usuario SET DEFAULT nextval('public.usuario_id_usuario_seq'::regclass);
+ALTER TABLE public.usuario ALTER COLUMN id_usuario DROP DEFAULT;
+postgres
+c_formacion
+TABLE DATA
+COPY public.c_formacion (id_cformacion, id_regional, nombre) FROM stdin;
+postgres
+TABLE DATA
+COPY public.modulo (id_modulo, nombre, descripcion, estado, id_modulo_padre) FROM stdin;
+postgres
+modulo_perfil
+TABLE DATA
+COPY public.modulo_perfil (id_modulo_perfil, id_perfil, id_modulo, estado) FROM stdin;
+postgres
+TABLE DATA
+COPY public.perfil (id_perfil, nombre, descripcion, estado) FROM stdin;
+postgres
+regional
+TABLE DATA
+COPY public.regional (id_regional, nombre) FROM stdin;
+postgres
+TABLE DATA
+COPY public.usuario (id_usuario, id_cformacion, id_perfil, nombres, apellidos, tipo_documento, numero_documento, correo, password, estado) FROM stdin;
+postgres
+c_formacion_id_cformacion_seq
+SEQUENCE SET
+SELECT pg_catalog.setval('public.c_formacion_id_cformacion_seq', 3, true);
+postgres
+modulo_id_modulo_seq
+SEQUENCE SET
+SELECT pg_catalog.setval('public.modulo_id_modulo_seq', 3, true);
+postgres
+modulo_perfil_id_modulo_perfil_seq
+SEQUENCE SET
+SELECT pg_catalog.setval('public.modulo_perfil_id_modulo_perfil_seq', 6, true);
+postgres
+perfil_id_perfil_seq
+SEQUENCE SET
+SELECT pg_catalog.setval('public.perfil_id_perfil_seq', 3, true);
+postgres
+regional_id_regional_seq
+SEQUENCE SET
+SELECT pg_catalog.setval('public.regional_id_regional_seq', 2, true);
+postgres
+usuario_id_usuario_seq
+SEQUENCE SET
+SELECT pg_catalog.setval('public.usuario_id_usuario_seq', 10, true);
+postgres
+c_formacion c_formacion_pkey
+CONSTRAINT
+ALTER TABLE ONLY public.c_formacion
+    ADD CONSTRAINT c_formacion_pkey PRIMARY KEY (id_cformacion);
+ALTER TABLE ONLY public.c_formacion DROP CONSTRAINT c_formacion_pkey;
+postgres
+modulo_perfil modulo_perfil_pkey
+CONSTRAINT
+ALTER TABLE ONLY public.modulo_perfil
+    ADD CONSTRAINT modulo_perfil_pkey PRIMARY KEY (id_modulo_perfil);
+ALTER TABLE ONLY public.modulo_perfil DROP CONSTRAINT modulo_perfil_pkey;
+postgres
+modulo modulo_pkey
+CONSTRAINT
+ALTER TABLE ONLY public.modulo
+    ADD CONSTRAINT modulo_pkey PRIMARY KEY (id_modulo);
+ALTER TABLE ONLY public.modulo DROP CONSTRAINT modulo_pkey;
+postgres
+perfil perfil_pkey
+CONSTRAINT
+ALTER TABLE ONLY public.perfil
+    ADD CONSTRAINT perfil_pkey PRIMARY KEY (id_perfil);
+ALTER TABLE ONLY public.perfil DROP CONSTRAINT perfil_pkey;
+postgres
+regional regional_pkey
+CONSTRAINT
+ALTER TABLE ONLY public.regional
+    ADD CONSTRAINT regional_pkey PRIMARY KEY (id_regional);
+ALTER TABLE ONLY public.regional DROP CONSTRAINT regional_pkey;
+postgres
+modulo_perfil uq_modulo_perfil
+CONSTRAINT
+ALTER TABLE ONLY public.modulo_perfil
+    ADD CONSTRAINT uq_modulo_perfil UNIQUE (id_perfil, id_modulo);
+ALTER TABLE ONLY public.modulo_perfil DROP CONSTRAINT uq_modulo_perfil;
+postgres
+usuario usuario_correo_key
+CONSTRAINT
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_correo_key UNIQUE (correo);
+ALTER TABLE ONLY public.usuario DROP CONSTRAINT usuario_correo_key;
+postgres
+usuario usuario_numero_documento_key
+CONSTRAINT
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_numero_documento_key UNIQUE (numero_documento);
+ALTER TABLE ONLY public.usuario DROP CONSTRAINT usuario_numero_documento_key;
+postgres
+usuario usuario_pkey
+CONSTRAINT
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_pkey PRIMARY KEY (id_usuario);
+ALTER TABLE ONLY public.usuario DROP CONSTRAINT usuario_pkey;
+postgres
+c_formacion fk_cformacion_regional
+FK CONSTRAINT
+ALTER TABLE ONLY public.c_formacion
+    ADD CONSTRAINT fk_cformacion_regional FOREIGN KEY (id_regional) REFERENCES public.regional(id_regional) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE ONLY public.c_formacion DROP CONSTRAINT fk_cformacion_regional;
+postgres
+modulo fk_modulo_padre
+FK CONSTRAINT
+ALTER TABLE ONLY public.modulo
+    ADD CONSTRAINT fk_modulo_padre FOREIGN KEY (id_modulo_padre) REFERENCES public.modulo(id_modulo) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE ONLY public.modulo DROP CONSTRAINT fk_modulo_padre;
+postgres
+modulo_perfil fk_modulo_perfil_modulo
+FK CONSTRAINT
+ALTER TABLE ONLY public.modulo_perfil
+    ADD CONSTRAINT fk_modulo_perfil_modulo FOREIGN KEY (id_modulo) REFERENCES public.modulo(id_modulo) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY public.modulo_perfil DROP CONSTRAINT fk_modulo_perfil_modulo;
+postgres
+modulo_perfil fk_modulo_perfil_perfil
+FK CONSTRAINT
+ALTER TABLE ONLY public.modulo_perfil
+    ADD CONSTRAINT fk_modulo_perfil_perfil FOREIGN KEY (id_perfil) REFERENCES public.perfil(id_perfil) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY public.modulo_perfil DROP CONSTRAINT fk_modulo_perfil_perfil;
+postgres
+usuario fk_usuario_cformacion
+FK CONSTRAINT
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT fk_usuario_cformacion FOREIGN KEY (id_cformacion) REFERENCES public.c_formacion(id_cformacion) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE ONLY public.usuario DROP CONSTRAINT fk_usuario_cformacion;
+postgres
+usuario fk_usuario_perfil
+FK CONSTRAINT
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT fk_usuario_perfil FOREIGN KEY (id_perfil) REFERENCES public.perfil(id_perfil) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE ONLY public.usuario DROP CONSTRAINT fk_usuario_perfil;
+postgres

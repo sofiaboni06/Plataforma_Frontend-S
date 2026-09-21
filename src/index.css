@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-sena: #00a651;
+  --color-sena-dark: #004623;
+  --color-sena-forest: #013318;
+  --color-sena-orange: #f7931e;
+  --color-sena-muted: #f4f6fb;
+  --color-sena-text: #212519;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+#root {
+  max-width: 100%;
+  min-height: 100svh;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+img {
+  max-width: 100%;
+}
+
+.app-shell {
+  font-family: var(--font-sans);
+  color: var(--color-sena-text);
+  min-height: 100svh;
+  -webkit-font-smoothing: antialiased;
+}
