@@ -28,8 +28,40 @@ export function grantedModuleLinks(modules: AppModule[]) {
     .sort((left, right) => left.order - right.order)
 }
 
-export function canOpenPath(path: string, modules: AppModule[], isAdmin: boolean) {
-  if (path === '/inicio' || path === '/perfil') return true
-  if (isAdmin && (path === '/usuarios' || path === '/perfiles')) return true
-  return modules.some((item) => item.to === path)
+const INVENTORY_CHILD_PATH_PREFIXES = [
+  '/inventario/categorias',
+]
+
+export function canOpenPath(
+  path: string,
+  modules: AppModule[],
+  isAdmin: boolean,
+) {
+  if (path === '/inicio' || path === '/perfil') {
+    return true
+  }
+
+  if (
+    isAdmin &&
+    (path === '/usuarios' || path === '/perfiles')
+  ) {
+    return true
+  }
+
+  if (modules.some((item) => item.to === path)) {
+    return true
+  }
+
+  const isInventoryCategoryPath =
+    INVENTORY_CHILD_PATH_PREFIXES.some(
+      (prefix) =>
+        path === prefix ||
+        path.startsWith(`${prefix}/`),
+    )
+
+  if (isInventoryCategoryPath) {
+    return modules.some((item) => item.to === '/inventario')
+  }
+
+  return false
 }
