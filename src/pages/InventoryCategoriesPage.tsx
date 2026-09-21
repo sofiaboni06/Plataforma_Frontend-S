@@ -97,7 +97,11 @@ export default function InventoryCategoriesPage() {
 
         if (cancelled) return
 
-        setCategories(categoryList)
+        setCategories(
+          [...categoryList].sort(
+            (a, b) => b.id - a.id,
+          ),
+        )
         setSubcategories(
           subcategoryList,
         )
@@ -475,9 +479,11 @@ export default function InventoryCategoriesPage() {
                     pageRows.map(
                       (category) => {
                         const categorySubcategories =
-                          subcategoriesByCategory.get(
+                          (subcategoriesByCategory.get(
                             category.id,
-                          ) ?? []
+                          ) ?? []).filter(
+                            (item) => item.estado,
+                          )
 
                         return (
                           <tr
@@ -500,7 +506,9 @@ export default function InventoryCategoriesPage() {
 
                             <td className="px-5 py-4 text-center text-sena-text/70">
                               {
-                                categorySubcategories.length
+                                categorySubcategories.filter(
+                                  (item) => item.estado,
+                                ).length
                               }
                             </td>
 

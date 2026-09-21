@@ -4,7 +4,10 @@ import AppLayout from '../components/layout/AppLayout'
 import Button from '../components/ui/Button'
 import TextField from '../components/ui/TextField'
 import { ApiError, api } from '../lib/api'
-import type { CategoryApi } from '../types/category'
+import type {
+  CategoryApi,
+  SubcategoryApi,
+} from '../types/category'
 import type { UserFormOptions } from '../types/profile'
 
 type SubcategoryDraft = {
@@ -22,6 +25,12 @@ export default function CreateInventoryCategoryPage() {
   const [centers, setCenters] =
     useState<UserFormOptions['centers']>([])
 
+  const [existingCategories, setExistingCategories] =
+    useState<CategoryApi[]>([])
+
+  const [existingSubcategories, setExistingSubcategories] =
+    useState<SubcategoryApi[]>([])
+
   const [subcategories, setSubcategories] =
     useState<SubcategoryDraft[]>([])
 
@@ -37,6 +46,9 @@ export default function CreateInventoryCategoryPage() {
   const [error, setError] =
     useState<string | null>(null)
 
+  const [warningMessage, setWarningMessage] =
+    useState<string | null>(null)
+
   useEffect(() => {
     document.title =
       'Crear categoría | Inventario | SENA'
@@ -47,14 +59,24 @@ export default function CreateInventoryCategoryPage() {
 
     async function loadCenters() {
       try {
-        const options =
-          await api<UserFormOptions>(
-            '/users/options',
-          )
+        const [options, categoryList, subcategoryList] =
+          await Promise.all([
+            api<UserFormOptions>(
+              '/users/options',
+            ),
+            api<CategoryApi[]>(
+              '/categorias',
+            ),
+            api<SubcategoryApi[]>(
+              '/subcategorias',
+            ),
+          ])
 
         if (cancelled) return
 
         setCenters(options.centers)
+        setExistingCategories(categoryList)
+        setExistingSubcategories(subcategoryList)
       } catch (caught) {
         if (!cancelled) {
           setError(
@@ -77,11 +99,42 @@ export default function CreateInventoryCategoryPage() {
     }
   }, [])
 
+  const normalizeName = (value: string) =>
+    value.trim().toLowerCase().replace(/\s+/g, ' ')
+
   const addSubcategory = () => {
-    const value =
-      subcategoryName.trim()
+    const value = subcategoryName.trim()
 
     if (!value) return
+
+    const normalizedValue = normalizeName(value)
+
+    const existingSubcategory = existingSubcategories.find(
+      (item) => normalizeName(item.nombre) === normalizedValue,
+    )
+
+    if (existingSubcategory) {
+      const parentCategory = existingCategories.find(
+        (category) => category.id === existingSubcategory.idCategoria,
+      )
+
+      setWarningMessage(
+        `La subcategoría "${value}" ya está creada en "${parentCategory?.nombre ?? 'otra categoría'}".`,
+      )
+
+      return
+    }
+
+    const duplicateInForm = subcategories.some(
+      (item) => normalizeName(item.name) === normalizedValue,
+    )
+
+    if (duplicateInForm) {
+      setWarningMessage(
+        `La subcategoría "${value}" ya está creada en "${name.trim() || 'esta categoría'}".`,
+      )
+      return
+    }
 
     setSubcategories((current) => [
       ...current,
@@ -109,25 +162,37 @@ export default function CreateInventoryCategoryPage() {
   ) => {
     event.preventDefault()
 
-    if (
-      !trainingCenterId ||
-      !name.trim()
-    ) {
+    if (!trainingCenterId || !name.trim()) {
       setError(
         'Completa el centro de formación y el nombre de la categoría.',
       )
       return
     }
 
-    const centerId =
-      Number(trainingCenterId)
+    const centerId = Number(trainingCenterId)
 
-    if (
-      !Number.isInteger(centerId) ||
-      centerId <= 0
-    ) {
+    if (!Number.isInteger(centerId) || centerId <= 0) {
       setError(
         'Selecciona un centro de formación válido.',
+      )
+      return
+    }
+
+    const normalizedName = name
+      .trim()
+      .toLowerCase()
+
+    const duplicatedCategory =
+      existingCategories.some(
+        (category) =>
+          category.nombre
+            .trim()
+            .toLowerCase() === normalizedName,
+      )
+
+    if (duplicatedCategory) {
+      setWarningMessage(
+        `La categoría "${name.trim()}" ya está creada.`,
       )
       return
     }
@@ -136,7 +201,36 @@ export default function CreateInventoryCategoryPage() {
     setError(null)
 
     try {
-      await api<CategoryApi>(
+      for (const subcategory of subcategories) {
+        const normalizedValue = normalizeName(
+          subcategory.name,
+        )
+
+        const existingSubcategory =
+          existingSubcategories.find(
+            (item) =>
+              normalizeName(item.nombre) ===
+              normalizedValue,
+          )
+
+        if (existingSubcategory) {
+          const parentCategory =
+            existingCategories.find(
+              (category) =>
+                category.id ===
+                existingSubcategory.idCategoria,
+            )
+
+          setWarningMessage(
+            `La subcategoría "${subcategory.name}" ya está creada en "${parentCategory?.nombre ?? 'otra categoría'}".`,
+          )
+
+          setSaving(false)
+          return
+        }
+      }
+
+      const createdCategory = await api<CategoryApi>(
         '/categorias',
         {
           method: 'POST',
@@ -147,6 +241,20 @@ export default function CreateInventoryCategoryPage() {
           }),
         },
       )
+
+      for (const subcategory of subcategories) {
+        await api<SubcategoryApi>(
+          '/subcategorias',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              idCategoria: createdCategory.id,
+              nombre: subcategory.name,
+              estado: true,
+            }),
+          },
+        )
+      }
 
       navigate(
         '/inventario/categorias',
@@ -165,6 +273,48 @@ export default function CreateInventoryCategoryPage() {
 
   return (
     <AppLayout title="Crear categoría">
+      {warningMessage ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setWarningMessage(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="grid size-12 shrink-0 place-items-center rounded-full bg-orange-100 text-orange-600">
+                <WarningIcon className="size-6" />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-bold text-sena-dark">
+                  Advertencia
+                </h2>
+
+                <p className="mt-1 text-sm text-sena-text/55">
+                  Revisa la información ingresada.
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-5 text-sm leading-6 text-sena-text/70">
+              {warningMessage}
+            </p>
+
+            <div className="mt-6 flex justify-end">
+              <Button
+                type="button"
+                onClick={() => setWarningMessage(null)}
+                className="bg-orange-500 hover:bg-orange-600"
+              >
+                Entendido
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex min-h-[calc(100svh-7rem)] items-center justify-center py-8">
         <form
           onSubmit={handleSubmit}
@@ -505,6 +655,29 @@ function ChevronDownIcon({
       aria-hidden="true"
     >
       <path d="m6 9 6 6 6-6" />
+    </svg>
+  )
+}
+
+function WarningIcon({
+  className,
+}: {
+  className?: string
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M10.3 3.9 2.5 17.5a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
     </svg>
   )
 }
