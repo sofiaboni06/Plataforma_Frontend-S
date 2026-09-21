@@ -8,10 +8,6 @@ import Dashboard from './pages/Dashboard'
 import EnvironmentalPage from './pages/EnvironmentalPage'
 import HomePage from './pages/HomePage'
 import InventoryPage from './pages/InventoryPage'
-import InventoryCategoriesPage from './pages/InventoryCategoriesPage'
-import CreateInventoryCategoryPage from './pages/CreateInventoryCategoryPage'
-import ViewInventoryCategoryPage from './pages/ViewInventoryCategoryPage'
-import EditInventoryCategoryPage from './pages/EditInventoryCategoryPage'
 import LoginPage from './pages/LoginPage'
 import MaterialsPage from './pages/MaterialsPage'
 import ProfilePage from './pages/ProfilePage'
@@ -51,41 +47,6 @@ function App() {
           <Route path="/recuperar" element={<RecoverPasswordPage />} />
           <Route path="/inicio" element={<Private><HomePage /></Private>} />
           <Route path="/inventario" element={<ModuleRoute><InventoryPage /></ModuleRoute>} />
-          <Route
-            path="/inventario/categorias"
-            element={
-              <ModuleRoute>
-                <InventoryCategoriesPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/categorias/crear"
-            element={
-              <ModuleRoute>
-                <CreateInventoryCategoryPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/categorias/:id"
-            element={
-              <ModuleRoute>
-                <ViewInventoryCategoryPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/categorias/:id/editar"
-            element={
-              <ModuleRoute>
-                <EditInventoryCategoryPage />
-              </ModuleRoute>
-            }
-          />
           <Route path="/materiales" element={<ModuleRoute><MaterialsPage /></ModuleRoute>} />
           <Route path="/ambiental" element={<ModuleRoute><EnvironmentalPage /></ModuleRoute>} />
           <Route path="/actividades" element={<ModuleRoute><ActivitiesPage /></ModuleRoute>} />
