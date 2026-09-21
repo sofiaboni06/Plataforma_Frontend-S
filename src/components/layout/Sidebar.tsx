@@ -1,4 +1,10 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import {
+  Link,
+  NavLink,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom'
+import { useState } from 'react'
 import { useAuth } from '../../lib/auth'
 import { grantedModuleLinks, toNavIcon } from '../../lib/access'
 import { cn } from '../../lib/cn'
@@ -17,7 +23,12 @@ const itemClass =
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { logout, modules, isAdmin } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const granted = grantedModuleLinks(modules)
+
+  const [inventoryOpen, setInventoryOpen] = useState(
+    location.pathname.startsWith('/inventario/categorias'),
+  )
 
   return (
     <aside
@@ -37,8 +48,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           onClick={onClose}
         >
           <SenaMark className="h-10 w-10" />
-          <span className="text-lg font-semibold tracking-tight">SENA</span>
+
+          <span className="text-lg font-semibold tracking-tight">
+            SENA
+          </span>
         </Link>
+
         <button
           type="button"
           className="rounded-md p-1 text-white/80 hover:bg-white/10 md:hidden"
@@ -50,23 +65,119 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 px-3 pt-2">
-        <SideLink to="/inicio" icon="home" onClose={onClose}>
+        <SideLink
+          to="/inicio"
+          icon="home"
+          onClose={onClose}
+        >
           Inicio
         </SideLink>
-        {granted.map((item) => (
-          <SideLink key={item.to} to={item.to as string} icon={toNavIcon(item.icon)} onClose={onClose}>
-            {item.label}
-          </SideLink>
-        ))}
-        <SideLink to="/perfil" icon="user" onClose={onClose}>
+
+        {granted.map((item) => {
+          if (item.to !== '/inventario') {
+            return (
+              <SideLink
+                key={item.to}
+                to={item.to as string}
+                icon={toNavIcon(item.icon)}
+                onClose={onClose}
+              >
+                {item.label}
+              </SideLink>
+            )
+          }
+
+          return (
+            <div key={item.to}>
+              <button
+                type="button"
+                onClick={() => {
+                  setInventoryOpen((value) => !value)
+                  navigate('/inventario')
+                }}
+                className={cn(
+                  itemClass,
+                  location.pathname.startsWith('/inventario')
+                    ? 'bg-white/15 text-white'
+                    : 'text-white/85 hover:bg-white/10 hover:text-white',
+                )}
+                aria-expanded={inventoryOpen}
+                aria-controls="menu-inventario"
+              >
+                <NavIcon
+                  name={toNavIcon(item.icon)}
+                  className="size-[1.15rem] shrink-0"
+                />
+
+                <span className="flex-1">
+                  {item.label}
+                </span>
+
+                <span
+                  className={cn(
+                    'text-xs transition-transform duration-150',
+                    inventoryOpen && 'rotate-180',
+                  )}
+                >
+                  ⌄
+                </span>
+              </button>
+
+              {inventoryOpen ? (
+                <div
+                  id="menu-inventario"
+                  className="ml-5 border-l border-white/10 pl-2"
+                >
+                  <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">
+                    Categorías
+                  </p>
+
+                  <SideLink
+                    to="/inventario/categorias/crear"
+                    icon="inventory"
+                    nested
+                    onClose={onClose}
+                  >
+                    Crear categoría
+                  </SideLink>
+
+                  <SideLink
+                    to="/inventario/categorias"
+                    icon="inventory"
+                    nested
+                    onClose={onClose}
+                  >
+                    Gestionar categorías
+                  </SideLink>
+                </div>
+              ) : null}
+            </div>
+          )
+        })}
+
+        <SideLink
+          to="/perfil"
+          icon="user"
+          onClose={onClose}
+        >
           Mi perfil
         </SideLink>
+
         {isAdmin ? (
           <>
-            <SideLink to="/usuarios" icon="settings" onClose={onClose}>
+            <SideLink
+              to="/usuarios"
+              icon="settings"
+              onClose={onClose}
+            >
               Usuarios
             </SideLink>
-            <SideLink to="/perfiles" icon="user" onClose={onClose}>
+
+            <SideLink
+              to="/perfiles"
+              icon="user"
+              onClose={onClose}
+            >
               Perfiles
             </SideLink>
           </>
@@ -76,7 +187,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <div className="px-3 pb-5">
         <button
           type="button"
-          className={cn(itemClass, 'text-white/80 hover:bg-white/10 hover:text-white')}
+          className={cn(
+            itemClass,
+            'text-white/80 hover:bg-white/10 hover:text-white',
+          )}
           onClick={() => {
             void logout().then(() => {
               onClose()
@@ -97,25 +211,40 @@ function SideLink({
   icon,
   onClose,
   children,
+  end = true,
+  nested = false,
 }: {
   to: string
   icon: NavIconName
   onClose: () => void
   children: string
+  end?: boolean
+  nested?: boolean
 }) {
   return (
     <NavLink
       to={to}
-      end
+      end={end}
       onClick={onClose}
       className={({ isActive }) =>
         cn(
           itemClass,
-          isActive ? 'bg-white/15 text-white' : 'text-white/85 hover:bg-white/10 hover:text-white',
+          nested && 'pl-3 text-xs',
+          isActive
+            ? 'bg-white/15 text-white'
+            : 'text-white/85 hover:bg-white/10 hover:text-white',
         )
       }
     >
-      <NavIcon name={icon} className="size-[1.15rem] shrink-0" />
+      <NavIcon
+        name={icon}
+        className={
+          nested
+            ? 'size-4 shrink-0'
+            : 'size-[1.15rem] shrink-0'
+        }
+      />
+
       {children}
     </NavLink>
   )
