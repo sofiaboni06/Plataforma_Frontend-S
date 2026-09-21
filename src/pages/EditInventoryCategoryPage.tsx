@@ -25,6 +25,90 @@ export default function EditInventoryCategoryPage() {
   const [subcategories, setSubcategories] =
     useState<SubcategoryApi[]>([])
 
+  const [allSubcategories, setAllSubcategories] =
+    useState<SubcategoryApi[]>([])
+
+  const [allCategories, setAllCategories] =
+    useState<CategoryApi[]>([])
+
+  const [removedSubcategoryIds, setRemovedSubcategoryIds] =
+    useState<number[]>([])
+
+  const [newSubcategoryName, setNewSubcategoryName] =
+    useState('')
+
+  const normalizeName = (value: string) =>
+    value.trim().toLowerCase().replace(/\s+/g, ' ')
+
+  const addSubcategory = () => {
+    const value = newSubcategoryName.trim()
+
+    if (!value) return
+
+    const normalizedValue = normalizeName(value)
+
+    const existingSubcategory = allSubcategories.find(
+      (item) =>
+        normalizeName(item.nombre) === normalizedValue &&
+        item.estado,
+    )
+
+    if (existingSubcategory) {
+      const parentCategory = allCategories.find(
+        (item) =>
+          item.id === existingSubcategory.idCategoria,
+      )
+
+      setWarningMessage(
+        `La subcategoría "${value}" ya está creada en "${parentCategory?.nombre ?? 'otra categoría'}".`,
+      )
+
+      return
+    }
+
+    const duplicateInForm = subcategories.some(
+      (item) =>
+        normalizeName(item.nombre) === normalizedValue,
+    )
+
+    if (duplicateInForm) {
+      setWarningMessage(
+        `La subcategoría "${value}" ya está creada en "${category?.nombre ?? 'esta categoría'}".`,
+      )
+
+      return
+    }
+
+    setSubcategories((current) => [
+      ...current,
+      {
+        id: -Date.now(),
+        idCategoria: Number(id),
+        nombre: value,
+        estado: true,
+      },
+    ])
+
+    setNewSubcategoryName('')
+    setError(null)
+  }
+
+  const removeSubcategory = (subcategoryId: number) => {
+    if (subcategoryId > 0) {
+      setRemovedSubcategoryIds((current) =>
+        current.includes(subcategoryId)
+          ? current
+          : [...current, subcategoryId],
+      )
+    }
+
+    setSubcategories((current) =>
+      current.filter(
+        (item) => item.id !== subcategoryId,
+      ),
+    )
+  }
+
   const [name, setName] =
     useState('')
 
@@ -43,6 +127,9 @@ export default function EditInventoryCategoryPage() {
   const [error, setError] =
     useState<string | null>(null)
 
+  const [warningMessage, setWarningMessage] =
+    useState<string | null>(null)
+
   useEffect(() => {
     let cancelled = false
 
@@ -54,6 +141,7 @@ export default function EditInventoryCategoryPage() {
           categoryData,
           options,
           subcategoryData,
+          categoryList,
         ] = await Promise.all([
           api<CategoryApi>(
             `/categorias/${id}`,
@@ -63,6 +151,9 @@ export default function EditInventoryCategoryPage() {
           ),
           api<SubcategoryApi[]>(
             '/subcategorias',
+          ),
+          api<CategoryApi[]>(
+            '/categorias',
           ),
         ])
 
@@ -76,11 +167,20 @@ export default function EditInventoryCategoryPage() {
           options.centers,
         )
 
+        setAllSubcategories(
+          subcategoryData,
+        )
+
+        setAllCategories(
+          categoryList,
+        )
+
         setSubcategories(
           subcategoryData.filter(
             (item) =>
               item.idCategoria ===
-              categoryData.id,
+              categoryData.id &&
+              item.estado,
           ),
         )
 
@@ -144,16 +244,84 @@ export default function EditInventoryCategoryPage() {
         {
           method: 'PATCH',
           body: JSON.stringify({
-            idCformacion:
-              Number(
-                trainingCenterId,
-              ),
-            nombre:
-              name.trim(),
+            idCformacion: Number(trainingCenterId),
+            nombre: name.trim(),
             estado: active,
           }),
         },
       )
+
+      if (removedSubcategoryIds.length > 0) {
+        await Promise.all(
+          removedSubcategoryIds.map(
+            (subcategoryId) =>
+              api<SubcategoryApi>(
+                `/subcategorias/${subcategoryId}`,
+                {
+                  method: 'PATCH',
+                  body: JSON.stringify({
+                    estado: false,
+                  }),
+                },
+              ),
+          ),
+        )
+      }
+
+      const newSubcategories =
+        subcategories.filter(
+          (subcategory) =>
+            subcategory.id < 0,
+        )
+
+      for (const subcategory of newSubcategories) {
+        const normalizedValue = normalizeName(
+          subcategory.nombre,
+        )
+
+        const existingSubcategory =
+          allSubcategories.find(
+            (item) =>
+              item.id > 0 &&
+              normalizeName(item.nombre) ===
+              normalizedValue,
+          )
+
+        if (existingSubcategory) {
+          const parentCategory =
+            allCategories.find(
+              (category) =>
+                category.id ===
+                existingSubcategory.idCategoria,
+            )
+
+          setWarningMessage(
+            `La subcategoría "${subcategory.nombre}" ya está creada en "${parentCategory?.nombre ?? 'otra categoría'}".`,
+          )
+
+          setSaving(false)
+          return
+        }
+      }
+
+      if (newSubcategories.length > 0) {
+        await Promise.all(
+          newSubcategories.map(
+            (subcategory) =>
+              api<SubcategoryApi>(
+                '/subcategorias',
+                {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    idCategoria: Number(id),
+                    nombre: subcategory.nombre,
+                    estado: true,
+                  }),
+                },
+              ),
+          ),
+        )
+      }
 
       navigate(
         '/inventario/categorias',
@@ -163,7 +331,7 @@ export default function EditInventoryCategoryPage() {
       setError(
         caught instanceof ApiError
           ? caught.message
-          : 'No se pudo guardar la categoría.',
+          : 'No se pudieron guardar los cambios.',
       )
     } finally {
       setSaving(false)
@@ -197,6 +365,48 @@ export default function EditInventoryCategoryPage() {
 
   return (
     <AppLayout title="Editar categoría">
+      {warningMessage ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setWarningMessage(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="grid size-12 shrink-0 place-items-center rounded-full bg-orange-100 text-orange-600">
+                <WarningIcon className="size-6" />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-bold text-sena-dark">
+                  Advertencia
+                </h2>
+
+                <p className="mt-1 text-sm text-sena-text/55">
+                  Revisa la información ingresada.
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-5 text-sm leading-6 text-sena-text/70">
+              {warningMessage}
+            </p>
+
+            <div className="mt-6 flex justify-end">
+              <Button
+                type="button"
+                onClick={() => setWarningMessage(null)}
+                className="bg-orange-500 hover:bg-orange-600"
+              >
+                Entendido
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex min-h-[calc(100svh-7rem)] items-center justify-center py-8">
         <form
           onSubmit={
@@ -268,9 +478,36 @@ export default function EditInventoryCategoryPage() {
                 </span>
               </div>
 
+              <div className="mb-3 flex items-end gap-2">
+                <div className="min-w-0 flex-1">
+                  <TextField
+                    id="newSubcategoryName"
+                    label="Nueva subcategoría"
+                    value={newSubcategoryName}
+                    onChange={(event) =>
+                      setNewSubcategoryName(
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Ej: Brochas"
+                    disabled={saving}
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={addSubcategory}
+                  disabled={saving}
+                >
+                  Agregar
+                </Button>
+              </div>
+
               <div className="overflow-hidden rounded-xl border border-sena-dark/10">
-                <div className="bg-sena-muted px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-sena-text/50">
-                  NOMBRE
+                <div className="grid grid-cols-[1fr_auto] items-center bg-sena-muted px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-sena-text/50">
+                  <span>NOMBRE</span>
+                  <span className="w-9" />
                 </div>
 
                 {subcategories.length ===
@@ -285,11 +522,26 @@ export default function EditInventoryCategoryPage() {
                         key={
                           subcategory.id
                         }
-                        className="border-t border-sena-dark/8 px-3 py-2.5 text-sm text-sena-text"
+                        className="grid grid-cols-[1fr_auto] items-center border-t border-sena-dark/8 px-3 py-2.5"
                       >
-                        {
-                          subcategory.nombre
-                        }
+                        <span className="text-sm text-sena-text">
+                          {subcategory.nombre}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeSubcategory(
+                              subcategory.id,
+                            )
+                          }
+                          disabled={saving}
+                          className="grid size-8 place-items-center rounded-lg text-sena-text/45 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label={`Quitar ${subcategory.nombre}`}
+                          title={`Quitar ${subcategory.nombre}`}
+                        >
+                          ×
+                        </button>
                       </div>
                     ),
                   )
@@ -447,6 +699,29 @@ function FolderIcon({
       aria-hidden="true"
     >
       <path d="M3.5 6.5h6l2 2h9v9.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-9.5a2 2 0 0 1 2-2Z" />
+    </svg>
+  )
+}
+
+function WarningIcon({
+  className,
+}: {
+  className?: string
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M10.3 3.9 2.5 17.5a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
     </svg>
   )
 }
