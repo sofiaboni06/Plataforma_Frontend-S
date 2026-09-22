@@ -20,6 +20,8 @@ import CreateBodegaPage from '@/modules/inventario/pages/CreateBodegaPage'
 import EditBodegaPage from '@/modules/inventario/pages/EditBodegaPage'
 import ViewBodegaPage from '@/modules/inventario/pages/ViewBodegaPage'
 import ViewStandPage from '@/modules/inventario/pages/ViewStandPage'
+import CreateStandPage from '@/modules/inventario/pages/CreateStandPage'
+import EditStandPage from '@/modules/inventario/pages/EditStandPage'
 
 import Dashboard from '@/modules/landing/pages/Dashboard'
 import LoginPage from '@/modules/auth/pages/LoginPage'
@@ -59,6 +61,14 @@ function App() {
           <Route path="/recuperar" element={<RecoverPasswordPage />} />
           <Route path="/inicio" element={<Private><HomePage /></Private>} />
           <Route path="/inventario" element={<ModuleRoute><InventoryPage /></ModuleRoute>} />
+          <Route
+           path="/inventario/bodegas/:bodegaId/stands/:standId/editar"
+          element={<EditStandPage />}
+              />
+          <Route
+           path="/inventario/bodegas/:id_bodega/stands/crear"
+             element={<CreateStandPage />}
+               />
           <Route
             path="/inventario/categorias"
             element={

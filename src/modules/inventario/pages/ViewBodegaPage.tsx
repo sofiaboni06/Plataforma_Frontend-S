@@ -1,277 +1,150 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+
 import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
-import {
-  createStand,
-  deleteStand,
-  getBodega,
-} from '@/modules/inventario/data/bodega'
-import type {
-  BodegaApi,
-  StandApi,
-} from '@/modules/inventario/types/bodega'
+import { getStand } from '@/modules/inventario/data/bodega'
+import type { StandApi } from '@/modules/inventario/types/bodega'
 
-export default function ViewBodegaPage() {
-  const { id } = useParams<{ id: string }>()
+export default function ViewStandPage() {
   const navigate = useNavigate()
 
-  const [bodega, setBodega] = useState<BodegaApi | null>(null)
+  const { bodegaId, standId } = useParams<{
+    bodegaId: string
+    standId: string
+  }>()
+
+  const [stand, setStand] = useState<StandApi | null>(null)
   const [loading, setLoading] = useState(true)
-  const [standName, setStandName] = useState('')
-  const [creatingStand, setCreatingStand] = useState(false)
   const [error, setError] = useState('')
 
-  async function loadBodega() {
-    if (!id) return
-
-    try {
-      setLoading(true)
-      setError('')
-
-      const result = await getBodega(id)
-
-      if (!result) {
-        navigate('/inventario/bodegas', { replace: true })
-        return
-      }
-
-      setBodega(result)
-    } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : 'No se pudo cargar la bodega.',
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    void loadBodega()
-  }, [id])
-
-  async function handleCreateStand() {
-    if (!id || !standName.trim()) return
-
-    try {
-      setCreatingStand(true)
-      setError('')
-
-      await createStand(id, {
-        nombre: standName.trim(),
-        estado: true,
-      })
-
-      setStandName('')
-      await loadBodega()
-    } catch (createError) {
-      setError(
-        createError instanceof Error
-          ? createError.message
-          : 'No se pudo crear el stand.',
-      )
-    } finally {
-      setCreatingStand(false)
+    if (!standId) {
+      setError('No se encontró el identificador del stand.')
+      console.error('No se encontró el identificador del stand.')
+      setLoading(false)
+      return
     }
-  }
 
-  async function handleDeleteStand(stand: StandApi) {
-    const confirmed = window.confirm(
-      `¿Deseas eliminar el stand "${stand.nombre}"?`,
-    )
+    async function load(currentStandId: string) {
+      try {
+        setLoading(true)
+        setError('')
 
-    if (!confirmed) return
+        const result = await getStand(currentStandId)
 
-    try {
-      await deleteStand(stand.id)
-      await loadBodega()
-    } catch (deleteError) {
-      setError(
-        deleteError instanceof Error
-          ? deleteError.message
-          : 'No se pudo eliminar el stand.',
-      )
+        setStand(result)
+      } catch (loadError) {
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : 'No se pudo cargar el stand.',
+        )
+      } finally {
+        setLoading(false)
+      }
     }
+
+    void load(standId)
+  }, [standId])
+
+  function goToBodega() {
+    navigate(`/inventario/bodegas/${bodegaId ?? ''}`)
   }
 
-  if (loading) {
-    return (
-      <AppLayout title="Ver bodega">
-        <div className="py-12 text-center text-sm text-sena-text/50">
-          Cargando bodega...
-        </div>
-      </AppLayout>
+  function goToEdit() {
+    if (!bodegaId || !standId) return
+
+    navigate(
+      `/inventario/bodegas/${bodegaId}/stands/${standId}/editar`,
     )
-  }
-
-  if (!bodega) {
-    return null
   }
 
   return (
-    <AppLayout title="Ver bodega">
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-sena/90">Inventario</p>
-            <h1 className="mt-1 text-2xl font-bold text-sena-text">
-              {bodega.nombre}
-            </h1>
-            <p className="mt-1 text-sm text-sena-text/55">
-              Detalle de la bodega y sus stands.
-            </p>
-          </div>
+    <AppLayout title="Ver stand">
+      <div className="mx-auto w-full max-w-3xl">
+        {/* Encabezado */}
+        <div className="mb-5">
+          <p className="text-sm font-medium text-sena/90">
+            Inventario
+          </p>
 
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => navigate('/inventario/bodegas')}
-            >
-              Volver
-            </Button>
+          <h1 className="mt-1 text-2xl font-bold text-sena-text">
+            Detalle del stand
+          </h1>
 
-            <Button
-              onClick={() =>
-                navigate(`/inventario/bodegas/${bodega.id}/editar`)
-              }
-            >
-              Editar
-            </Button>
-          </div>
+          <p className="mt-1 text-sm text-sena-text/55">
+            Consulta la información del stand.
+          </p>
         </div>
 
-        {error ? (
+        {/* Error */}
+        {error && !loading ? (
           <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         ) : null}
 
-        <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-sena-dark/8 sm:p-7">
-          <div className="grid gap-5 sm:grid-cols-3">
-            <Info
-              label="Nombre"
-              value={bodega.nombre}
-            />
-
-            <Info
-              label="Ubicación"
-              value={
-                bodega.ubicacion ??
-                bodega.centroFormacion?.nombre ??
-                '—'
-              }
-            />
-
-            <Info
-              label="Estado"
-              value={bodega.estado ? 'Activa' : 'Inactiva'}
-            />
+        {/* Cargando */}
+        {loading ? (
+          <div className="rounded-2xl bg-white p-8 text-center text-sm text-sena-text/50 shadow-sm ring-1 ring-sena-dark/8">
+            Cargando stand...
           </div>
-        </section>
-
-        <section className="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sena-dark/8">
-          <div className="border-b border-sena-dark/8 px-5 py-5 sm:px-7">
-            <h2 className="text-lg font-semibold text-sena-text">
-              Stands
-            </h2>
-            <p className="mt-1 text-sm text-sena-text/55">
-              Esta bodega tiene {bodega.totalStands} stand
-              {bodega.totalStands === 1 ? '' : 's'}.
+        ) : !stand ? (
+          /* Stand no encontrado */
+          <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-sena-dark/8">
+            <p className="text-sm text-sena-text/55">
+              No se encontró el stand.
             </p>
+
+            <div className="mt-5">
+              <Button onClick={goToBodega}>
+                Volver a la bodega
+              </Button>
+            </div>
           </div>
+        ) : (
+          <>
+            {/* Información del stand */}
+            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-sena-dark/8 sm:p-8">
+              <div className="grid gap-6 sm:grid-cols-2">
+                <Info
+                  label="Nombre"
+                  value={stand.nombre}
+                />
 
-          <div className="flex flex-col gap-3 border-b border-sena-dark/8 bg-sena-muted/40 p-5 sm:flex-row">
-            <input
-              value={standName}
-              onChange={(event) => setStandName(event.target.value)}
-              placeholder="Nombre del nuevo stand"
-              maxLength={150}
-              className="h-11 flex-1 rounded-lg border border-sena-dark/10 bg-white px-3.5 text-sm outline-none focus:border-sena focus:ring-2 focus:ring-sena/15"
-            />
+                <Info
+                  label="ID del stand"
+                  value={String(stand.idStand)}
+                />
 
-            <Button
-              disabled={creatingStand || !standName.trim()}
-              onClick={() => void handleCreateStand()}
-            >
-              {creatingStand ? 'Creando...' : 'Agregar stand'}
-            </Button>
-          </div>
+                <Info
+                  label="Estado"
+                  value={stand.estado ? 'Activo' : 'Inactivo'}
+                />
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[620px]">
-              <thead>
-                <tr className="bg-sena-muted/70 text-left text-xs font-semibold uppercase tracking-wide text-sena-text/55">
-                  <th className="px-5 py-4">Stand</th>
-                  <th className="px-5 py-4">ID</th>
-                  <th className="px-5 py-4 text-center">Estado</th>
-                  <th className="px-5 py-4 text-right">Acciones</th>
-                </tr>
-              </thead>
+                <Info
+                  label="Bodega"
+                  value={stand.bodega?.nombre ?? '—'}
+                />
+              </div>
+            </section>
 
-              <tbody>
-                {bodega.stands.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="px-5 py-10 text-center text-sm text-sena-text/50"
-                    >
-                      Esta bodega todavía no tiene stands.
-                    </td>
-                  </tr>
-                ) : (
-                  bodega.stands.map((stand) => (
-                    <tr
-                      key={stand.id}
-                      className="border-t border-sena-dark/6"
-                    >
-                      <td className="px-5 py-4 font-semibold text-sena-text">
-                        {stand.nombre}
-                      </td>
+            {/* Acciones */}
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                onClick={goToBodega}
+              >
+                Volver a la bodega
+              </Button>
 
-                      <td className="px-5 py-4 text-sm text-sena-text/60">
-                        {stand.idStand}
-                      </td>
-
-                      <td className="px-5 py-4 text-center">
-                        <span
-                          className={[
-                            'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
-                            stand.estado
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : 'bg-slate-100 text-slate-500',
-                          ].join(' ')}
-                        >
-                          {stand.estado ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <Link
-                            to={`/inventario/bodegas/${bodega.id}/stands/${stand.id}`}
-                            className="rounded-lg px-3 py-2 text-sm font-semibold text-sena-dark hover:bg-sena-muted"
-                          >
-                            Ver
-                          </Link>
-
-                          <button
-                            type="button"
-                            onClick={() => void handleDeleteStand(stand)}
-                            className="rounded-lg px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+              <Button onClick={goToEdit}>
+                Editar
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </AppLayout>
   )
@@ -289,6 +162,7 @@ function Info({
       <p className="text-xs font-semibold uppercase tracking-wide text-sena-text/45">
         {label}
       </p>
+
       <p className="mt-1.5 text-sm font-semibold text-sena-text">
         {value}
       </p>
