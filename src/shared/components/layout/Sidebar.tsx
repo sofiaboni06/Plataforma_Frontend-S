@@ -4,7 +4,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import SenaMark from '@/shared/components/icons/SenaMark'
 import { useAuth } from '@/modules/auth/context/auth'
 import type { NavIconName } from '@/shared/constants/navigation'
@@ -27,8 +27,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const granted = grantedModuleLinks(modules)
 
   const [inventoryOpen, setInventoryOpen] = useState(
-    location.pathname.startsWith('/inventario/categorias'),
+    location.pathname.startsWith('/inventario'),
   )
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/inventario')) {
+      setInventoryOpen(true)
+    }
+  }, [location.pathname])
 
   return (
     <aside
@@ -148,6 +154,28 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     onClose={onClose}
                   >
                     Gestionar categorías
+                  </SideLink>
+
+                  <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">
+                    Bodega
+                  </p>
+
+                  <SideLink
+                    to="/inventario/bodegas/crear"
+                    icon="inventory"
+                    nested
+                    onClose={onClose}
+                  >
+                    Crear bodega
+                  </SideLink>
+
+                  <SideLink
+                    to="/inventario/bodegas"
+                    icon="inventory"
+                    nested
+                    onClose={onClose}
+                  >
+                    Listar bodega
                   </SideLink>
                 </div>
               ) : null}

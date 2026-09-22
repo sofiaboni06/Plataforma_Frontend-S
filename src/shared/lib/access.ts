@@ -17,11 +17,14 @@ export function toNavIcon(name: string): NavIconName {
 
 export function grantedModuleLinks(modules: AppModule[]) {
   const seen = new Set<string>()
+
   return modules
     .filter((item) => item.to)
     .filter((item) => {
       const path = item.to as string
+
       if (seen.has(path)) return false
+
       seen.add(path)
       return true
     })
@@ -30,6 +33,7 @@ export function grantedModuleLinks(modules: AppModule[]) {
 
 const INVENTORY_CHILD_PATH_PREFIXES = [
   '/inventario/categorias',
+  '/inventario/bodegas',
 ]
 
 export function canOpenPath(
@@ -52,14 +56,14 @@ export function canOpenPath(
     return true
   }
 
-  const isInventoryCategoryPath =
+  const isInventoryChildPath =
     INVENTORY_CHILD_PATH_PREFIXES.some(
       (prefix) =>
         path === prefix ||
         path.startsWith(`${prefix}/`),
     )
 
-  if (isInventoryCategoryPath) {
+  if (isInventoryChildPath) {
     return modules.some((item) => item.to === '/inventario')
   }
 
