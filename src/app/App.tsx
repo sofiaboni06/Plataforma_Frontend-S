@@ -15,6 +15,11 @@ import InventoryCategoriesPage from '@/modules/inventario/pages/InventoryCategor
 import CreateInventoryCategoryPage from '@/modules/inventario/pages/CreateInventoryCategoryPage'
 import ViewInventoryCategoryPage from '@/modules/inventario/pages/ViewInventoryCategoryPage'
 import EditInventoryCategoryPage from '@/modules/inventario/pages/EditInventoryCategoryPage'
+import BodegasPage from '@/modules/inventario/pages/BodegaPage'
+import CreateBodegaPage from '@/modules/inventario/pages/CreateBodegaPage'
+import EditBodegaPage from '@/modules/inventario/pages/EditBodegaPage'
+import ViewBodegaPage from '@/modules/inventario/pages/ViewBodegaPage'
+import ViewStandPage from '@/modules/inventario/pages/ViewStandPage'
 
 import Dashboard from '@/modules/landing/pages/Dashboard'
 import LoginPage from '@/modules/auth/pages/LoginPage'
@@ -89,6 +94,52 @@ function App() {
               </ModuleRoute>
             }
           />
+
+          <Route
+            path="/inventario/bodegas"
+            element={
+              <ModuleRoute>
+                <BodegasPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/inventario/bodegas/crear"
+            element={
+              <ModuleRoute>
+                <CreateBodegaPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/inventario/bodegas/:id/editar"
+            element={
+              <ModuleRoute>
+                <EditBodegaPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/inventario/bodegas/:bodegaId/stands/:standId"
+            element={
+              <ModuleRoute>
+                <ViewStandPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/inventario/bodegas/:id"
+            element={
+              <ModuleRoute>
+                <ViewBodegaPage />
+              </ModuleRoute>
+            }
+          />
+
           <Route path="/materiales" element={<ModuleRoute><MaterialsPage /></ModuleRoute>} />
           <Route path="/ambiental" element={<ModuleRoute><EnvironmentalPage /></ModuleRoute>} />
           <Route path="/actividades" element={<ModuleRoute><ActivitiesPage /></ModuleRoute>} />
