@@ -14,6 +14,7 @@ import ActivitiesPage from '@/modules/actividades/pages/ActivitiesPage'
 import RolesPage from '@/modules/administracion/pages/RolesPage'
 import UsersPage from '@/modules/administracion/pages/UsersPage'
 import EnvironmentalPage from '@/modules/ambiental/pages/EnvironmentalPage'
+
 import HomePage from '@/modules/inicio/pages/HomePage'
 
 import InventoryPage from '@/modules/inventario/pages/InventoryPage'
@@ -27,9 +28,11 @@ import CreateBodegaPage from '@/modules/inventario/pages/CreateBodegaPage'
 import EditBodegaPage from '@/modules/inventario/pages/EditBodegaPage'
 import ViewBodegaPage from '@/modules/inventario/pages/ViewBodegaPage'
 
+import StandsPage from '@/modules/inventario/pages/StandsPage'
 import ViewStandPage from '@/modules/inventario/pages/ViewStandPage'
 import CreateStandPage from '@/modules/inventario/pages/CreateStandPage'
 import EditStandPage from '@/modules/inventario/pages/EditStandPage'
+
 import ElementosPage from '@/modules/inventario/pages/ElementosPage'
 
 import Dashboard from '@/modules/landing/pages/Dashboard'
@@ -78,7 +81,11 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Rutas públicas */}
+
+          {/* =========================
+              RUTAS PÚBLICAS
+          ========================== */}
+
           <Route
             path="/"
             element={<Dashboard />}
@@ -94,7 +101,10 @@ function App() {
             element={<RecoverPasswordPage />}
           />
 
-          {/* Inicio */}
+          {/* =========================
+              INICIO
+          ========================== */}
+
           <Route
             path="/inicio"
             element={
@@ -104,7 +114,10 @@ function App() {
             }
           />
 
-          {/* Inventario */}
+          {/* =========================
+              INVENTARIO
+          ========================== */}
+
           <Route
             path="/inventario"
             element={
@@ -114,13 +127,22 @@ function App() {
             }
           />
 
-          {/* Categorías */}
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/recuperar" element={<RecoverPasswordPage />} />
-          <Route path="/inicio" element={<Private><HomePage /></Private>} />
-          <Route path="/inventario" element={<ModuleRoute><InventoryPage /></ModuleRoute>} />
-          <Route path="/inventario/elementos" element={<ModuleRoute><ElementosPage /></ModuleRoute>} />
+          {/* =========================
+              ELEMENTOS
+          ========================== */}
+
+          <Route
+            path="/inventario/elementos"
+            element={
+              <ModuleRoute>
+                <ElementosPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* =========================
+              CATEGORÍAS
+          ========================== */}
 
           <Route
             path="/inventario/categorias"
@@ -158,7 +180,10 @@ function App() {
             }
           />
 
-          {/* Bodegas */}
+          {/* =========================
+              BODEGAS
+          ========================== */}
+
           <Route
             path="/inventario/bodegas"
             element={
@@ -195,7 +220,20 @@ function App() {
             }
           />
 
-          {/* Crear stand */}
+          {/* =========================
+              STANDS
+          ========================== */}
+
+          <Route
+            path="/inventario/stands"
+            element={
+              <ModuleRoute>
+                <StandsPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* Crear stand dentro de una bodega */}
           <Route
             path="/inventario/bodegas/:id_bodega/stands/crear"
             element={
@@ -225,7 +263,10 @@ function App() {
             }
           />
 
-          {/* Materiales */}
+          {/* =========================
+              MATERIALES
+          ========================== */}
+
           <Route
             path="/materiales"
             element={
@@ -235,7 +276,10 @@ function App() {
             }
           />
 
-          {/* Ambiental */}
+          {/* =========================
+              AMBIENTAL
+          ========================== */}
+
           <Route
             path="/ambiental"
             element={
@@ -245,7 +289,10 @@ function App() {
             }
           />
 
-          {/* Actividades */}
+          {/* =========================
+              ACTIVIDADES
+          ========================== */}
+
           <Route
             path="/actividades"
             element={
@@ -255,7 +302,10 @@ function App() {
             }
           />
 
-          {/* Reportes */}
+          {/* =========================
+              REPORTES
+          ========================== */}
+
           <Route
             path="/reportes"
             element={
@@ -265,7 +315,10 @@ function App() {
             }
           />
 
-          {/* Perfil */}
+          {/* =========================
+              PERFIL
+          ========================== */}
+
           <Route
             path="/perfil"
             element={
@@ -275,7 +328,10 @@ function App() {
             }
           />
 
-          {/* Administración */}
+          {/* =========================
+              ADMINISTRACIÓN
+          ========================== */}
+
           <Route
             path="/usuarios"
             element={
@@ -294,7 +350,10 @@ function App() {
             }
           />
 
-          {/* Ruta no encontrada */}
+          {/* =========================
+              RUTA NO ENCONTRADA
+          ========================== */}
+
           <Route
             path="*"
             element={
@@ -304,6 +363,7 @@ function App() {
               />
             }
           />
+
         </Routes>
       </AuthProvider>
     </BrowserRouter>

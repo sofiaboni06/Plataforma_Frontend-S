@@ -15,7 +15,7 @@ function EyeIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
-      className="size-[18px]"
+      className="size-4.5"
       aria-hidden="true"
     >
       <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
@@ -31,7 +31,7 @@ function EditIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
-      className="size-[18px]"
+      className="size-4.5"
       aria-hidden="true"
     >
       <path d="M4 20h4L19 9l-4-4L4 16v4Z" />
@@ -47,7 +47,7 @@ function TrashIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
-      className="size-[18px]"
+      className="size-4.5"
       aria-hidden="true"
     >
       <path d="M4 7h16" />
@@ -80,7 +80,7 @@ function SearchIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
-      className="size-[18px]"
+      className="size-4.5"
       aria-hidden="true"
     >
       <circle cx="11" cy="11" r="6.5" />
@@ -198,7 +198,7 @@ export default function BodegasPage() {
 
   return (
     <AppLayout title="Bodegas">
-      <div className="mx-auto w-full max-w-[87.5rem]">
+      <div className="mx-auto w-full max-w-350">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-sena-text sm:text-[2rem]">
@@ -221,9 +221,9 @@ export default function BodegasPage() {
         </div>
 
         <section className="overflow-hidden rounded-2xl bg-white shadow-[0_2px_12px_rgba(0,70,35,0.08)] ring-1 ring-sena-dark/8">
-          <div className="border-b border-sena-dark/8 px-5 py-[1.125rem] sm:px-6">
+          <div className="border-b border-sena-dark/8 px-5 py-4.5 sm:px-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="w-full xl:max-w-[21.5rem]">
+              <div className="w-full xl:max-w-86">
                 <label htmlFor="buscar-bodega" className="sr-only">
                   Buscar bodega
                 </label>
@@ -277,7 +277,7 @@ export default function BodegasPage() {
                 onClick={() => navigate('/inventario/bodegas/crear')}
                 className="h-11 rounded-lg bg-sena-dark px-5 hover:bg-sena-forest"
               >
-                Nueva bodega
+                Nueva Bodega
               </Button>
             </div>
           </div>
@@ -289,7 +289,7 @@ export default function BodegasPage() {
           ) : null}
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px]">
+            <table className="w-full min-w-245">
               <thead>
                 <tr className="border-b border-sena-dark/8 bg-sena-muted/55 text-left">
                   <th className="w-24 px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.06em] text-sena-text/55 sm:px-6">
