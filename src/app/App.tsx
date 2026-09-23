@@ -1,4 +1,10 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from 'react-router-dom'
+
 import RequireAdmin from '@/modules/auth/guards/RequireAdmin'
 import RequireAuth from '@/modules/auth/guards/RequireAuth'
 import RequireModule from '@/modules/auth/guards/RequireModule'
@@ -15,10 +21,12 @@ import InventoryCategoriesPage from '@/modules/inventario/pages/InventoryCategor
 import CreateInventoryCategoryPage from '@/modules/inventario/pages/CreateInventoryCategoryPage'
 import ViewInventoryCategoryPage from '@/modules/inventario/pages/ViewInventoryCategoryPage'
 import EditInventoryCategoryPage from '@/modules/inventario/pages/EditInventoryCategoryPage'
+
 import BodegasPage from '@/modules/inventario/pages/BodegaPage'
 import CreateBodegaPage from '@/modules/inventario/pages/CreateBodegaPage'
 import EditBodegaPage from '@/modules/inventario/pages/EditBodegaPage'
 import ViewBodegaPage from '@/modules/inventario/pages/ViewBodegaPage'
+
 import ViewStandPage from '@/modules/inventario/pages/ViewStandPage'
 import CreateStandPage from '@/modules/inventario/pages/CreateStandPage'
 import EditStandPage from '@/modules/inventario/pages/EditStandPage'
@@ -29,13 +37,22 @@ import MaterialsPage from '@/modules/materiales/pages/MaterialsPage'
 import ProfilePage from '@/modules/perfil/pages/ProfilePage'
 import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
+
 import type { ReactNode } from 'react'
 
-function Private({ children }: { children: ReactNode }) {
+function Private({
+  children,
+}: {
+  children: ReactNode
+}) {
   return <RequireAuth>{children}</RequireAuth>
 }
 
-function ModuleRoute({ children }: { children: ReactNode }) {
+function ModuleRoute({
+  children,
+}: {
+  children: ReactNode
+}) {
   return (
     <RequireAuth>
       <RequireModule>{children}</RequireModule>
@@ -43,7 +60,11 @@ function ModuleRoute({ children }: { children: ReactNode }) {
   )
 }
 
-function AdminRoute({ children }: { children: ReactNode }) {
+function AdminRoute({
+  children,
+}: {
+  children: ReactNode
+}) {
   return (
     <RequireAuth>
       <RequireAdmin>{children}</RequireAdmin>
@@ -56,19 +77,43 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/recuperar" element={<RecoverPasswordPage />} />
-          <Route path="/inicio" element={<Private><HomePage /></Private>} />
-          <Route path="/inventario" element={<ModuleRoute><InventoryPage /></ModuleRoute>} />
+          {/* Rutas públicas */}
           <Route
-           path="/inventario/bodegas/:bodegaId/stands/:standId/editar"
-          element={<EditStandPage />}
-              />
+            path="/"
+            element={<Dashboard />}
+          />
+
           <Route
-           path="/inventario/bodegas/:id_bodega/stands/crear"
-             element={<CreateStandPage />}
-               />
+            path="/login"
+            element={<LoginPage />}
+          />
+
+          <Route
+            path="/recuperar"
+            element={<RecoverPasswordPage />}
+          />
+
+          {/* Inicio */}
+          <Route
+            path="/inicio"
+            element={
+              <Private>
+                <HomePage />
+              </Private>
+            }
+          />
+
+          {/* Inventario */}
+          <Route
+            path="/inventario"
+            element={
+              <ModuleRoute>
+                <InventoryPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* Categorías */}
           <Route
             path="/inventario/categorias"
             element={
@@ -105,6 +150,7 @@ function App() {
             }
           />
 
+          {/* Bodegas */}
           <Route
             path="/inventario/bodegas"
             element={
@@ -124,24 +170,6 @@ function App() {
           />
 
           <Route
-            path="/inventario/bodegas/:id/editar"
-            element={
-              <ModuleRoute>
-                <EditBodegaPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/bodegas/:bodegaId/stands/:standId"
-            element={
-              <ModuleRoute>
-                <ViewStandPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
             path="/inventario/bodegas/:id"
             element={
               <ModuleRoute>
@@ -150,11 +178,96 @@ function App() {
             }
           />
 
-          <Route path="/materiales" element={<ModuleRoute><MaterialsPage /></ModuleRoute>} />
-          <Route path="/ambiental" element={<ModuleRoute><EnvironmentalPage /></ModuleRoute>} />
-          <Route path="/actividades" element={<ModuleRoute><ActivitiesPage /></ModuleRoute>} />
-          <Route path="/reportes" element={<ModuleRoute><ReportsPage /></ModuleRoute>} />
-          <Route path="/perfil" element={<Private><ProfilePage /></Private>} />
+          <Route
+            path="/inventario/bodegas/:id/editar"
+            element={
+              <ModuleRoute>
+                <EditBodegaPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* Crear stand */}
+          <Route
+            path="/inventario/bodegas/:id_bodega/stands/crear"
+            element={
+              <ModuleRoute>
+                <CreateStandPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* Ver stand */}
+          <Route
+            path="/inventario/bodegas/:id_bodega/stands/:id_stand"
+            element={
+              <ModuleRoute>
+                <ViewStandPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* Editar stand */}
+          <Route
+            path="/inventario/bodegas/:id_bodega/stands/:id_stand/editar"
+            element={
+              <ModuleRoute>
+                <EditStandPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* Materiales */}
+          <Route
+            path="/materiales"
+            element={
+              <ModuleRoute>
+                <MaterialsPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* Ambiental */}
+          <Route
+            path="/ambiental"
+            element={
+              <ModuleRoute>
+                <EnvironmentalPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* Actividades */}
+          <Route
+            path="/actividades"
+            element={
+              <ModuleRoute>
+                <ActivitiesPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* Reportes */}
+          <Route
+            path="/reportes"
+            element={
+              <ModuleRoute>
+                <ReportsPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* Perfil */}
+          <Route
+            path="/perfil"
+            element={
+              <Private>
+                <ProfilePage />
+              </Private>
+            }
+          />
+
+          {/* Administración */}
           <Route
             path="/usuarios"
             element={
@@ -163,6 +276,7 @@ function App() {
               </AdminRoute>
             }
           />
+
           <Route
             path="/perfiles"
             element={
@@ -171,7 +285,17 @@ function App() {
               </AdminRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/" replace />} />
+
+          {/* Ruta no encontrada */}
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to="/"
+                replace
+              />
+            }
+          />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
