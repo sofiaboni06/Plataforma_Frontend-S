@@ -1,9 +1,82 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState, type ReactNode } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import AppLayout from '@/shared/components/layout/AppLayout'
-import { getStand } from '@/modules/inventario/data/bodega'
+import { getBodega, getStand } from '@/modules/inventario/data/bodega'
 import type { StandApi } from '@/modules/inventario/types/bodega'
+
+function LayersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-7" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.5 4.5 7.2 12 11l7.5-3.8L12 3.5Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12 7.5 3.8 7.5-3.8" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 16.5 7.5 3.8 7.5-3.8" />
+    </svg>
+  )
+}
+
+function ChevronLeftIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m15 6-6 6 6 6" />
+    </svg>
+  )
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden="true">
+      <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+function HashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden="true">
+      <path strokeLinecap="round" d="M9 4 7 20M17 4l-2 16M4 9h16M3 15h16" />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m8.5 12.2 2.3 2.3 4.7-5" />
+    </svg>
+  )
+}
+
+function PinIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11Z" />
+      <circle cx="12" cy="10" r="2.2" />
+    </svg>
+  )
+}
+
+function BoxIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m4 8 8-4 8 4v8l-8 4-8-4V8Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m4 8 8 4 8-4M12 12v8" />
+    </svg>
+  )
+}
+
+function AddProductButton() {
+  return (
+    <button
+      type="button"
+      className="inline-flex h-10 items-center gap-2 rounded-full bg-sena px-4 text-sm font-semibold text-white transition hover:bg-[#009247]"
+    >
+      <PlusIcon />
+      Agregar producto al stand
+    </button>
+  )
+}
 
 export default function ViewStandPage() {
   const navigate = useNavigate()
@@ -14,50 +87,60 @@ export default function ViewStandPage() {
   }>()
 
   const [stand, setStand] = useState<StandApi | null>(null)
+  const [bodegaNombre, setBodegaNombre] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!id_stand) {
-      setError('No se encontró el stand.')
-      setLoading(false)
-      return
-    }
+    let cancelled = false
 
     async function loadStand() {
-  if (!id_stand) {
-    setError('No se encontró el stand.')
-    setLoading(false)
-    return
-  }
+      if (!id_stand) {
+        setError('No se encontró el stand.')
+        setLoading(false)
+        return
+      }
 
-  try {
-    setLoading(true)
-    setError('')
+      try {
+        setLoading(true)
+        setError('')
 
-    const result = await getStand(id_stand)
+        const [standResult, bodegaResult] = await Promise.all([
+          getStand(id_stand),
+          id_bodega ? getBodega(id_bodega) : Promise.resolve(null),
+        ])
 
-        if (!result) {
+        if (cancelled) return
+
+        if (!standResult) {
           setError('No se encontró el stand.')
           return
         }
 
-        setStand(result)
-      } catch (err) {
-        console.error(err)
-
+        setStand(standResult)
+        setBodegaNombre(bodegaResult?.nombre ?? standResult.bodega?.nombre ?? '')
+      } catch (loadError) {
+        if (cancelled) return
         setError(
-          err instanceof Error
-            ? err.message
+          loadError instanceof Error
+            ? loadError.message
             : 'No se pudo cargar el stand.',
         )
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     void loadStand()
-  }, [id_stand])
+
+    return () => {
+      cancelled = true
+    }
+  }, [id_stand, id_bodega])
+
+  function goBack() {
+    navigate(id_bodega ? `/inventario/bodegas/${id_bodega}` : '/inventario/bodegas')
+  }
 
   if (loading) {
     return (
@@ -79,17 +162,10 @@ export default function ViewStandPage() {
             <p className="text-sm text-red-600">
               {error || 'No se encontró el stand.'}
             </p>
-
             <button
               type="button"
-              onClick={() =>
-                navigate(
-                  id_bodega
-                    ? `/inventario/bodegas/${id_bodega}`
-                    : '/inventario/bodegas',
-                )
-              }
-              className="mt-5 rounded-lg bg-sena px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sena-dark"
+              onClick={goBack}
+              className="mt-5 rounded-lg bg-sena px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#009247]"
             >
               Volver a la bodega
             </button>
@@ -100,290 +176,88 @@ export default function ViewStandPage() {
   }
 
   const nombreStand = stand.nombre || `Stand ${stand.idStand ?? stand.id}`
-
-  const codigoStand = stand.idStand
-    ? `S-${String(stand.idStand).padStart(3, '0')}`
-    : `S-${String(stand.id).padStart(3, '0')}`
+  const codigoStand = `S-${String(stand.idStand || stand.id).padStart(3, '0')}`
+  const ubicacion = bodegaNombre || 'Bodega'
+  const estadoLabel = stand.estado ? 'Disponible' : 'No disponible'
 
   return (
-    <AppLayout title="Detalle del stand">
-      <div className="mx-auto w-full max-w-7xl space-y-6">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm">
-          <Link
-            to="/inicio"
-            className="text-sena-text/50 transition hover:text-sena"
-          >
-            Inicio
-          </Link>
-
-          <span className="text-sena-text/30">/</span>
-
-          <Link
-            to="/inventario/bodegas"
-            className="text-sena-text/50 transition hover:text-sena"
-          >
-            Bodegas
-          </Link>
-
-          <span className="text-sena-text/30">/</span>
-
-          <Link
-            to={
-              id_bodega
-                ? `/inventario/bodegas/${id_bodega}`
-                : '/inventario/bodegas'
-            }
-            className="text-sena-text/50 transition hover:text-sena"
-          >
-            Bodega
-          </Link>
-
-          <span className="text-sena-text/30">/</span>
-
-          <span className="font-medium text-sena-text">
-            {nombreStand}
-          </span>
-        </nav>
-
-        {/* Header */}
-        <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-sena-dark/8">
+    <AppLayout title={nombreStand}>
+      <div className="mx-auto w-full max-w-7xl space-y-4">
+        <section className="rounded-2xl bg-white px-5 py-5 shadow-[0_2px_12px_rgba(0,70,35,0.06)] ring-1 ring-sena-dark/8 sm:px-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-sena/10 text-sena">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  className="h-7 w-7"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 7.5 12 3l9 4.5M3 7.5v9L12 21l9-4.5v-9M3 7.5 12 12l9-4.5M12 12v9"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M7.5 5.25 16.5 9.75"
-                  />
-                </svg>
+            <div className="flex items-center gap-4">
+              <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-sena">
+                <LayersIcon />
               </div>
-
               <div>
-                <p className="text-sm font-medium text-sena">
-                  Bodega
-                </p>
-
-                <h1 className="mt-1 text-2xl font-bold text-sena-text">
+                <p className="text-sm text-sena-text/50">{ubicacion}</p>
+                <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-sena-text">
                   {nombreStand}
                 </h1>
-
-                <div className="mt-2 flex flex-wrap items-center gap-3">
-                  <span className="text-sm text-sena-text/55">
-                    {codigoStand}
-                  </span>
-
-                  <span
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                      stand.estado
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}
-                  >
-                    <span
-                      className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
-                        stand.estado
-                          ? 'bg-emerald-600'
-                          : 'bg-red-600'
-                      }`}
-                    />
-
-                    {stand.estado ? 'Activo' : 'Inactivo'}
-                  </span>
-                </div>
+                <span
+                  className={[
+                    'mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                    stand.estado
+                      ? 'bg-emerald-50 text-emerald-600'
+                      : 'bg-slate-100 text-slate-500',
+                  ].join(' ')}
+                >
+                  {estadoLabel}
+                </span>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  navigate(
-                    id_bodega
-                      ? `/inventario/bodegas/${id_bodega}`
-                      : '/inventario/bodegas',
-                  )
-                }
-                className="rounded-lg border border-sena-dark/10 bg-white px-4 py-2.5 text-sm font-semibold text-sena-text transition hover:bg-sena-dark/5"
+                onClick={goBack}
+                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-sena-dark/10 bg-white px-4 text-sm font-semibold text-sena-text transition hover:bg-sena-muted"
               >
+                <ChevronLeftIcon />
                 Volver
               </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    `/inventario/bodegas/${id_bodega}/stands/${id_stand}/editar`,
-                  )
-                }
-                className="rounded-lg bg-sena px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sena-dark"
-              >
-                Editar stand
-              </button>
-
-              <button
-                type="button"
-                className="rounded-lg bg-sena-dark px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                Agregar producto al stand
-              </button>
+              <AddProductButton />
             </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-y-4 border-t border-sena-dark/8 pt-5 sm:grid-cols-3 lg:grid-cols-5">
+            <Stat icon={<HashIcon />} label="Código del stand" value={codigoStand} />
+            <Stat
+              icon={<CheckIcon />}
+              label="Estado"
+              value={estadoLabel}
+              valueClassName={stand.estado ? 'text-emerald-600' : 'text-slate-500'}
+            />
+            <Stat icon={<PinIcon />} label="Ubicación" value={ubicacion} />
+            <Stat icon={<BoxIcon />} label="Cantidad de productos" value="0 productos" />
+            <Stat icon={<BoxIcon />} label="Capacidad" value="—" />
           </div>
         </section>
 
-        {/* Resumen */}
-        <section>
-          <div className="mb-4">
-            <h2 className="text-lg font-bold text-sena-text">
-              Resumen del stand
+        <section className="overflow-hidden rounded-2xl bg-white shadow-[0_2px_12px_rgba(0,70,35,0.06)] ring-1 ring-sena-dark/8">
+          <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <h2 className="text-base font-bold text-sena-text">
+              Productos en {nombreStand}
             </h2>
-
-            <p className="mt-1 text-sm text-sena-text/55">
-              Información general del stand seleccionado.
-            </p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-sena-dark/8">
-              <p className="text-xs font-semibold uppercase tracking-wide text-sena-text/45">
-                Código del stand
-              </p>
-
-              <p className="mt-2 text-xl font-bold text-sena-text">
-                {codigoStand}
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-sena-dark/8">
-              <p className="text-xs font-semibold uppercase tracking-wide text-sena-text/45">
-                Estado
-              </p>
-
-              <p
-                className={`mt-2 text-lg font-bold ${
-                  stand.estado
-                    ? 'text-emerald-600'
-                    : 'text-red-600'
-                }`}
-              >
-                {stand.estado ? 'Activo' : 'Inactivo'}
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-sena-dark/8">
-              <p className="text-xs font-semibold uppercase tracking-wide text-sena-text/45">
-                Ubicación
-              </p>
-
-              <p className="mt-2 text-lg font-bold text-sena-text">
-                Stand
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-sena-dark/8">
-              <p className="text-xs font-semibold uppercase tracking-wide text-sena-text/45">
-                Cantidad de productos
-              </p>
-
-              <p className="mt-2 text-xl font-bold text-sena-text">
-                0
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Productos */}
-        <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sena-dark/8">
-          <div className="flex flex-col gap-3 border-b border-sena-dark/8 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-sena-text">
-                Productos en el stand
-              </h2>
-
-              <p className="mt-1 text-sm text-sena-text/55">
-                Productos actualmente asociados a este stand.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="rounded-lg bg-sena px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sena-dark"
-            >
-              Agregar producto
-            </button>
+            <AddProductButton />
           </div>
 
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              <thead className="bg-sena-dark/5">
-                <tr className="text-left text-xs font-semibold uppercase tracking-wide text-sena-text/50">
-                  <th className="px-6 py-4">ID</th>
-                  <th className="px-6 py-4">Producto</th>
-                  <th className="px-6 py-4">Categoría</th>
-                  <th className="px-6 py-4">Stock</th>
-                  <th className="px-6 py-4">Estado</th>
-                  <th className="px-6 py-4 text-right">Acciones</th>
+              <thead>
+                <tr className="border-y border-sena-dark/8 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-sena-text/40">
+                  <th className="px-6 py-3">ID</th>
+                  <th className="px-6 py-3">Producto</th>
+                  <th className="px-6 py-3">Categoría</th>
+                  <th className="px-6 py-3">Stock</th>
+                  <th className="px-6 py-3">Estado</th>
+                  <th className="px-6 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
-
               <tbody>
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-6 py-14 text-center"
-                  >
-                    <div className="mx-auto flex max-w-md flex-col items-center">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sena/10 text-sena">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          className="h-7 w-7"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="m21 16-9 5-9-5V8l9-5 9 5v8Z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="m3 8 9 5 9-5M12 13v8"
-                          />
-                        </svg>
-                      </div>
-
-                      <h3 className="mt-4 text-base font-semibold text-sena-text">
-                        No hay productos en este stand
-                      </h3>
-
-                      <p className="mt-1 text-sm text-sena-text/50">
-                        Agrega un producto para comenzar a
-                        gestionar el inventario de este stand.
-                      </p>
-
-                      <button
-                        type="button"
-                        className="mt-5 rounded-lg bg-sena px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sena-dark"
-                      >
-                        Agregar producto
-                      </button>
-                    </div>
+                  <td colSpan={6} className="px-6 py-14 text-center text-sm text-sena-text/50">
+                    No hay productos en este stand.
                   </td>
                 </tr>
               </tbody>
@@ -392,5 +266,27 @@ export default function ViewStandPage() {
         </section>
       </div>
     </AppLayout>
+  )
+}
+
+function Stat({
+  icon,
+  label,
+  value,
+  valueClassName = 'text-sena-text',
+}: {
+  icon: ReactNode
+  label: string
+  value: string
+  valueClassName?: string
+}) {
+  return (
+    <div className="flex items-start gap-3 px-3">
+      <span className="mt-0.5 text-sena-text/35">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-xs text-sena-text/45">{label}</p>
+        <p className={`mt-1 truncate text-sm font-semibold ${valueClassName}`}>{value}</p>
+      </div>
+    </div>
   )
 }
