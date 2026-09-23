@@ -30,6 +30,7 @@ import ViewBodegaPage from '@/modules/inventario/pages/ViewBodegaPage'
 import ViewStandPage from '@/modules/inventario/pages/ViewStandPage'
 import CreateStandPage from '@/modules/inventario/pages/CreateStandPage'
 import EditStandPage from '@/modules/inventario/pages/EditStandPage'
+import ElementosPage from '@/modules/inventario/pages/ElementosPage'
 
 import Dashboard from '@/modules/landing/pages/Dashboard'
 import LoginPage from '@/modules/auth/pages/LoginPage'
@@ -114,6 +115,13 @@ function App() {
           />
 
           {/* Categorías */}
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/recuperar" element={<RecoverPasswordPage />} />
+          <Route path="/inicio" element={<Private><HomePage /></Private>} />
+          <Route path="/inventario" element={<ModuleRoute><InventoryPage /></ModuleRoute>} />
+          <Route path="/inventario/elementos" element={<ModuleRoute><ElementosPage /></ModuleRoute>} />
+
           <Route
             path="/inventario/categorias"
             element={

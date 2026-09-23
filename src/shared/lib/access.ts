@@ -34,6 +34,7 @@ export function grantedModuleLinks(modules: AppModule[]) {
 const INVENTORY_CHILD_PATH_PREFIXES = [
   '/inventario/categorias',
   '/inventario/bodegas',
+  '/inventario/elementos',
 ]
 
 export function canOpenPath(
