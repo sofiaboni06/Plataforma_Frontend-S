@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import SenaMark from '@/shared/components/icons/SenaMark'
 import { useAuth } from '@/modules/auth/context/auth'
 import type { NavIconName } from '@/shared/constants/navigation'
+import { visibleInventoryScreens } from '@/modules/inventario/navigation'
 import { grantedModuleLinks, toNavIcon } from '@/shared/lib/access'
 import { cn } from '@/shared/lib/cn'
 import { CloseIcon, LogoutIcon, NavIcon } from '@/shared/components/icons/AppIcons'
@@ -25,6 +26,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const granted = grantedModuleLinks(modules)
+  const inventoryScreens = visibleInventoryScreens(modules)
 
   const [inventoryOpen, setInventoryOpen] = useState(
     location.pathname.startsWith('/inventario'),
@@ -132,79 +134,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               {inventoryOpen ? (
                 <div
                   id="menu-inventario"
-                  className="ml-5 border-l border-white/10 pl-2"
+                  className="mt-1.5 mb-1 ml-5 flex flex-col gap-1.5 border-l border-white/10 py-1 pl-2"
                 >
-                  <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">
-                    Categorías
-                  </p>
-
-                  <SideLink
-                    to="/inventario/categorias/crear"
-                    icon="inventory"
-                    nested
-                    onClose={onClose}
-                  >
-                    Crear categoría
-                  </SideLink>
-
-                  <SideLink
-                    to="/inventario/categorias"
-                    icon="inventory"
-                    nested
-                    onClose={onClose}
-                  >
-                    Gestionar categorías
-                  </SideLink>
-
-                  <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">
-                    Elementos
-                  </p>
-
-                  <SideLink
-                    to="/inventario/elementos"
-                    icon="inventory"
-                    nested
-                    onClose={onClose}
-                  >
-                    Gestionar elementos
-                  </SideLink>
-
-                  <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">
-  Bodega
-</p>
-
-<SideLink 
-  to="/inventario/bodegas/crear" 
-  icon="inventory" 
-  nested 
-  onClose={onClose} 
->
-  Crear bodega 
-</SideLink> 
-
-<SideLink 
-  to="/inventario/bodegas" 
-  icon="inventory" 
-  nested 
-  onClose={onClose} 
->
-  Listar bodega 
-</SideLink>
-
-<p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">
-  Stands
-</p>
-
-<SideLink 
-  to="/inventario/stands" 
-  icon="inventory" 
-  nested 
-  onClose={onClose} 
->
-  Gestionar stands
-</SideLink>
-
-                  
+                  {inventoryScreens.map((screen) => (
+                    <SideLink
+                      key={screen.to}
+                      to={screen.to}
+                      icon="inventory"
+                      nested
+                      onClose={onClose}
+                    >
+                      {screen.label}
+                    </SideLink>
+                  ))}
                 </div>
               ) : null}
             </div>

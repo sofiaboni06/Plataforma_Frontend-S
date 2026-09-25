@@ -13,6 +13,7 @@ import type {
   BodegaApi,
   StandApi,
 } from '@/modules/inventario/types/bodega'
+import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
 function LayersIcon() {
   return (
@@ -70,6 +71,8 @@ function ArrowLeftIcon() {
 
 export default function ViewStandPage() {
   const navigate = useNavigate()
+  const { can } = useInventoryAccess()
+  const canEdit = can('stands', 'edit')
 
   const { id_bodega, id_stand } = useParams<{
     id_bodega: string
@@ -360,6 +363,7 @@ export default function ViewStandPage() {
     </Button>
 
     {/* EDITAR */}
+    {canEdit ? (
     <Button
       type="button"
       onClick={handleEdit}
@@ -367,6 +371,7 @@ export default function ViewStandPage() {
     >
       Editar stand
     </Button>
+    ) : null}
 
   </div>
 </div>

@@ -10,6 +10,7 @@ import type {
 } from '@/modules/inventario/types/bodega'
 import Button from '@/shared/components/ui/Button'
 import { PlusIcon } from '@/shared/components/icons/AppIcons'
+import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
 function WarehouseIcon() {
   return (
@@ -45,6 +46,9 @@ function LocationIcon() {
 
 export default function ViewBodegaPage() {
   const navigate = useNavigate()
+  const { can } = useInventoryAccess()
+  const canEdit = can('bodegas', 'edit')
+  const canCreateStand = can('stands', 'create')
 
   // IMPORTANTE:
   // BodegasPage navega a /inventario/bodegas/${bodega.id}
@@ -287,9 +291,12 @@ export default function ViewBodegaPage() {
                 </p>
 
                 <p className="mt-1 text-sm text-sena-text/50">
-                  Puedes crear el primer stand desde aquí.
+                  {canCreateStand
+                    ? 'Puedes crear el primer stand desde aquí.'
+                    : 'Cuando se registren stands, aparecerán en esta bodega.'}
                 </p>
 
+                {canCreateStand ? (
                 <Button
                   icon={<PlusIcon />}
                   onClick={handleNewStand}
@@ -297,6 +304,7 @@ export default function ViewBodegaPage() {
                 >
                   Nuevo stand
                 </Button>
+                ) : null}
               </div>
             ) : (
               <div className="overflow-hidden rounded-xl border border-sena-dark/10">
@@ -365,6 +373,7 @@ export default function ViewBodegaPage() {
               Volver
             </button>
 
+            {canEdit ? (
             <button
               type="button"
               onClick={handleEdit}
@@ -372,6 +381,7 @@ export default function ViewBodegaPage() {
             >
               Editar bodega
             </button>
+            ) : null}
           </div>
         </section>
       </div>
