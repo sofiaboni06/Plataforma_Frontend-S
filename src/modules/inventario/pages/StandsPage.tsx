@@ -115,6 +115,38 @@ function WarehouseIcon() {
   )
 }
 
+function CloseIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="size-4"
+      aria-hidden="true"
+    >
+      <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
+  )
+}
+
+function LayersIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="size-5"
+      aria-hidden="true"
+    >
+      <path d="m12 4 8 4-8 4-8-4 8-4Z" />
+      <path d="m4 12 8 4 8-4" />
+      <path d="m4 16 8 4 8-4" />
+    </svg>
+  )
+}
+
 export default function StandsPage() {
   const navigate = useNavigate()
 
@@ -124,6 +156,20 @@ export default function StandsPage() {
   const [selectedBodega, setSelectedBodega] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // Modal para crear stand
+  const [createModalOpen, setCreateModalOpen] =
+    useState(false)
+
+  const [newStandBodegaId, setNewStandBodegaId] =
+    useState('')
+
+  // Modal para eliminar stand
+  const [standToDelete, setStandToDelete] =
+    useState<StandRow | null>(null)
+
+  const [deletingId, setDeletingId] =
+    useState<number | null>(null)
 
   async function loadStands() {
     try {
@@ -150,7 +196,10 @@ export default function StandsPage() {
 
       setStands(allStands)
     } catch (loadError) {
-      console.error('Error cargando stands:', loadError)
+      console.error(
+        'Error cargando stands:',
+        loadError,
+      )
 
       setError(
         loadError instanceof Error
@@ -167,23 +216,40 @@ export default function StandsPage() {
   }, [])
 
   const filteredStands = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase()
+    const normalizedSearch =
+      search.trim().toLowerCase()
 
     return stands.filter((stand) => {
       const matchesSearch =
         !normalizedSearch ||
-        stand.nombre.toLowerCase().includes(normalizedSearch) ||
-        stand.bodegaNombre.toLowerCase().includes(normalizedSearch) ||
-        String(stand.id).includes(normalizedSearch) ||
-        String(stand.idStand).includes(normalizedSearch)
+        stand.nombre
+          .toLowerCase()
+          .includes(normalizedSearch) ||
+        stand.bodegaNombre
+          .toLowerCase()
+          .includes(normalizedSearch) ||
+        String(stand.id).includes(
+          normalizedSearch,
+        ) ||
+        String(stand.idStand).includes(
+          normalizedSearch,
+        )
 
       const matchesBodega =
         !selectedBodega ||
-        String(stand.bodegaId) === selectedBodega
+        String(stand.bodegaId) ===
+          selectedBodega
 
-      return matchesSearch && matchesBodega
+      return (
+        matchesSearch &&
+        matchesBodega
+      )
     })
-  }, [stands, search, selectedBodega])
+  }, [
+    stands,
+    search,
+    selectedBodega,
+  ])
 
   function handleCreateStand() {
     if (bodegas.length === 0) {
@@ -200,40 +266,45 @@ export default function StandsPage() {
       return
     }
 
-    const bodegaId = window.prompt(
-      `Escribe el ID de la bodega donde quieres crear el stand:\n\n${bodegas
-        .map((bodega) => `${bodega.id} - ${bodega.nombre}`)
-        .join('\n')}`,
-    )
+    setNewStandBodegaId('')
+    setCreateModalOpen(true)
+  }
 
-    if (!bodegaId) {
+  function closeCreateModal() {
+    setCreateModalOpen(false)
+    setNewStandBodegaId('')
+  }
+
+  function continueCreateStand() {
+    if (!newStandBodegaId) {
       return
     }
 
     const bodega = bodegas.find(
-      (item) => String(item.id) === bodegaId.trim(),
+      (item) =>
+        String(item.id) ===
+        newStandBodegaId,
     )
 
     if (!bodega) {
-      setError('La bodega seleccionada no existe.')
+      setError(
+        'La bodega seleccionada no existe.',
+      )
       return
     }
+
+    closeCreateModal()
 
     navigate(
       `/inventario/bodegas/${bodega.id}/stands/crear`,
     )
   }
 
-  async function handleDeleteStand(stand: StandRow) {
-    const confirmed = window.confirm(
-      `¿Seguro que deseas eliminar el stand "${stand.nombre}"?`,
-    )
-
-    if (!confirmed) {
-      return
-    }
-
+  async function handleDeleteStand(
+    stand: StandRow,
+  ) {
     try {
+      setDeletingId(stand.id)
       setError('')
 
       await deleteStand(stand.id)
@@ -243,18 +314,25 @@ export default function StandsPage() {
           (item) =>
             !(
               item.id === stand.id &&
-              item.bodegaId === stand.bodegaId
+              item.bodegaId ===
+                stand.bodegaId
             ),
         ),
       )
     } catch (deleteError) {
-      console.error('Error eliminando stand:', deleteError)
+      console.error(
+        'Error eliminando stand:',
+        deleteError,
+      )
 
       setError(
         deleteError instanceof Error
           ? deleteError.message
           : 'No se pudo eliminar el stand.',
       )
+    } finally {
+      setDeletingId(null)
+      setStandToDelete(null)
     }
   }
 
@@ -262,7 +340,7 @@ export default function StandsPage() {
     <AppLayout title="Gestionar stands">
       <div className="mx-auto w-full max-w-7xl">
 
-        {/* Encabezado */}
+        {/* ENCABEZADO */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium text-sena/90">
@@ -288,7 +366,7 @@ export default function StandsPage() {
           </button>
         </div>
 
-        {/* Error */}
+        {/* ERROR */}
         {error && (
           <div className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <span>{error}</span>
@@ -303,7 +381,7 @@ export default function StandsPage() {
           </div>
         )}
 
-        {/* Filtros */}
+        {/* FILTROS */}
         <section className="mb-5 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-sena-dark/8 sm:p-5">
           <div className="grid gap-4 md:grid-cols-[1fr_260px]">
 
@@ -321,7 +399,9 @@ export default function StandsPage() {
                   type="text"
                   value={search}
                   onChange={(event) =>
-                    setSearch(event.target.value)
+                    setSearch(
+                      event.target.value,
+                    )
                   }
                   placeholder="Buscar por stand, bodega o código..."
                   className="h-11 w-full rounded-lg border border-sena-dark/10 bg-white pl-9 pr-3 text-sm text-sena-text outline-none placeholder:text-sena-text/35 focus:border-sena focus:ring-2 focus:ring-sena/20"
@@ -337,7 +417,9 @@ export default function StandsPage() {
               <select
                 value={selectedBodega}
                 onChange={(event) =>
-                  setSelectedBodega(event.target.value)
+                  setSelectedBodega(
+                    event.target.value,
+                  )
                 }
                 className="h-11 w-full rounded-lg border border-sena-dark/10 bg-white px-3 text-sm text-sena-text outline-none focus:border-sena focus:ring-2 focus:ring-sena/20"
               >
@@ -345,21 +427,23 @@ export default function StandsPage() {
                   Todas las bodegas
                 </option>
 
-                {bodegas.map((bodega) => (
-                  <option
-                    key={bodega.id}
-                    value={bodega.id}
-                  >
-                    {bodega.nombre}
-                  </option>
-                ))}
+                {bodegas.map(
+                  (bodega) => (
+                    <option
+                      key={bodega.id}
+                      value={bodega.id}
+                    >
+                      {bodega.nombre}
+                    </option>
+                  ),
+                )}
               </select>
             </label>
 
           </div>
         </section>
 
-        {/* Tabla */}
+        {/* TABLA */}
         <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sena-dark/8">
 
           <div className="flex items-center justify-between border-b border-sena-dark/8 px-5 py-4">
@@ -370,7 +454,8 @@ export default function StandsPage() {
 
               <p className="mt-0.5 text-xs text-sena-text/50">
                 {filteredStands.length}{' '}
-                {filteredStands.length === 1
+                {filteredStands.length ===
+                1
                   ? 'stand'
                   : 'stands'}
               </p>
@@ -384,11 +469,10 @@ export default function StandsPage() {
           ) : (
             <div className="overflow-x-auto">
 
-              <table className="w-full min-w-[850px] text-left">
+              <table className="w-full min-w-212.5 text-left">
 
                 <thead className="border-b border-sena-dark/8 bg-sena-muted/50">
                   <tr>
-
                     <th className="px-5 py-3 text-xs font-bold uppercase tracking-wide text-sena-text/50">
                       #
                     </th>
@@ -408,13 +492,13 @@ export default function StandsPage() {
                     <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-sena-text/50">
                       Acciones
                     </th>
-
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-sena-dark/8">
 
-                  {filteredStands.length === 0 ? (
+                  {filteredStands.length ===
+                  0 ? (
                     <tr>
                       <td
                         colSpan={5}
@@ -438,109 +522,110 @@ export default function StandsPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredStands.map((stand, index) => (
-                      <tr
-                        key={`${stand.bodegaId}-${stand.id}`}
-                        className="transition hover:bg-sena-muted/20"
-                      >
+                    filteredStands.map(
+                      (stand, index) => (
+                        <tr
+                          key={`${stand.bodegaId}-${stand.id}`}
+                          className="transition hover:bg-sena-muted/20"
+                        >
 
-                        {/* Número */}
-                        <td className="px-5 py-4">
-                          <span className="grid size-7 place-items-center rounded-md bg-emerald-50 text-xs font-bold text-sena-dark">
-                            {index + 1}
-                          </span>
-                        </td>
-
-                        {/* Stand */}
-                        <td className="px-4 py-4">
-                          <div>
-                            <p className="text-sm font-semibold text-sena-text">
-                              {stand.nombre}
-                            </p>
-
-                            <p className="mt-0.5 text-xs text-sena-text/45">
-                              ID: {stand.idStand || stand.id}
-                            </p>
-                          </div>
-                        </td>
-
-                        {/* Bodega */}
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-
-                            <span className="grid size-8 place-items-center rounded-lg bg-sena-muted text-sena-dark">
-                              <WarehouseIcon />
+                          <td className="px-5 py-4">
+                            <span className="grid size-7 place-items-center rounded-md bg-emerald-50 text-xs font-bold text-sena-dark">
+                              {index + 1}
                             </span>
+                          </td>
 
-                            <span className="text-sm font-medium text-sena-text/75">
-                              {stand.bodegaNombre}
+                          <td className="px-4 py-4">
+                            <div>
+                              <p className="text-sm font-semibold text-sena-text">
+                                {stand.nombre}
+                              </p>
+
+                              <p className="mt-0.5 text-xs text-sena-text/45">
+                                ID:{' '}
+                                {stand.idStand ||
+                                  stand.id}
+                              </p>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+
+                              <span className="grid size-8 place-items-center rounded-lg bg-sena-muted text-sena-dark">
+                                <WarehouseIcon />
+                              </span>
+
+                              <span className="text-sm font-medium text-sena-text/75">
+                                {stand.bodegaNombre}
+                              </span>
+
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-4">
+                            <span
+                              className={[
+                                'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
+                                stand.estado
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-slate-100 text-slate-500',
+                              ].join(' ')}
+                            >
+                              {stand.estado
+                                ? 'Disponible'
+                                : 'Inactivo'}
                             </span>
+                          </td>
 
-                          </div>
-                        </td>
+                          <td className="px-4 py-4">
+                            <div className="flex justify-end gap-1">
 
-                        {/* Estado */}
-                        <td className="px-4 py-4">
-                          <span
-                            className={[
-                              'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
-                              stand.estado
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-slate-100 text-slate-500',
-                            ].join(' ')}
-                          >
-                            {stand.estado
-                              ? 'Disponible'
-                              : 'Inactivo'}
-                          </span>
-                        </td>
+                              <button
+                                type="button"
+                                title="Ver stand"
+                                onClick={() =>
+                                  navigate(
+                                    `/inventario/bodegas/${stand.bodegaId}/stands/${stand.id}`,
+                                  )
+                                }
+                                className="grid size-9 place-items-center rounded-lg text-sky-500 transition hover:bg-sky-50"
+                              >
+                                <EyeIcon />
+                              </button>
 
-                        {/* Acciones */}
-                        <td className="px-4 py-4">
-                          <div className="flex justify-end gap-1">
+                              <button
+                                type="button"
+                                title="Editar stand"
+                                onClick={() =>
+                                  navigate(
+                                    `/inventario/bodegas/${stand.bodegaId}/stands/${stand.id}/editar`,
+                                  )
+                                }
+                                className="grid size-9 place-items-center rounded-lg text-sena-text/45 transition hover:bg-sena-muted hover:text-sena-dark"
+                              >
+                                <EditIcon />
+                              </button>
 
-                            <button
-                              type="button"
-                              title="Ver stand"
-                              onClick={() =>
-                                navigate(
-                                  `/inventario/bodegas/${stand.bodegaId}/stands/${stand.id}`,
-                                )
-                              }
-                              className="grid size-9 place-items-center rounded-lg text-sky-500 transition hover:bg-sky-50"
-                            >
-                              <EyeIcon />
-                            </button>
+                              <button
+                                type="button"
+                                title="Eliminar stand"
+                                onClick={() =>
+                                  setStandToDelete(
+                                    stand,
+                                  )
+                                }
+                                className="grid size-9 place-items-center rounded-lg text-red-500 transition hover:bg-red-50"
+                              >
+                                <TrashIcon />
+                              </button>
 
-                            <button
-                              type="button"
-                              title="Editar stand"
-                              onClick={() =>
-                                navigate(
-                                  `/inventario/bodegas/${stand.bodegaId}/stands/${stand.id}/editar`,
-                                )
-                              }
-                              className="grid size-9 place-items-center rounded-lg text-sena-text/45 transition hover:bg-sena-muted hover:text-sena-dark"
-                            >
-                              <EditIcon />
-                            </button>
+                            </div>
+                          </td>
 
-                            <button
-                              type="button"
-                              title="Eliminar stand"
-                              onClick={() =>
-                                void handleDeleteStand(stand)
-                              }
-                              className="grid size-9 place-items-center rounded-lg text-red-500 transition hover:bg-red-50"
-                            >
-                              <TrashIcon />
-                            </button>
-
-                          </div>
-                        </td>
-
-                      </tr>
-                    ))
+                        </tr>
+                      ),
+                    )
                   )}
 
                 </tbody>
@@ -551,6 +636,241 @@ export default function StandsPage() {
 
         </section>
       </div>
+
+      {/* ====================================================== */}
+      {/* MODAL CREAR STAND                                      */}
+      {/* ====================================================== */}
+
+      {createModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-sena-forest/35 px-4 py-6 backdrop-blur-[2px]"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              closeCreateModal()
+            }
+          }}
+        >
+          <div
+            className="flex max-h-[calc(100svh-3rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-sena-dark/10"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-stand-title"
+          >
+            <div className="flex items-start justify-between border-b border-sena-dark/8 px-7 py-6">
+
+              <div className="flex items-start gap-3">
+
+                <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-emerald-100 text-sena-dark">
+                  <LayersIcon />
+                </div>
+
+                <div>
+                  <h2
+                    id="create-stand-title"
+                    className="text-xl font-bold text-sena-text"
+                  >
+                    Agregar nuevo stand
+                  </h2>
+
+                  <p className="mt-1 text-sm text-sena/75">
+                    Selecciona la bodega donde deseas crear el stand.
+                  </p>
+                </div>
+
+              </div>
+
+              <button
+                type="button"
+                aria-label="Cerrar"
+                onClick={
+                  closeCreateModal
+                }
+                className="grid size-9 place-items-center rounded-lg border border-sena-dark/8 text-sena-text/60 transition hover:bg-sena-muted hover:text-sena-dark"
+              >
+                <CloseIcon />
+              </button>
+
+            </div>
+
+            <div className="overflow-y-auto px-7 py-6">
+
+              <label
+                htmlFor="newStandBodega"
+                className="flex flex-col gap-1.5 text-sm font-medium text-sena-text/75"
+              >
+                Bodega *
+
+                <select
+                  id="newStandBodega"
+                  value={
+                    newStandBodegaId
+                  }
+                  onChange={(event) =>
+                    setNewStandBodegaId(
+                      event.target.value,
+                    )
+                  }
+                  className="h-11 w-full rounded-lg border border-sena-dark/10 bg-white px-3.5 text-sm text-sena-text outline-none focus:border-sena focus:ring-2 focus:ring-sena/20"
+                >
+                  <option value="">
+                    Selecciona una bodega
+                  </option>
+
+                  {bodegas.map(
+                    (bodega) => (
+                      <option
+                        key={bodega.id}
+                        value={bodega.id}
+                      >
+                        {bodega.nombre}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-sena-dark/8 px-7 py-4">
+
+              <button
+                type="button"
+                onClick={
+                  closeCreateModal
+                }
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-sena-dark/10 bg-white px-4 text-sm font-semibold text-sena-text transition hover:bg-sena-muted"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  continueCreateStand
+                }
+                disabled={
+                  !newStandBodegaId
+                }
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-sena-dark px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-sena-forest disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <PlusIcon />
+                Continuar
+              </button>
+
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ====================================================== */}
+      {/* MODAL ELIMINAR STAND                                   */}
+      {/* ====================================================== */}
+
+      {standToDelete ? (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => {
+            if (!deletingId) {
+              setStandToDelete(null)
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-stand-title"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            {/* ENCABEZADO */}
+            <div className="flex items-center gap-3">
+
+              <div className="grid size-12 shrink-0 place-items-center rounded-full bg-red-100 text-red-500">
+                <TrashIcon />
+              </div>
+
+              <div>
+                <h2
+                  id="delete-stand-title"
+                  className="text-lg font-bold text-sena-dark"
+                >
+                  Eliminar stand
+                </h2>
+
+                <p className="mt-1 text-sm text-sena-text/55">
+                  Esta acción no se puede deshacer.
+                </p>
+              </div>
+
+            </div>
+
+            {/* MENSAJE */}
+            <p className="mt-5 text-sm leading-6 text-sena-text/70">
+              ¿Deseas eliminar el stand{' '}
+              <strong className="font-semibold text-sena-text">
+                {standToDelete.nombre}
+              </strong>
+              ?
+            </p>
+
+            {/* BODEGA */}
+            <p className="mt-2 text-sm text-sena-text/55">
+              Bodega:{' '}
+              <strong className="font-semibold text-sena-text/70">
+                {
+                  standToDelete.bodegaNombre
+                }
+              </strong>
+            </p>
+
+            {/* BOTONES */}
+            <div className="mt-6 flex justify-end gap-3">
+
+              <button
+                type="button"
+                disabled={
+                  deletingId ===
+                  standToDelete.id
+                }
+                onClick={() =>
+                  setStandToDelete(null)
+                }
+                className="h-10 rounded-lg border border-sena/25 bg-white px-5 text-sm font-semibold text-sena-dark transition hover:bg-sena-muted disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={
+                  deletingId ===
+                  standToDelete.id
+                }
+                onClick={() =>
+                  void handleDeleteStand(
+                    standToDelete,
+                  )
+                }
+                className="h-10 rounded-lg bg-sena px-5 text-sm font-semibold text-white transition hover:bg-sena-dark disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deletingId ===
+                standToDelete.id
+                  ? 'Eliminando...'
+                  : 'Eliminar'}
+              </button>
+
+            </div>
+
+          </div>
+        </div>
+      ) : null}
+
     </AppLayout>
   )
 }

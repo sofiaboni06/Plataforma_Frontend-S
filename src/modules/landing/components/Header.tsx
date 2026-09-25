@@ -15,9 +15,9 @@ export default function Header() {
 
   return (
     <header className="relative z-30 bg-[#005c3d] text-white">
-      <div className="mx-auto flex h-[84px] max-w-[1280px] items-center gap-4 px-5 lg:h-[92px] lg:px-10">
-        <a href="#inicio" aria-label="SENA, inicio" className="flex w-[118px] shrink-0 items-center">
-          <img src="/img/logo-sena.svg" alt="SENA" className="h-[58px] w-auto object-contain" />
+      <div className="mx-auto flex h-21 max-w-7xl items-center gap-4 px-5 lg:h-23 lg:px-10">
+        <a href="#inicio" aria-label="SENA, inicio" className="flex w-29.5 shrink-0 items-center">
+          <img src="/img/logo-sena.svg" alt="SENA" className="h-14.5 w-auto object-contain" />
         </a>
 
         <nav className="hidden h-full flex-1 items-center justify-center gap-9 lg:flex">
@@ -29,7 +29,7 @@ export default function Header() {
               className={[
                 'relative flex h-full items-center whitespace-nowrap text-[16px] font-medium text-white/95',
                 active === item.label
-                  ? 'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[3px] after:rounded-t-full after:bg-[#ffb300]'
+                  ? 'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.75 after:rounded-t-full after:bg-[#ffb300]'
                   : 'hover:text-white',
               ].join(' ')}
             >
@@ -40,7 +40,7 @@ export default function Header() {
 
         <Link
           to="/login"
-          className="ml-auto hidden h-[46px] shrink-0 items-center gap-2.5 rounded-full bg-[#0b925f] px-5 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-110 lg:ml-0 lg:flex"
+          className="ml-auto hidden h-11.5 shrink-0 items-center gap-2.5 rounded-full bg-[#0b925f] px-5 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-110 lg:ml-0 lg:flex"
         >
           <UserGlyph />
           <span>Iniciar sesión</span>
@@ -81,7 +81,7 @@ export default function Header() {
             ))}
             <Link
               to="/login"
-              className="mt-2 inline-flex h-[46px] items-center justify-center gap-2.5 rounded-full bg-[#0b925f] px-5 text-[15px] font-semibold text-white"
+              className="mt-2 inline-flex h-11.5 items-center justify-center gap-2.5 rounded-full bg-[#0b925f] px-5 text-[15px] font-semibold text-white"
             >
               <UserGlyph />
               Iniciar sesión
