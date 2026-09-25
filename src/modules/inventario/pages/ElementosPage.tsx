@@ -88,7 +88,15 @@ export default function ElementosPage() {
   const [disabling, setDisabling] = useState(false)
 
   const stands = useMemo<StandApi[]>(
-    () => bodegas.flatMap((bodega) => bodega.stands ?? []),
+    () =>
+      bodegas.flatMap((bodega) =>
+        (bodega.stands ?? []).map((stand) => ({
+          ...stand,
+          // El listado de bodegas anida el stand sin idBodega.
+          // El select lo necesita para mostrar solo los de la bodega elegida.
+          idBodega: bodegaOptionId(bodega),
+        })),
+      ),
     [bodegas],
   )
 
@@ -228,13 +236,12 @@ export default function ElementosPage() {
       subcategories.find((subcategory) => subcategory.id === item.idSubcategoria)
         ?.idCategoria ?? 0,
     )
-    setBodegaId(
-      bodegas.find((bodega) =>
-        bodega.stands?.some(
-          (stand) => stand.id === item.idStand || stand.idStand === item.idStand,
-        ),
-      )?.id_bodega ?? 0,
+    const owner = bodegas.find((bodega) =>
+      bodega.stands?.some(
+        (stand) => stand.id === item.idStand || stand.idStand === item.idStand,
+      ),
     )
+    setBodegaId(owner ? bodegaOptionId(owner) : 0)
     setError(null)
     setNotice(null)
     setModalOpen(true)
@@ -526,7 +533,7 @@ export default function ElementosPage() {
                 setBodegaId(nextBodegaId)
                 const firstStand = stands.find((stand) => stand.idBodega === nextBodegaId && stand.estado)
                 updateForm('idStand', firstStand?.id ?? 0)
-              }} options={bodegas.filter((item) => item.estado).map((item) => ({ value: item.id_bodega ?? item.id, label: item.nombre }))} required />
+              }} options={bodegas.filter((item) => item.estado).map((item) => ({ value: bodegaOptionId(item), label: item.nombre }))} required />
               <SelectField id="elemento-stand" label="Stand *" value={form.idStand} onChange={(value) => updateForm('idStand', Number(value))} options={stands.filter((item) => item.estado && item.idBodega === bodegaId).map((item) => ({ value: item.id, label: item.nombre }))} required />
               <SelectField id="elemento-unidad" label="Unidad de medida *" value={form.idUnidadMedida} onChange={(value) => updateForm('idUnidadMedida', Number(value))} options={unidades.filter((item) => item.estado).map((item) => ({ value: item.id, label: `${item.nombre} (${item.abreviatura})` }))} required />
             </div>
@@ -568,6 +575,10 @@ export default function ElementosPage() {
       ) : null}
     </AppLayout>
   )
+}
+
+function bodegaOptionId(bodega: BodegaApi) {
+  return bodega.id_bodega ?? bodega.id
 }
 
 function selectedCategoryId(item: ElementoApi, subcategories: SubcategoryApi[]) {
