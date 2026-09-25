@@ -67,8 +67,8 @@ export default function HomePage() {
           ))}
         </div>
         <div className="overflow-hidden rounded-2xl bg-sena-dark text-white">
-          <div className="grid h-full min-h-[180px] md:grid-cols-2">
-            <img src="/img/programa-tecnologia.jpg" alt="" className="h-full min-h-[180px] w-full object-cover" />
+          <div className="grid h-full min-h-45 md:grid-cols-2">
+            <img src="/img/programa-tecnologia.jpg" alt="" className="h-full min-h-45 w-full object-cover" />
             <div className="flex flex-col justify-center px-6 py-5">
               <SenaMark className="h-10 w-10 text-white" />
               <p className="mt-3 text-lg font-semibold leading-6">La formación también construye un mejor país</p>

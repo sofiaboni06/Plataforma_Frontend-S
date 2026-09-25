@@ -136,7 +136,7 @@ export default function Dashboard() {
 
 function Categories() {
   return (
-    <section className="relative z-20 mx-auto -mt-10 max-w-[1180px] px-5 lg:px-8">
+    <section className="relative z-20 mx-auto -mt-10 max-w-295 px-5 lg:px-8">
       <div className="grid overflow-hidden rounded-[22px] border border-[#dfe7e2] bg-white shadow-[0_8px_28px_rgba(0,0,0,0.08)] md:grid-cols-4">
         {categories.map((category, index) => (
           <CategoryCard
@@ -154,7 +154,7 @@ function Categories() {
 
 function Programs() {
   return (
-    <section className="mx-auto max-w-[1180px] px-5 pb-6 pt-10 lg:px-8">
+    <section className="mx-auto max-w-295 px-5 pb-6 pt-10 lg:px-8">
       <h2 className="mb-6 text-[28px] font-bold tracking-tight text-[#0a4b43]">
         Nuestros programas destacados
       </h2>
@@ -175,13 +175,13 @@ function Programs() {
 
 function Colombia() {
   return (
-    <section id="sedes" className="scroll-mt-8 mx-auto max-w-[1180px] px-5 py-14 lg:px-8">
+    <section id="sedes" className="scroll-mt-8 mx-auto max-w-295 px-5 py-14 lg:px-8">
       <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr_1fr]">
         <div>
           <h2 className="text-[32px] font-bold leading-tight tracking-tight text-[#0a4b43]">
             El SENA en Colombia
           </h2>
-          <p className="mt-4 max-w-[360px] text-[16px] leading-7 text-[#5d6f68]">
+          <p className="mt-4 max-w-90 text-[16px] leading-7 text-[#5d6f68]">
             Estamos presentes en todo el territorio nacional, llevando formación de calidad
             a cada región del país y contribuyendo al desarrollo de las comunidades.
           </p>
@@ -192,7 +192,7 @@ function Colombia() {
         </div>
 
         <div className="flex justify-center">
-          <ColombiaMap className="h-[320px] w-auto max-w-full lg:h-[360px]" />
+          <ColombiaMap className="h-80 w-auto max-w-full lg:h-90" />
         </div>
 
         <ul className="space-y-5">
@@ -216,7 +216,7 @@ function Colombia() {
 function FormationOffer() {
   return (
     <section id="oferta" className="scroll-mt-8 bg-[#f5f8f6] py-16">
-      <div className="mx-auto max-w-[1180px] px-5 lg:px-8">
+      <div className="mx-auto max-w-295 px-5 lg:px-8">
         <h2 className="text-center text-[32px] font-bold tracking-tight text-[#0a4b43]">
           Conoce nuestra oferta de formación
         </h2>
@@ -230,7 +230,7 @@ function FormationOffer() {
                 <Glyph name={offer.icon} />
               </span>
               <h3 className="mt-5 text-[20px] font-bold text-[#0a4b43]">{offer.title}</h3>
-              <p className="mt-2 min-h-[48px] text-[14px] leading-6 text-[#5d6f68]">{offer.text}</p>
+              <p className="mt-2 min-h-12t-[14px] leading-6 text-[#5d6f68]">{offer.text}</p>
               <a href="#buscar" className="mt-5 inline-flex items-center text-[14px] font-semibold text-[#0b925f]">
                 Consultar programas
                 <span className="ml-1">→</span>
@@ -245,7 +245,7 @@ function FormationOffer() {
 
 function OpportunitySearch() {
   return (
-    <section id="buscar" className="scroll-mt-8 mx-auto max-w-[1180px] px-5 py-16 lg:px-8">
+    <section id="buscar" className="scroll-mt-8 mx-auto max-w-295 px-5 py-16 lg:px-8">
       <h2 className="text-center text-[32px] font-bold tracking-tight text-[#0a4b43]">
         Encuentra oportunidades para ti
       </h2>
@@ -269,7 +269,7 @@ function OpportunitySearch() {
         />
         <button
           type="submit"
-          className="h-[48px] rounded-xl bg-[#0b925f] px-5 text-[14px] font-bold text-white transition hover:brightness-105"
+          className="h-12 rounded-xl bg-[#0b925f] px-5 text-[14px] font-bold text-white transition hover:brightness-105"
         >
           Buscar oferta
         </button>
@@ -280,15 +280,15 @@ function OpportunitySearch() {
 
 function News() {
   return (
-    <section id="noticias" className="scroll-mt-8 mx-auto max-w-[1180px] px-5 pb-16 lg:px-8">
+    <section id="noticias" className="scroll-mt-8 mx-auto max-w-295 px-5 pb-16 lg:px-8">
       <h2 className="text-[32px] font-bold tracking-tight text-[#0a4b43]">Noticias y actualidad</h2>
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {news.map((item) => (
           <article
             key={item.title}
-            className="overflow-hidden rounded-[16px] border border-[#e4eee8] bg-white shadow-[0_4px_16px_rgba(10,34,28,0.05)]"
+            className="overflow-hidden rounded-2xl border border-[#e4eee8] bg-white shadow-[0_4px_16px_rgba(10,34,28,0.05)]"
           >
-            <img src={item.image} alt="" className="h-[180px] w-full object-cover" />
+            <img src={item.image} alt="" className="h-45 w-full object-cover" />
             <div className="px-5 py-5">
               <p className="text-[12px] font-semibold uppercase tracking-wide text-[#0b925f]">Educación</p>
               <h3 className="mt-2 text-[17px] font-bold leading-6 text-[#0a4b43]">{item.title}</h3>
@@ -306,13 +306,13 @@ function News() {
 
 function Services() {
   return (
-    <section className="mx-auto max-w-[1180px] px-5 pb-16 lg:px-8">
+    <section className="mx-auto max-w-295 px-5 pb-16 lg:px-8">
       <h2 className="text-[32px] font-bold tracking-tight text-[#0a4b43]">Servicios para la ciudadanía</h2>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {services.map((service) => (
           <article
             key={service.title}
-            className="rounded-[16px] border border-[#e4eee8] bg-white px-5 py-6 text-center shadow-[0_2px_10px_rgba(10,34,28,0.04)]"
+            className="rounded-2xl border border-[#e4eee8] bg-white px-5 py-6 text-center shadow-[0_2px_10px_rgba(10,34,28,0.04)]"
           >
             <span className="mx-auto grid size-12 place-items-center rounded-full bg-[#eef8f1] text-[#0b925f]">
               <Glyph name={service.icon} />
@@ -335,24 +335,24 @@ function FutureBanner() {
         className="absolute inset-0 h-full w-full object-cover object-center"
       />
       <div className="absolute inset-0 bg-[#06281c]/72" />
-      <div className="relative mx-auto max-w-[1180px] px-5 py-16 lg:px-8 lg:py-20">
-        <h2 className="max-w-[520px] text-[34px] font-extrabold leading-tight text-white lg:text-[40px]">
+      <div className="relative mx-auto max-w-295 px-5 py-16 lg:px-8 lg:py-20">
+        <h2 className="max-w-130 text-[34px] font-extrabold leading-tight text-white lg:text-[40px]">
           Construye tu futuro con el SENA
         </h2>
-        <p className="mt-3 max-w-[520px] text-[16px] leading-7 text-white/90">
+        <p className="mt-3 max-w-130 text-[16px] leading-7 text-white/90">
           Únete a nuestra misión. Formación gratuita y de calidad para que llegues más lejos.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <a
             href="#oferta"
-            className="inline-flex h-[48px] items-center rounded-full bg-[#f7931e] px-6 text-[15px] font-bold text-white"
+            className="inline-flex h-12 items-center rounded-full bg-sena-orange px-6 text-[15px] font-bold text-white"
           >
             Explorar oferta de formación
             <span className="ml-2">→</span>
           </a>
           <a
             href="#sedes"
-            className="inline-flex h-[48px] items-center rounded-full border border-white/80 px-6 text-[15px] font-semibold text-white"
+            className="inline-flex h-12 items-center rounded-full border border-white/80 px-6 text-[15px] font-semibold text-white"
           >
             Conocer el SENA
           </a>
@@ -365,10 +365,10 @@ function FutureBanner() {
 function SiteFooter() {
   return (
     <footer id="contacto" className="bg-[#013d2c] text-white">
-      <div className="mx-auto grid max-w-[1180px] gap-10 px-5 py-12 sm:grid-cols-2 lg:grid-cols-[1.05fr_repeat(5,1fr)] lg:px-8">
+      <div className="mx-auto grid max-w-295 gap-10 px-5 py-12 sm:grid-cols-2 lg:grid-cols-[1.05fr_repeat(5,1fr)] lg:px-8">
         <div>
           <img src="/img/logo-sena.svg" alt="SENA" className="h-16 w-auto object-contain" />
-          <p className="mt-4 max-w-[220px] text-[13px] leading-5 text-white/75">
+          <p className="mt-4 max-w-55 text-[13px] leading-5 text-white/75">
             Servicio Nacional de Aprendizaje. Formación gratuita y de calidad para quien la necesita.
           </p>
         </div>
@@ -415,7 +415,7 @@ function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-[1180px] flex-col gap-3 px-5 py-4 text-[12px] text-white/70 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+        <div className="mx-auto flex max-w-295 flex-col gap-3 px-5 py-4 text-[12px] text-white/70 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <p>© 2025 Servicio Nacional de Aprendizaje - SENA. Todos los derechos reservados.</p>
           <p>El SENA es un establecimiento público del orden nacional, adscrito al Ministerio del Trabajo.</p>
         </div>
@@ -430,7 +430,7 @@ function SelectField({ label, options }: { label: string; options: string[] }) {
       <span className="sr-only">{label}</span>
       <select
         defaultValue={options[0]}
-        className="h-[48px] w-full rounded-xl bg-white px-4 text-[14px] text-[#173e4e] outline-none"
+        className="h-12 w-full rounded-xl bg-white px-4 text-[14px] text-[#173e4e] outline-none"
       >
         {options.map((option) => (
           <option key={option} value={option}>

@@ -170,26 +170,41 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   </SideLink>
 
                   <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">
-                    Bodega
-                  </p>
+  Bodega
+</p>
 
-                  <SideLink
-                    to="/inventario/bodegas/crear"
-                    icon="inventory"
-                    nested
-                    onClose={onClose}
-                  >
-                    Crear bodega
-                  </SideLink>
+<SideLink 
+  to="/inventario/bodegas/crear" 
+  icon="inventory" 
+  nested 
+  onClose={onClose} 
+>
+  Crear bodega 
+</SideLink> 
 
-                  <SideLink
-                    to="/inventario/bodegas"
-                    icon="inventory"
-                    nested
-                    onClose={onClose}
-                  >
-                    Listar bodega
-                  </SideLink>
+<SideLink 
+  to="/inventario/bodegas" 
+  icon="inventory" 
+  nested 
+  onClose={onClose} 
+>
+  Listar bodega 
+</SideLink>
+
+<p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">
+  Stands
+</p>
+
+<SideLink 
+  to="/inventario/stands" 
+  icon="inventory" 
+  nested 
+  onClose={onClose} 
+>
+  Gestionar stands
+</SideLink>
+
+                  
                 </div>
               ) : null}
             </div>

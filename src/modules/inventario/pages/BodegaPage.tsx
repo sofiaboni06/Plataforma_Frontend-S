@@ -8,56 +8,6 @@ import {
 } from '@/modules/inventario/data/bodega'
 import type { BodegaApi } from '@/modules/inventario/types/bodega'
 
-function EyeIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="size-[18px]"
-      aria-hidden="true"
-    >
-      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-      <circle cx="12" cy="12" r="2.5" />
-    </svg>
-  )
-}
-
-function EditIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="size-[18px]"
-      aria-hidden="true"
-    >
-      <path d="M4 20h4L19 9l-4-4L4 16v4Z" />
-      <path d="m13.5 6.5 4 4" />
-    </svg>
-  )
-}
-
-function TrashIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="size-[18px]"
-      aria-hidden="true"
-    >
-      <path d="M4 7h16" />
-      <path d="M9 7V4h6v3" />
-      <path d="m7 7 .8 13h8.4L17 7" />
-      <path d="M10 11v5M14 11v5" />
-    </svg>
-  )
-}
-
 function PlusIcon() {
   return (
     <svg
@@ -73,6 +23,56 @@ function PlusIcon() {
   )
 }
 
+function EyeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="size-4"
+      aria-hidden="true"
+    >
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+      <circle cx="12" cy="12" r="2.5" />
+    </svg>
+  )
+}
+
+function EditIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="size-4"
+      aria-hidden="true"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4L16.5 3.5Z" />
+    </svg>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="size-4"
+      aria-hidden="true"
+    >
+      <path d="M4 7h16" />
+      <path d="M9 7V4h6v3" />
+      <path d="M7 7l.8 13h8.4L17 7" />
+      <path d="M10 11v5M14 11v5" />
+    </svg>
+  )
+}
+
 function SearchIcon() {
   return (
     <svg
@@ -80,18 +80,25 @@ function SearchIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
-      className="size-[18px]"
+      className="size-4"
       aria-hidden="true"
     >
       <circle cx="11" cy="11" r="6.5" />
-      <path d="m16 16 4 4" />
+      <path d="m16 16 5 5" />
     </svg>
   )
 }
 
 function WarehouseIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="size-5"
+      aria-hidden="true"
+    >
       <path d="M4 20V7l8-4 8 4v13H4Z" />
       <path d="M8 20v-5h8v5M8 9h.01M12 9h.01M16 9h.01" />
     </svg>
@@ -198,7 +205,7 @@ export default function BodegasPage() {
 
   return (
     <AppLayout title="Bodegas">
-      <div className="mx-auto w-full max-w-[87.5rem]">
+      <div className="mx-auto w-full max-w-350">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-sena-text sm:text-[2rem]">
@@ -221,9 +228,9 @@ export default function BodegasPage() {
         </div>
 
         <section className="overflow-hidden rounded-2xl bg-white shadow-[0_2px_12px_rgba(0,70,35,0.08)] ring-1 ring-sena-dark/8">
-          <div className="border-b border-sena-dark/8 px-5 py-[1.125rem] sm:px-6">
+          <div className="border-b border-sena-dark/8 px-5 py-4.5 sm:px-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="w-full xl:max-w-[21.5rem]">
+              <div className="w-full xl:max-w-86">
                 <label htmlFor="buscar-bodega" className="sr-only">
                   Buscar bodega
                 </label>
@@ -277,7 +284,7 @@ export default function BodegasPage() {
                 onClick={() => navigate('/inventario/bodegas/crear')}
                 className="h-11 rounded-lg bg-sena-dark px-5 hover:bg-sena-forest"
               >
-                Nueva bodega
+                Nueva Bodega
               </Button>
             </div>
           </div>
@@ -289,7 +296,7 @@ export default function BodegasPage() {
           ) : null}
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px]">
+            <table className="w-full min-w-245">
               <thead>
                 <tr className="border-b border-sena-dark/8 bg-sena-muted/55 text-left">
                   <th className="w-24 px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.06em] text-sena-text/55 sm:px-6">
@@ -397,21 +404,21 @@ export default function BodegasPage() {
                         <div className="flex justify-end gap-1.5">
                           <button
                             type="button"
-                            title="Editar bodega"
-                            aria-label={`Editar ${bodega.nombre}`}
-                            onClick={() => navigate(`/inventario/bodegas/${bodega.id}/editar`)}
-                            className="grid size-9 place-items-center rounded-lg text-sena-text/50 transition hover:bg-sena-muted hover:text-sena-dark"
-                          >
-                            <EditIcon />
-                          </button>
-                          <button
-                            type="button"
                             title="Ver bodega"
                             aria-label={`Ver ${bodega.nombre}`}
                             onClick={() => navigate(`/inventario/bodegas/${bodega.id}`)}
                             className="grid size-9 place-items-center rounded-lg text-blue-500 transition hover:bg-blue-50 hover:text-blue-700"
                           >
                             <EyeIcon />
+                          </button>
+                          <button
+                            type="button"
+                            title="Editar bodega"
+                            aria-label={`Editar ${bodega.nombre}`}
+                            onClick={() => navigate(`/inventario/bodegas/${bodega.id}/editar`)}
+                            className="grid size-9 place-items-center rounded-lg text-sena-text/50 transition hover:bg-sena-muted hover:text-sena-dark"
+                          >
+                            <EditIcon />
                           </button>
                           <button
                             type="button"
