@@ -34,6 +34,7 @@ import CreateStandPage from '@/modules/inventario/pages/CreateStandPage'
 import EditStandPage from '@/modules/inventario/pages/EditStandPage'
 
 import ElementosPage from '@/modules/inventario/pages/ElementosPage'
+import ViewElementoPage from '@/modules/inventario/pages/ViewElementoPage'
 
 import Dashboard from '@/modules/landing/pages/Dashboard'
 import LoginPage from '@/modules/auth/pages/LoginPage'
@@ -136,6 +137,15 @@ function App() {
             element={
               <ModuleRoute>
                 <ElementosPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/inventario/elementos/:id"
+            element={
+              <ModuleRoute>
+                <ViewElementoPage />
               </ModuleRoute>
             }
           />

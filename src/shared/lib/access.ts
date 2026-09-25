@@ -1,3 +1,8 @@
+import {
+  hasInventoryAccess,
+  canOpenInventoryPath,
+  isInventoryDescendantPath,
+} from '@/modules/inventario/navigation'
 import type { AppModule } from '@/shared/types/profile'
 import type { NavIconName } from '@/shared/constants/navigation'
 
@@ -17,11 +22,23 @@ export function toNavIcon(name: string): NavIconName {
     : 'home'
 }
 
+const INVENTORY_ENTRY: AppModule = {
+  id: 0,
+  code: 'inventario',
+  label: 'Inventario',
+  description: 'Inventario del centro.',
+  to: '/inventario',
+  icon: 'inventory',
+  parentId: null,
+  order: 1,
+}
+
 export function grantedModuleLinks(modules: AppModule[]) {
   const seen = new Set<string>()
 
-  return modules
-    .filter((item) => item.to)
+  const links = modules
+    .filter((item) => item.to && item.parentId == null)
+    .filter((item) => !isInventoryDescendantPath(item.to as string))
     .filter((item) => {
       const path = item.to as string
 
@@ -32,15 +49,13 @@ export function grantedModuleLinks(modules: AppModule[]) {
       seen.add(path)
       return true
     })
-    .sort((left, right) => left.order - right.order)
-}
 
-const INVENTORY_CHILD_PATH_PREFIXES = [
-  '/inventario/categorias',
-  '/inventario/bodegas',
-  '/inventario/elementos',
-  '/inventario/stands',
-]
+  if (hasInventoryAccess(modules) && !links.some((item) => item.to === '/inventario')) {
+    links.push(INVENTORY_ENTRY)
+  }
+
+  return links.sort((left, right) => left.order - right.order)
+}
 
 export function canOpenPath(
   path: string,
@@ -58,22 +73,9 @@ export function canOpenPath(
     return true
   }
 
-  if (modules.some((item) => item.to === path)) {
-    return true
+  if (path === '/inventario' || path.startsWith('/inventario/')) {
+    return canOpenInventoryPath(path, modules)
   }
 
-  const isInventoryChildPath =
-    INVENTORY_CHILD_PATH_PREFIXES.some(
-      (prefix) =>
-        path === prefix ||
-        path.startsWith(`${prefix}/`),
-    )
-
-  if (isInventoryChildPath) {
-    return modules.some(
-      (item) => item.to === '/inventario',
-    )
-  }
-
-  return false
+  return modules.some((item) => item.to === path)
 }

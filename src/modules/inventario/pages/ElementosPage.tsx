@@ -1,10 +1,32 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
+import { EyeIcon, PencilIcon, PlusIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
+import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
+import ConfirmDialog from '@/shared/components/ui/ConfirmDialog'
 import Modal from '@/shared/components/ui/Modal'
 import TextField from '@/shared/components/ui/TextField'
-import { ApiError } from '@/shared/lib/api'
-import { api } from '@/shared/lib/api'
+import {
+  ActionButton,
+  ClearFiltersButton,
+  ErrorBanner,
+  FilterCard,
+  FilterGroup,
+  PageHeader,
+  RowActions,
+  SearchInput,
+  TableCard,
+  TableEmpty,
+  TableHeader,
+  TableLoading,
+  TablePagination,
+  TableRow,
+  tableClass,
+  tableColumns,
+} from '@/shared/components/DataTable'
+import { filterSelectClass, usePagination, useTableState } from '@/shared/lib/table'
+import { ApiError, api } from '@/shared/lib/api'
 import { getBodegas } from '@/modules/inventario/data/bodega'
 import {
   createElemento,
@@ -18,7 +40,10 @@ import type {
   ElementoApi,
   UnidadMedidaApi,
 } from '@/modules/inventario/types/elemento'
+import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import type { CategoryApi, SubcategoryApi } from '@/shared/types/category'
+
+type StatusFilter = 'Todos' | 'Activo' | 'Inactivo'
 
 const emptyForm: CreateElementoPayload = {
   idSubcategoria: 0,
@@ -33,35 +58,23 @@ const emptyForm: CreateElementoPayload = {
   urlFotografia: '',
 }
 
-function SearchIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
-}
-
-function PlusIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-}
-
-function EditIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-[18px]" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z" /><path d="m13.5 6.5 4 4" /></svg>
-}
-
-function StatusPill({ active }: { active: boolean }) {
-  return (
-    <span className={active
-      ? 'inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700'
-      : 'inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600'}>
-      {active ? 'Activo' : 'Inactivo'}
-    </span>
-  )
-}
-
 export default function ElementosPage() {
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { can } = useInventoryAccess()
+  const canCreate = can('elementos', 'create')
+  const canEdit = can('elementos', 'edit')
+  const canView = can('elementos', 'view')
+
+  const { search, setSearch, page, setPage, resetPage } = useTableState()
+
   const [elementos, setElementos] = useState<ElementoApi[]>([])
   const [categories, setCategories] = useState<CategoryApi[]>([])
   const [subcategories, setSubcategories] = useState<SubcategoryApi[]>([])
   const [bodegas, setBodegas] = useState<BodegaApi[]>([])
   const [unidades, setUnidades] = useState<UnidadMedidaApi[]>([])
-  const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('Todos')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('Todos')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -71,59 +84,121 @@ export default function ElementosPage() {
   const [form, setForm] = useState<CreateElementoPayload>(emptyForm)
   const [categoryId, setCategoryId] = useState(0)
   const [bodegaId, setBodegaId] = useState(0)
+  const [elementoToDisable, setElementoToDisable] = useState<ElementoApi | null>(null)
+  const [disabling, setDisabling] = useState(false)
 
   const stands = useMemo<StandApi[]>(
     () => bodegas.flatMap((bodega) => bodega.stands ?? []),
     [bodegas],
   )
 
+  const categoryNameById = useMemo(
+    () => new Map(categories.map((item) => [item.id, item.nombre])),
+    [categories],
+  )
+
+  const bodegaNameByStand = useMemo(() => {
+    const map = new Map<number, string>()
+
+    for (const bodega of bodegas) {
+      for (const stand of bodega.stands ?? []) {
+        map.set(stand.id, bodega.nombre)
+        if (stand.idStand) map.set(stand.idStand, bodega.nombre)
+      }
+    }
+
+    return map
+  }, [bodegas])
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
-    if (!term) return elementos
 
     return elementos.filter((item) => {
-      const category = categories.find((categoryItem) => categoryItem.id === selectedCategoryId(item, subcategories))
-      const values = [
-        item.id,
-        item.codigo,
-        item.nombre,
-        item.marca ?? '',
-        item.subcategoria?.nombre ?? '',
-        category?.nombre ?? '',
-        item.stand?.nombre ?? '',
-        item.unidadMedida?.nombre ?? '',
-      ]
-      return values.join(' ').toLowerCase().includes(term)
+      const itemCategoryId = selectedCategoryId(item, subcategories)
+      const categoryName = categoryNameById.get(itemCategoryId) ?? ''
+
+      const matchesSearch =
+        !term ||
+        [
+          item.codigo,
+          item.nombre,
+          item.marca ?? '',
+          item.subcategoria?.nombre ?? '',
+          categoryName,
+          item.stand?.nombre ?? '',
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(term)
+
+      const matchesCategory =
+        categoryFilter === 'Todos' || String(itemCategoryId) === categoryFilter
+
+      const matchesStatus =
+        statusFilter === 'Todos' ||
+        (statusFilter === 'Activo' && item.estado) ||
+        (statusFilter === 'Inactivo' && !item.estado)
+
+      return matchesSearch && matchesCategory && matchesStatus
     })
-  }, [categories, elementos, search, subcategories])
+  }, [categoryNameById, categoryFilter, elementos, search, statusFilter, subcategories])
+
+  const { pageRows, totalPages, currentPage, from, to, total } = usePagination(filtered, page)
+
+  const hasActiveFilters =
+    search.trim() !== '' || categoryFilter !== 'Todos' || statusFilter !== 'Todos'
+
+  const clearFilters = () => {
+    setSearch('')
+    setCategoryFilter('Todos')
+    setStatusFilter('Todos')
+  }
 
   async function loadData() {
     setLoading(true)
     setError(null)
     try {
-      const [elementoData, categoryData, subcategoryData, bodegaData, unidadData] = await Promise.all([
-        getElementos(),
-        api<CategoryApi[]>('/categorias'),
-        api<SubcategoryApi[]>('/subcategorias'),
-        getBodegas(),
-        getUnidadesMedida(),
-      ])
+      const [elementoData, categoryData, subcategoryData, bodegaData, unidadData] =
+        await Promise.all([
+          getElementos(),
+          api<CategoryApi[]>('/categorias'),
+          api<SubcategoryApi[]>('/subcategorias'),
+          getBodegas(),
+          getUnidadesMedida(),
+        ])
       setElementos(elementoData)
       setCategories(categoryData)
       setSubcategories(subcategoryData)
       setBodegas(bodegaData)
       setUnidades(unidadData)
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'No se pudieron cargar los elementos del inventario.')
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : 'No se pudieron cargar los elementos del inventario.',
+      )
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    document.title = 'Elementos | Inventario | SENA'
+    document.title = 'Gestionar elementos | SENA'
     void loadData()
   }, [])
+
+  // La vista de detalle vuelve con ?editar=<id> para abrir el modal de edición,
+  // porque editar un elemento no tiene página propia. Se espera a que carguen
+  // subcategorías y bodegas, que son las que openEdit usa para preseleccionar.
+  useEffect(() => {
+    const requested = searchParams.get('editar')
+    if (!requested || !elementos.length) return
+
+    const target = elementos.find((item) => String(item.id) === requested)
+    if (target) openEdit(target)
+
+    setSearchParams({}, { replace: true })
+  }, [elementos, searchParams, setSearchParams])
 
   function openCreate() {
     setEditingId(null)
@@ -149,15 +224,54 @@ export default function ElementosPage() {
       marca: item.marca ?? '',
       urlFotografia: item.urlFotografia ?? '',
     })
-    setCategoryId(subcategories.find((subcategory) => subcategory.id === item.idSubcategoria)?.idCategoria ?? 0)
-    setBodegaId(bodegas.find((bodega) => bodega.stands?.some((stand) => stand.id === item.idStand || stand.idStand === item.idStand))?.id_bodega ?? 0)
+    setCategoryId(
+      subcategories.find((subcategory) => subcategory.id === item.idSubcategoria)
+        ?.idCategoria ?? 0,
+    )
+    setBodegaId(
+      bodegas.find((bodega) =>
+        bodega.stands?.some(
+          (stand) => stand.id === item.idStand || stand.idStand === item.idStand,
+        ),
+      )?.id_bodega ?? 0,
+    )
     setError(null)
     setNotice(null)
     setModalOpen(true)
   }
 
-  function updateForm<K extends keyof CreateElementoPayload>(key: K, value: CreateElementoPayload[K]) {
+  function updateForm<K extends keyof CreateElementoPayload>(
+    key: K,
+    value: CreateElementoPayload[K],
+  ) {
     setForm((current) => ({ ...current, [key]: value }))
+  }
+
+  async function confirmDisable() {
+    if (!elementoToDisable) return
+
+    setDisabling(true)
+    setError(null)
+
+    try {
+      const updated = await updateElemento(elementoToDisable.id, { estado: false })
+
+      setElementos((current) =>
+        current.map((item) => (item.id === elementoToDisable.id ? updated : item)),
+      )
+
+      setElementoToDisable(null)
+      setNotice(`El elemento “${elementoToDisable.nombre}” quedó inhabilitado.`)
+    } catch (caught) {
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : 'No se pudo inhabilitar el elemento.',
+      )
+      setElementoToDisable(null)
+    } finally {
+      setDisabling(false)
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -186,10 +300,12 @@ export default function ElementosPage() {
 
       setElementos((current) => {
         if (!editingId) return [...current, saved].sort((a, b) => a.id - b.id)
-        return current.map((item) => item.id === editingId ? saved : item)
+        return current.map((item) => (item.id === editingId ? saved : item))
       })
       setModalOpen(false)
-      setNotice(editingId ? 'Elemento actualizado correctamente.' : 'Elemento creado correctamente.')
+      setNotice(
+        editingId ? 'Elemento actualizado correctamente.' : 'Elemento creado correctamente.',
+      )
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'No se pudo guardar el elemento.')
     } finally {
@@ -197,88 +313,202 @@ export default function ElementosPage() {
     }
   }
 
-  const categoryNameBySubcategory = (subcategoryId: number) => {
-    const subcategory = subcategories.find((item) => item.id === subcategoryId)
-    if (!subcategory) return '—'
-    return categories.find((item) => item.id === subcategory.idCategoria)?.nombre ?? '—'
-  }
-
-  const bodegaNameByStand = (standId: number) => {
-    const bodega = bodegas.find((item) => item.stands?.some((stand) => stand.id === standId || stand.idStand === standId))
-    return bodega?.nombre ?? '—'
-  }
-
   return (
-    <AppLayout title="Elementos">
-      <section className="mx-auto max-w-[1500px] pt-3 sm:pt-5">
-        <div className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-sena-dark/5 sm:p-6 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-sm font-medium text-sena/90">Inventario</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-sena-text">Elementos</h1>
-            <p className="mt-1 max-w-2xl text-sm text-sena-text/55">Consulta y administra los elementos registrados en la base de datos del inventario.</p>
-          </div>
-          <Button icon={<PlusIcon />} onClick={openCreate}>Nuevo elemento</Button>
+    <AppLayout title="Gestionar elementos">
+      <PageHeader
+        title="Gestionar elementos"
+        description="Consulta y administra los elementos registrados en el inventario."
+        action={
+          canCreate ? (
+            <Button
+              type="button"
+              icon={<PlusIcon className="size-4" />}
+              onClick={openCreate}
+            >
+              Nuevo elemento
+            </Button>
+          ) : null
+        }
+      />
+
+      {notice ? (
+        <div className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          {notice}
         </div>
+      ) : null}
 
-        {notice ? <div className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{notice}</div> : null}
-        {error && !modalOpen ? <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div> : null}
+      {error && !modalOpen ? (
+        <ErrorBanner message={error} onClose={() => setError(null)} />
+      ) : null}
 
-        <div className="mt-5 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sena-dark/5">
-          <div className="flex flex-col gap-3 border-b border-sena-text/8 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-            <div>
-              <h2 className="font-semibold text-sena-text">Elementos registrados</h2>
-              <p className="mt-0.5 text-xs text-sena-text/50">{filtered.length} de {elementos.length} registros</p>
-            </div>
-            <label className="relative block w-full sm:max-w-sm">
-              <span className="sr-only">Buscar elementos</span>
-              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sena-text/45"><SearchIcon /></span>
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por código, nombre, categoría..." className="h-10 w-full rounded-lg bg-sena-muted pl-10 pr-3 text-sm outline-none ring-1 ring-transparent focus:bg-white focus:ring-sena/30" />
-            </label>
-          </div>
+      <FilterCard>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por código, nombre o categoría..."
+        />
 
-          <div className="overflow-x-auto">
-            <table className="min-w-[1120px] w-full text-left text-sm">
-              <thead className="bg-sena-muted/70 text-xs uppercase tracking-wide text-sena-text/50">
-                <tr>
-                  <th className="px-5 py-3 font-semibold">ID</th>
-                  <th className="px-5 py-3 font-semibold">Código</th>
-                  <th className="px-5 py-3 font-semibold">Elemento</th>
-                  <th className="px-5 py-3 font-semibold">Categoría</th>
-                  <th className="px-5 py-3 font-semibold">Subcategoría</th>
-                  <th className="px-5 py-3 font-semibold">Bodega / Stand</th>
-                  <th className="px-5 py-3 font-semibold">Cantidad</th>
-                  <th className="px-5 py-3 font-semibold">Estado</th>
-                  <th className="px-5 py-3 text-right font-semibold">Acción</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-sena-text/8">
-                {loading ? (
-                  <tr><td colSpan={9} className="px-5 py-12 text-center text-sm text-sena-text/50">Cargando elementos...</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={9} className="px-5 py-12 text-center text-sm text-sena-text/50">No hay elementos que coincidan con la búsqueda.</td></tr>
-                ) : filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-sena-muted/35">
-                    <td className="px-5 py-4 font-medium text-sena-text/70">{item.id}</td>
-                    <td className="px-5 py-4 font-semibold text-sena-dark">{item.codigo}</td>
-                    <td className="px-5 py-4"><div className="font-medium text-sena-text">{item.nombre}</div>{item.marca ? <div className="text-xs text-sena-text/45">{item.marca}</div> : null}</td>
-                    <td className="px-5 py-4 text-sena-text/70">{categoryNameBySubcategory(item.idSubcategoria)}</td>
-                    <td className="px-5 py-4 text-sena-text/70">{item.subcategoria?.nombre ?? '—'}</td>
-                    <td className="px-5 py-4"><div className="text-sena-text/75">{bodegaNameByStand(item.idStand)}</div><div className="text-xs text-sena-text/45">{item.stand?.nombre ?? '—'}</div></td>
-                    <td className="px-5 py-4 font-medium text-sena-text">{item.cantidad} {item.unidadMedida?.abreviatura ?? ''}</td>
-                    <td className="px-5 py-4"><StatusPill active={item.estado} /></td>
-                    <td className="px-5 py-4 text-right"><button type="button" onClick={() => openEdit(item)} className="inline-flex size-9 items-center justify-center rounded-lg text-sena-dark hover:bg-sena-muted" aria-label={`Editar ${item.nombre}`}><EditIcon /></button></td>
+        <FilterGroup label="Categoría">
+          <select
+            value={categoryFilter}
+            onChange={(event) => {
+              setCategoryFilter(event.target.value)
+              resetPage()
+            }}
+            className={`${filterSelectClass} lg:w-64`}
+          >
+            <option value="Todos">Todas</option>
+
+            {categories.map((category) => (
+              <option key={category.id} value={String(category.id)}>
+                {category.nombre}
+              </option>
+            ))}
+          </select>
+        </FilterGroup>
+
+        <FilterGroup label="Estado">
+          <select
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value as StatusFilter)
+              resetPage()
+            }}
+            className={`${filterSelectClass} lg:w-40`}
+          >
+            <option value="Todos">Todos</option>
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+          </select>
+        </FilterGroup>
+
+        <ClearFiltersButton onClick={clearFilters} disabled={!hasActiveFilters} />
+      </FilterCard>
+
+      <TableCard>
+        {loading ? (
+          <TableLoading label="Cargando elementos…" />
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className={tableClass}>
+                <thead>
+                  <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
+                    <TableHeader width={tableColumns.name}>Elemento</TableHeader>
+                    <TableHeader width={tableColumns.relation}>Ubicación</TableHeader>
+                    <TableHeader align="center" width={tableColumns.count}>
+                      Cantidad
+                    </TableHeader>
+                    <TableHeader align="center" width={tableColumns.status}>
+                      Estado
+                    </TableHeader>
+                    <TableHeader align="center" width={tableColumns.actions}>
+                      Acciones
+                    </TableHeader>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+                </thead>
+
+                <tbody>
+                  {pageRows.length === 0 ? (
+                    <TableEmpty colSpan={5}>No se encontraron elementos.</TableEmpty>
+                  ) : (
+                    pageRows.map((item) => (
+                      <TableRow key={item.id}>
+                        <td className="px-5 py-4">
+                          <p className="truncate font-semibold text-sena-text">
+                            {item.nombre}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                            {item.codigo} ·{' '}
+                            {categoryNameById.get(selectedCategoryId(item, subcategories)) ??
+                              '—'}
+                          </p>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <p className="truncate font-medium text-sena-dark">
+                            {bodegaNameByStand.get(item.idStand) ?? '—'}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                            {item.stand?.nombre ?? '—'}
+                          </p>
+                        </td>
+
+                        <td className="px-5 py-4 text-center text-sena-text/70">
+                          {item.cantidad} {item.unidadMedida?.abreviatura ?? ''}
+                        </td>
+
+                        <td className="px-5 py-4 text-center">
+                          <StatusPill tone={item.estado ? 'ok' : 'danger'}>
+                            {item.estado ? 'Activo' : 'Inactivo'}
+                          </StatusPill>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <RowActions>
+                            {canView ? (
+                              <ActionButton
+                                title="Ver elemento"
+                                onClick={() =>
+                                  navigate(`/inventario/elementos/${item.id}`)
+                                }
+                              >
+                                <EyeIcon className="size-[18px]" />
+                              </ActionButton>
+                            ) : null}
+
+                            {canEdit ? (
+                              <ActionButton
+                                title="Editar elemento"
+                                onClick={() => openEdit(item)}
+                              >
+                                <PencilIcon className="size-[18px]" />
+                              </ActionButton>
+                            ) : null}
+
+                            {canEdit ? (
+                              <ActionButton
+                                title="Inhabilitar elemento"
+                                danger
+                                disabled={!item.estado}
+                                onClick={() => setElementoToDisable(item)}
+                              >
+                                <TrashIcon className="size-[18px]" />
+                              </ActionButton>
+                            ) : null}
+                          </RowActions>
+                        </td>
+                      </TableRow>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <TablePagination
+              page={currentPage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              from={from}
+              to={to}
+              total={total}
+              noun="elementos"
+            />
+          </>
+        )}
+      </TableCard>
 
       {modalOpen ? (
-        <Modal title={editingId ? 'Editar elemento' : 'Nuevo elemento'} description="Los datos se guardan directamente en el inventario del backend." onClose={() => !saving && setModalOpen(false)} wide>
+        <Modal
+          title={editingId ? 'Editar elemento' : 'Nuevo elemento'}
+          description="Los datos se guardan directamente en el inventario del backend."
+          onClose={() => !saving && setModalOpen(false)}
+          wide
+        >
           <form onSubmit={handleSubmit} className="space-y-5">
-            {error ? <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+            {error ? (
+              <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField id="elemento-nombre" label="Nombre *" value={form.nombre} onChange={(event) => updateForm('nombre', event.target.value)} required />
               <TextField id="elemento-codigo" label="Código *" value={form.codigo} onChange={(event) => updateForm('codigo', event.target.value)} required />
@@ -321,14 +551,30 @@ export default function ElementosPage() {
           </form>
         </Modal>
       ) : null}
+
+      {elementoToDisable ? (
+        <ConfirmDialog
+          title="Inhabilitar elemento"
+          subtitle="El elemento pasará a estado inactivo."
+          confirmLabel="Inhabilitar"
+          pendingLabel="Inhabilitando…"
+          pending={disabling}
+          onConfirm={() => void confirmDisable()}
+          onCancel={() => setElementoToDisable(null)}
+        >
+          ¿Estás seguro de que deseas inhabilitar el elemento{' '}
+          <strong>{elementoToDisable.nombre}</strong>?
+        </ConfirmDialog>
+      ) : null}
     </AppLayout>
   )
 }
 
 function selectedCategoryId(item: ElementoApi, subcategories: SubcategoryApi[]) {
-  return subcategories.find((subcategory) => subcategory.id === item.idSubcategoria)?.idCategoria ?? 0
+  return (
+    subcategories.find((subcategory) => subcategory.id === item.idSubcategoria)?.idCategoria ?? 0
+  )
 }
-
 
 function SelectField({
   id,
