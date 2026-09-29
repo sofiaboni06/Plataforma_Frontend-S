@@ -8,11 +8,11 @@ import AppLayout from '@/shared/components/layout/AppLayout'
 import { PencilIcon } from '@/shared/components/icons/AppIcons'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
+import { useAuth } from '@/modules/auth/context/auth'
+import { getSubcategorias } from '@/modules/inventario/data/categoria'
+import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import { ApiError, api } from '@/shared/lib/api'
-import type {
-  CategoryApi,
-  SubcategoryApi,
-} from '@/shared/types/category'
+import type { CategoryApi, SubcategoryApi } from '@/shared/types/category'
 import type {
   UserFormOptions,
 } from '@/shared/types/profile'
@@ -20,6 +20,10 @@ import type {
 export default function ViewInventoryCategoryPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { isAdmin, user } = useAuth()
+  const { permit } = useInventoryAccess()
+  const canEdit = permit('categoria.editar', 'categorias', 'edit')
+  const canSeeSub = permit('subcategoria.ver', 'categorias', 'view')
 
   const [category, setCategory] =
     useState<CategoryApi | null>(null)
@@ -43,38 +47,21 @@ export default function ViewInventoryCategoryPage() {
       if (!id) return
 
       try {
-        const [
-          categoryData,
-          subcategoryData,
-          options,
-        ] = await Promise.all([
-          api<CategoryApi>(
-            `/categorias/${id}`,
-          ),
-          api<SubcategoryApi[]>(
-            '/subcategorias',
-          ),
-          api<UserFormOptions>(
-            '/users/options',
-          ),
+        const [categoryData, subcategoryData, options] = await Promise.all([
+          api<CategoryApi>(`/categorias/${id}`),
+          canSeeSub ? getSubcategorias() : Promise.resolve([]),
+          isAdmin ? api<UserFormOptions>('/users/options') : Promise.resolve(null),
         ])
 
         if (cancelled) return
 
-        setCategory(
-          categoryData,
-        )
-
+        setCategory(categoryData)
         setSubcategories(
-          subcategoryData.filter(
-            (item) =>
-              item.idCategoria ===
-              categoryData.id,
-          ),
+          subcategoryData.filter((item) => item.idCategoria === categoryData.id),
         )
 
         setCenters(
-          options.centers,
+          options?.centers ?? [],
         )
       } catch (caught) {
         if (!cancelled) {
@@ -96,14 +83,15 @@ export default function ViewInventoryCategoryPage() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [canSeeSub, id, isAdmin])
 
-  const centerName =
-    centers.find(
-      (center) =>
-        center.id ===
-        category?.idCformacion,
-    )?.name ?? '—'
+  const centerName = isAdmin
+    ? (centers.find(
+        (center) =>
+          center.id ===
+          category?.idCformacion,
+      )?.name ?? '—')
+    : (user?.trainingCenter || '—')
 
   if (loading) {
     return (
@@ -189,49 +177,40 @@ export default function ViewInventoryCategoryPage() {
             </div>
           </div>
 
-          <div className="mt-7 border-t border-sena-dark/10 pt-6">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-sena-dark">
-                Subcategorías
-              </h2>
-
-              <span className="rounded-full bg-sena-muted px-3 py-1 text-xs text-sena-text/55">
-                {subcategories.length}{' '}
-                {subcategories.length ===
-                1
-                  ? 'subcategoría'
-                  : 'subcategorías'}
-              </span>
-            </div>
-
-            {subcategories.length ===
-            0 ? (
-              <div className="rounded-xl border border-dashed border-sena-dark/10 bg-sena-muted/40 px-5 py-8 text-center text-sm text-sena-text/45">
-                Esta categoría no tiene subcategorías registradas.
+          {canSeeSub ? (
+            <div className="mt-8">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-bold text-sena-dark">Subcategorías</h2>
+                <span className="rounded-full bg-sena-muted px-3 py-1 text-xs text-sena-text/55">
+                  {subcategories.length}{' '}
+                  {subcategories.length === 1 ? 'subcategoría' : 'subcategorías'}
+                </span>
               </div>
-            ) : (
-              <div className="overflow-hidden rounded-xl border border-sena-dark/8">
-                <div className="bg-sena-muted/50 px-4 py-3 text-xs font-bold uppercase tracking-wider text-sena-dark">
-                  Subcategoría
+
+              {subcategories.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-sena-dark/10 bg-sena-muted/40 px-5 py-8 text-center text-sm text-sena-text/45">
+                  Esta categoría no tiene subcategorías.
                 </div>
-
-                {subcategories.map(
-                  (subcategory) => (
+              ) : (
+                <div className="overflow-hidden rounded-xl border border-sena-dark/8">
+                  <div className="bg-sena-muted/50 px-4 py-3 text-xs font-bold uppercase tracking-wider text-sena-dark">
+                    Subcategoría
+                  </div>
+                  {subcategories.map((subcategory) => (
                     <div
-                      key={
-                        subcategory.id
-                      }
-                      className="border-t border-sena-dark/6 px-4 py-3 text-sm font-medium text-sena-text"
+                      key={subcategory.id}
+                      className="flex items-center justify-between gap-3 border-t border-sena-dark/6 px-4 py-3 text-sm font-medium text-sena-text"
                     >
-                      {
-                        subcategory.nombre
-                      }
+                      <span>{subcategory.nombre}</span>
+                      <span className="text-xs text-sena-text/45">
+                        {subcategory.estado ? 'Activa' : 'Inactiva'}
+                      </span>
                     </div>
-                  ),
-                )}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
 
           <div className="mt-7 flex justify-end gap-3 border-t border-sena-dark/10 pt-5">
             <Link to="/inventario/categorias">
@@ -243,18 +222,13 @@ export default function ViewInventoryCategoryPage() {
               </Button>
             </Link>
 
-            <Link
-              to={`/inventario/categorias/${category.id}/editar`}
-            >
-              <Button
-                type="button"
-                icon={
-                  <PencilIcon className="size-4" />
-                }
-              >
-                Editar categoría
-              </Button>
-            </Link>
+            {canEdit ? (
+              <Link to={`/inventario/categorias/${category.id}/editar`}>
+                <Button type="button" icon={<PencilIcon className="size-4" />}>
+                  Editar categoría
+                </Button>
+              </Link>
+            ) : null}
           </div>
         </section>
       </div>

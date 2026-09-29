@@ -61,6 +61,7 @@ export function canOpenPath(
   path: string,
   modules: AppModule[],
   isAdmin: boolean,
+  permissions?: string[],
 ) {
   if (path === '/inicio' || path === '/perfil') {
     return true
@@ -74,7 +75,7 @@ export function canOpenPath(
   }
 
   if (path === '/inventario' || path.startsWith('/inventario/')) {
-    return canOpenInventoryPath(path, modules)
+    return canOpenInventoryPath(path, modules, { isAdmin, permissions })
   }
 
   return modules.some((item) => item.to === path)

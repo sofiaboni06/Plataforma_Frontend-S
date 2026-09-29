@@ -11,6 +11,8 @@ import RequireModule from '@/modules/auth/guards/RequireModule'
 import { AuthProvider } from '@/modules/auth/context/auth'
 
 import ActivitiesPage from '@/modules/actividades/pages/ActivitiesPage'
+import RoleModuleCreatePage from '@/modules/administracion/pages/RoleModuleCreatePage'
+import RoleModulesPage from '@/modules/administracion/pages/RoleModulesPage'
 import RolesPage from '@/modules/administracion/pages/RolesPage'
 import UsersPage from '@/modules/administracion/pages/UsersPage'
 import EnvironmentalPage from '@/modules/ambiental/pages/EnvironmentalPage'
@@ -33,8 +35,11 @@ import ViewStandPage from '@/modules/inventario/pages/ViewStandPage'
 import CreateStandPage from '@/modules/inventario/pages/CreateStandPage'
 import EditStandPage from '@/modules/inventario/pages/EditStandPage'
 
+import ItemsPage from '@/modules/inventario/pages/ItemsPage'
+import ViewItemPage from '@/modules/inventario/pages/ViewItemPage'
 import ElementosPage from '@/modules/inventario/pages/ElementosPage'
 import ViewElementoPage from '@/modules/inventario/pages/ViewElementoPage'
+import ClasificacionesPage from '@/modules/inventario/pages/ClasificacionesPage'
 
 import Dashboard from '@/modules/landing/pages/Dashboard'
 import LoginPage from '@/modules/auth/pages/LoginPage'
@@ -129,6 +134,28 @@ function App() {
           />
 
           {/* =========================
+              ÍTEMS
+          ========================== */}
+
+          <Route
+            path="/inventario/items"
+            element={
+              <ModuleRoute>
+                <ItemsPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/inventario/items/:id"
+            element={
+              <ModuleRoute>
+                <ViewItemPage />
+              </ModuleRoute>
+            }
+          />
+
+          {/* =========================
               ELEMENTOS
           ========================== */}
 
@@ -146,6 +173,15 @@ function App() {
             element={
               <ModuleRoute>
                 <ViewElementoPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/inventario/clasificaciones"
+            element={
+              <ModuleRoute>
+                <ClasificacionesPage />
               </ModuleRoute>
             }
           />
@@ -239,6 +275,24 @@ function App() {
             element={
               <ModuleRoute>
                 <StandsPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/inventario/stands/:id/editar"
+            element={
+              <ModuleRoute>
+                <EditStandPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/inventario/stands/:id"
+            element={
+              <ModuleRoute>
+                <ViewStandPage />
               </ModuleRoute>
             }
           />
@@ -356,6 +410,33 @@ function App() {
             element={
               <AdminRoute>
                 <RolesPage />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/perfiles/:id/modulos"
+            element={
+              <AdminRoute>
+                <RoleModulesPage />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/perfiles/:id/modulos/nuevo"
+            element={
+              <AdminRoute>
+                <RoleModuleCreatePage />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/perfiles/:id/modulos/:moduleId"
+            element={
+              <AdminRoute>
+                <RoleModulesPage />
               </AdminRoute>
             }
           />

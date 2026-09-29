@@ -15,11 +15,12 @@ import type {
 export default function EditStandPage() {
   const navigate = useNavigate()
 
-  const { id_bodega, id_stand } = useParams<{
-    id_bodega: string
-    id_stand: string
+  const params = useParams<{
+    id?: string
+    id_bodega?: string
+    id_stand?: string
   }>()
-
+  const id_stand = params.id ?? params.id_stand
   const standId = Number(id_stand)
 
   const [stand, setStand] = useState<StandApi | null>(null)
@@ -73,9 +74,7 @@ export default function EditStandPage() {
 
       await updateStand(id_stand, values)
 
-      navigate(
-        `/inventario/bodegas/${id_bodega ?? ''}/stands/${id_stand}`,
-      )
+      navigate(`/inventario/stands/${id_stand}`)
     } catch (updateError) {
       setError(
         updateError instanceof Error
@@ -88,9 +87,7 @@ export default function EditStandPage() {
   }
 
   function handleCancel() {
-    navigate(
-      `/inventario/bodegas/${id_bodega ?? ''}/stands/${id_stand ?? ''}`,
-    )
+    navigate(`/inventario/stands/${id_stand ?? ''}`)
   }
 
   if (loading) {
@@ -116,11 +113,7 @@ export default function EditStandPage() {
 
             <button
               type="button"
-              onClick={() =>
-                navigate(
-                  `/inventario/bodegas/${id_bodega ?? ''}`,
-                )
-              }
+              onClick={() => navigate('/inventario/stands')}
               className="mt-5 rounded-lg bg-sena px-4 py-2 text-sm font-semibold text-white hover:bg-sena-dark"
             >
               Volver a la bodega

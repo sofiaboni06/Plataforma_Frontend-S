@@ -30,6 +30,8 @@ import {
 } from '@/shared/components/DataTable'
 import { filterSelectClass, usePagination, useTableState } from '@/shared/lib/table'
 import { ApiError, api } from '@/shared/lib/api'
+import { useAuth } from '@/modules/auth/context/auth'
+import { disableCategoria, getAllCategorias, getSubcategorias } from '@/modules/inventario/data/categoria'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import type { CategoryApi, SubcategoryApi } from '@/shared/types/category'
 import type { UserFormOptions } from '@/shared/types/profile'
@@ -38,10 +40,13 @@ type StatusFilter = 'Todos' | 'Activa' | 'Inactiva'
 
 export default function InventoryCategoriesPage() {
   const navigate = useNavigate()
-  const { can } = useInventoryAccess()
-  const canCreate = can('categorias', 'create')
-  const canEdit = can('categorias', 'edit')
-  const canView = can('categorias', 'view')
+  const { isAdmin, user } = useAuth()
+  const { permit } = useInventoryAccess()
+  const canCreate = permit('categoria.crear', 'categorias', 'create')
+  const canEdit = permit('categoria.editar', 'categorias', 'edit')
+  const canView = permit('categoria.ver', 'categorias', 'view')
+  const canDelete = permit('categoria.eliminar', 'categorias', 'edit')
+  const canSeeSub = permit('subcategoria.ver', 'categorias', 'view')
 
   const { search, setSearch, page, setPage, resetPage } = useTableState()
 
@@ -65,16 +70,16 @@ export default function InventoryCategoriesPage() {
     async function loadData() {
       try {
         const [categoryList, subcategoryList, options] = await Promise.all([
-          api<CategoryApi[]>('/categorias'),
-          api<SubcategoryApi[]>('/subcategorias'),
-          api<UserFormOptions>('/users/options'),
+          getAllCategorias(),
+          canSeeSub ? getSubcategorias() : Promise.resolve([]),
+          isAdmin ? api<UserFormOptions>('/users/options') : Promise.resolve(null),
         ])
 
         if (cancelled) return
 
-        setCategories([...categoryList].sort((a, b) => b.id - a.id))
+        setCategories(categoryList)
         setSubcategories(subcategoryList)
-        setCenters(options.centers)
+        setCenters(options?.centers ?? [])
       } catch (caught) {
         if (!cancelled) {
           setError(
@@ -93,7 +98,7 @@ export default function InventoryCategoriesPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [canSeeSub, isAdmin])
 
   const centerMap = useMemo(
     () => new Map(centers.map((center) => [center.id, center.name])),
@@ -136,7 +141,7 @@ export default function InventoryCategoriesPage() {
 
       return matchesSearch && matchesCenter && matchesStatus
     })
-  }, [categories, centerMap, subcategoriesByCategory, search, centerFilter, statusFilter])
+  }, [categories, centerMap, search, centerFilter, statusFilter, subcategoriesByCategory])
 
   const { pageRows, totalPages, currentPage, from, to, total } = usePagination(
     filteredCategories,
@@ -159,13 +164,12 @@ export default function InventoryCategoriesPage() {
     setError(null)
 
     try {
-      const updated = await api<CategoryApi>(`/categorias/${categoryToDisable.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ estado: false }),
-      })
+      await disableCategoria(categoryToDisable.id)
 
       setCategories((current) =>
-        current.map((item) => (item.id === categoryToDisable.id ? updated : item)),
+        current.map((item) =>
+          item.id === categoryToDisable.id ? { ...item, estado: false } : item,
+        ),
       )
 
       setCategoryToDisable(null)
@@ -184,7 +188,7 @@ export default function InventoryCategoriesPage() {
     <AppLayout title="Gestionar categorías">
       <PageHeader
         title="Gestionar categorías"
-        description="Administra las categorías utilizadas para clasificar los elementos del inventario."
+        description="Nombre, estado y subcategorías. La subcategoría se guarda aparte, colgada de la categoría."
         action={
           canCreate ? (
             <Button
@@ -207,24 +211,26 @@ export default function InventoryCategoriesPage() {
           placeholder="Buscar categoría..."
         />
 
-        <FilterGroup label="Centro de formación">
-          <select
-            value={centerFilter}
-            onChange={(event) => {
-              setCenterFilter(event.target.value)
-              resetPage()
-            }}
-            className={`${filterSelectClass} lg:w-64`}
-          >
-            <option value="Todos">Todos</option>
+        {isAdmin ? (
+          <FilterGroup label="Centro de formación">
+            <select
+              value={centerFilter}
+              onChange={(event) => {
+                setCenterFilter(event.target.value)
+                resetPage()
+              }}
+              className={`${filterSelectClass} lg:w-64`}
+            >
+              <option value="Todos">Todos</option>
 
-            {centers.map((center) => (
-              <option key={center.id} value={String(center.id)}>
-                {center.name}
-              </option>
-            ))}
-          </select>
-        </FilterGroup>
+              {centers.map((center) => (
+                <option key={center.id} value={String(center.id)}>
+                  {center.name}
+                </option>
+              ))}
+            </select>
+          </FilterGroup>
+        ) : null}
 
         <FilterGroup label="Estado">
           <select
@@ -280,13 +286,17 @@ export default function InventoryCategoriesPage() {
                         </td>
 
                         <td className="truncate px-5 py-4 font-medium text-sena-dark">
-                          {centerMap.get(category.idCformacion) ?? '—'}
+                          {isAdmin
+                            ? (centerMap.get(category.idCformacion) ?? '—')
+                            : (user?.trainingCenter || '—')}
                         </td>
 
                         <td className="px-5 py-4 text-center text-sena-text/70">
-                          {(subcategoriesByCategory.get(category.id) ?? []).filter(
-                            (item) => item.estado,
-                          ).length}
+                          {canSeeSub
+                            ? (subcategoriesByCategory.get(category.id) ?? []).filter(
+                                (item) => item.estado,
+                              ).length
+                            : '—'}
                         </td>
 
                         <td className="px-5 py-4 text-center">
@@ -319,7 +329,7 @@ export default function InventoryCategoriesPage() {
                               </ActionButton>
                             ) : null}
 
-                            {canEdit ? (
+                            {canDelete ? (
                               <ActionButton
                                 title="Inhabilitar categoría"
                                 danger
@@ -354,7 +364,7 @@ export default function InventoryCategoriesPage() {
       {categoryToDisable ? (
         <ConfirmDialog
           title="Inhabilitar categoría"
-          subtitle="La categoría pasará a estado inactivo."
+          subtitle="Si todavía tiene subcategorías activas, no se puede inhabilitar."
           confirmLabel="Inhabilitar"
           pendingLabel="Inhabilitando…"
           pending={disabling}

@@ -1,46 +1,34 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { createStand, getBodegas } from '@/modules/inventario/data/bodega'
+import { createStand } from '@/modules/inventario/data/bodega'
+import { ApiError } from '@/shared/lib/api'
+
+type BodegaOption = {
+  id: number
+  nombre: string
+  subBodegas?: Array<{ id: number; nombre: string; estado: boolean }>
+}
 
 type CreateStandModalProps = {
-  bodegaId: string
-  bodegaNombre?: string
+  bodegas: BodegaOption[]
+  initialBodegaId?: number
+  initialSubBodegaId?: number
   onClose: () => void
-  onCreated: (bodegaId: string) => void
+  onCreated: () => void
 }
 
 const fieldClass =
   'h-11 w-full rounded-lg border border-sena-dark/10 bg-white px-3.5 text-sm text-sena-text outline-none transition placeholder:text-sena-text/35 focus:border-sena focus:ring-2 focus:ring-sena/15'
 
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5" aria-hidden="true">
-      <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
-    </svg>
-  )
-}
-
-function SaveIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 4.5h11.2L19.5 8v11.5H5V4.5Z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 4.5V9h7" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 19.5v-5.5h8v5.5" />
-    </svg>
-  )
-}
-
 export default function CreateStandModal({
-  bodegaId,
-  bodegaNombre,
+  bodegas,
+  initialBodegaId = 0,
+  initialSubBodegaId = 0,
   onClose,
   onCreated,
 }: CreateStandModalProps) {
-  const [bodegas, setBodegas] = useState<Array<{ id: number; nombre: string }>>([])
-  const [selectedBodegaId, setSelectedBodegaId] = useState(bodegaId)
-  const [numero, setNumero] = useState('')
+  const [bodegaId, setBodegaId] = useState(initialBodegaId)
+  const [subBodegaId, setSubBodegaId] = useState(initialSubBodegaId)
   const [nombre, setNombre] = useState('')
-  const [descripcion, setDescripcion] = useState('')
-  const [capacidad, setCapacidad] = useState('')
   const [estado, setEstado] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -48,11 +36,9 @@ export default function CreateStandModal({
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !saving) onClose()
     }
-
     window.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = previousOverflow
@@ -60,70 +46,32 @@ export default function CreateStandModal({
     }
   }, [onClose, saving])
 
-  useEffect(() => {
-    let active = true
-
-    getBodegas()
-      .then((list) => {
-        if (!active) return
-        setBodegas(list.map((bodega) => ({ id: bodega.id, nombre: bodega.nombre })))
-      })
-      .catch(() => {
-        if (!active) return
-        setBodegas([])
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
-
-  const options =
-    bodegas.length > 0
-      ? bodegas
-      : bodegaNombre
-        ? [{ id: Number(bodegaId), nombre: bodegaNombre }]
-        : []
+  const subBodegas = bodegas.find((bodega) => bodega.id === bodegaId)?.subBodegas ?? []
+  const subOpciones = subBodegas.filter((sub) => sub.estado || sub.id === subBodegaId)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
-    const numeroNormalizado = numero.trim()
-    const nombreNormalizado = nombre.trim()
-
-    if (!selectedBodegaId) {
+    if (!bodegaId) {
       setError('Selecciona una bodega.')
       return
     }
-
-    if (!numeroNormalizado) {
-      setError('El número del stand es obligatorio.')
+    if (!subBodegaId) {
+      setError('Selecciona la sub-bodega.')
       return
     }
-
-    if (!/^\d+$/.test(numeroNormalizado)) {
-      setError('El número del stand debe ser un número.')
-      return
-    }
-
-    if (capacidad.trim() && !/^\d+$/.test(capacidad.trim())) {
-      setError('La capacidad debe ser un número.')
+    if (!nombre.trim()) {
+      setError('Escribe el nombre del stand.')
       return
     }
 
     try {
       setSaving(true)
       setError('')
-
-      await createStand(selectedBodegaId, {
-        nombre: nombreNormalizado || `Stand ${numeroNormalizado}`,
-        estado,
-      })
-
-      onCreated(selectedBodegaId)
+      await createStand(subBodegaId, { nombre: nombre.trim(), estado })
+      onCreated()
     } catch (submitError) {
       setError(
-        submitError instanceof Error
+        submitError instanceof ApiError
           ? submitError.message
           : 'No se pudo guardar el stand.',
       )
@@ -142,7 +90,6 @@ export default function CreateStandModal({
           if (!saving) onClose()
         }}
       />
-
       <form
         onSubmit={handleSubmit}
         role="dialog"
@@ -153,10 +100,10 @@ export default function CreateStandModal({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="crear-stand-titulo" className="text-lg font-bold text-sena-text">
-              Agregar nuevo stand
+              Agregar stand
             </h2>
             <p className="mt-1 text-sm text-sena-text/50">
-              Completa la información del stand
+              El stand queda dentro de una sub-bodega. El nombre no se repite ahí.
             </p>
           </div>
           <button
@@ -166,7 +113,7 @@ export default function CreateStandModal({
             onClick={onClose}
             className="grid size-8 place-items-center rounded-lg text-sena-text/40 transition hover:bg-sena-muted hover:text-sena-text"
           >
-            <CloseIcon />
+            ×
           </button>
         </div>
 
@@ -179,111 +126,68 @@ export default function CreateStandModal({
 
           <label className="block text-sm font-medium text-sena-text">
             Bodega *
-            <span className="relative mt-1.5 block">
-              <select
-                value={selectedBodegaId}
-                disabled={saving}
-                onChange={(event) => setSelectedBodegaId(event.target.value)}
-                className={`${fieldClass} appearance-none pr-10`}
-              >
-                {options.length === 0 ? (
-                  <option value={bodegaId}>{bodegaNombre || 'Bodega actual'}</option>
-                ) : (
-                  options.map((bodega) => (
-                    <option key={bodega.id} value={bodega.id}>
-                      {bodega.nombre}
-                    </option>
-                  ))
-                )}
-              </select>
-              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sena-text/40">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-                </svg>
-              </span>
-            </span>
+            <select
+              value={bodegaId || ''}
+              disabled={saving || Boolean(initialBodegaId)}
+              onChange={(event) => {
+                setBodegaId(Number(event.target.value))
+                setSubBodegaId(0)
+              }}
+              className={`${fieldClass} mt-1.5 disabled:cursor-not-allowed disabled:bg-sena-muted`}
+            >
+              <option value="">Selecciona...</option>
+              {bodegas.map((bodega) => (
+                <option key={bodega.id} value={bodega.id}>
+                  {bodega.nombre}
+                </option>
+              ))}
+            </select>
           </label>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm font-medium text-sena-text">
-              Número de stand *
-              <input
-                value={numero}
-                onChange={(event) => setNumero(event.target.value)}
-                placeholder="Ej. 4"
-                inputMode="numeric"
-                disabled={saving}
-                className={`${fieldClass} mt-1.5`}
-              />
-            </label>
-            <label className="block text-sm font-medium text-sena-text">
-              Nombre del stand
-              <input
-                value={nombre}
-                onChange={(event) => setNombre(event.target.value)}
-                placeholder="Ej. Stand 1"
-                maxLength={150}
-                disabled={saving}
-                className={`${fieldClass} mt-1.5`}
-              />
-            </label>
-          </div>
+          <label className="block text-sm font-medium text-sena-text">
+            Sub-bodega *
+            <select
+              value={subBodegaId || ''}
+              disabled={saving || !bodegaId || Boolean(initialSubBodegaId)}
+              onChange={(event) => setSubBodegaId(Number(event.target.value))}
+              className={`${fieldClass} mt-1.5 disabled:cursor-not-allowed disabled:bg-sena-muted`}
+            >
+              <option value="">Selecciona...</option>
+              {subOpciones.map((sub) => (
+                <option key={sub.id} value={sub.id}>
+                  {sub.nombre}
+                </option>
+              ))}
+            </select>
+            {bodegaId && subOpciones.length === 0 ? (
+              <p className="mt-1.5 text-xs text-sena-text/55">
+                Esta bodega no trae sub-bodegas activas. El stand se crea sobre una que ya exista.
+              </p>
+            ) : null}
+          </label>
 
           <label className="block text-sm font-medium text-sena-text">
-            Descripción
-            <textarea
-              value={descripcion}
-              onChange={(event) => setDescripcion(event.target.value)}
-              placeholder="Descripción del stand..."
-              rows={3}
+            Nombre del stand *
+            <input
+              value={nombre}
+              onChange={(event) => setNombre(event.target.value)}
+              placeholder="Ej. Estante 1"
+              maxLength={150}
               disabled={saving}
-              className="mt-1.5 w-full resize-none rounded-lg border border-sena-dark/10 bg-white px-3.5 py-2.5 text-sm text-sena-text outline-none transition placeholder:text-sena-text/35 focus:border-sena focus:ring-2 focus:ring-sena/15"
+              className={`${fieldClass} mt-1.5`}
             />
           </label>
 
-          <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
-            <label className="block text-sm font-medium text-sena-text">
-              Capacidad (uds.)
-              <input
-                value={capacidad}
-                onChange={(event) => setCapacidad(event.target.value)}
-                placeholder="Ej. 50"
-                inputMode="numeric"
-                disabled={saving}
-                className={`${fieldClass} mt-1.5`}
-              />
-            </label>
-
-            <div>
-              <p className="text-sm font-medium text-sena-text">Estado</p>
-              <div className="mt-1.5 flex h-11 items-center justify-between">
-                <span className="text-sm text-sena-text/80">
-                  {estado ? 'Disponible' : 'No disponible'}
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={estado}
-                  aria-label="Cambiar estado del stand"
-                  disabled={saving}
-                  onClick={() => setEstado((current) => !current)}
-                  className={[
-                    'relative h-6 w-11 shrink-0 rounded-full transition',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-sena/30',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                    estado ? 'bg-sena' : 'bg-slate-300',
-                  ].join(' ')}
-                >
-                  <span
-                    className={[
-                      'absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition',
-                      estado ? 'left-[22px]' : 'left-0.5',
-                    ].join(' ')}
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
+          <label className="flex items-center gap-3 rounded-lg bg-sena-muted px-3.5 py-3 text-sm text-sena-text">
+            <input
+              type="checkbox"
+              checked={estado}
+              disabled={saving}
+              onChange={(event) => setEstado(event.target.checked)}
+              className="size-4 accent-sena"
+            />
+            Stand activo
+          </label>
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-2">
@@ -300,7 +204,6 @@ export default function CreateStandModal({
             disabled={saving}
             className="inline-flex h-10 items-center gap-2 rounded-lg bg-sena px-4 text-sm font-semibold text-white transition hover:bg-[#009247] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <SaveIcon />
             {saving ? 'Guardando...' : 'Guardar stand'}
           </button>
         </div>

@@ -22,11 +22,14 @@ const itemClass =
   'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition duration-150'
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { logout, modules, isAdmin } = useAuth()
+  const { logout, modules, isAdmin, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const granted = grantedModuleLinks(modules)
-  const inventoryScreens = visibleInventoryScreens(modules)
+  const inventoryScreens = visibleInventoryScreens(modules, {
+    isAdmin,
+    permissions: user?.permissions,
+  })
 
   const [inventoryOpen, setInventoryOpen] = useState(
     location.pathname.startsWith('/inventario'),
@@ -142,6 +145,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                       to={screen.to}
                       icon="inventory"
                       nested
+                      end={false}
                       onClose={onClose}
                     >
                       {screen.label}
@@ -174,6 +178,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <SideLink
               to="/perfiles"
               icon="user"
+              end={false}
               onClose={onClose}
             >
               Perfiles

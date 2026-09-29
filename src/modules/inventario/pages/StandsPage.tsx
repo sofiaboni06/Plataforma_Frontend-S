@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
-  CloseIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -30,17 +29,25 @@ import {
   tableColumns,
 } from '@/shared/components/DataTable'
 import { filterSelectClass, usePagination, useTableState } from '@/shared/lib/table'
+import CreateStandModal from '@/modules/inventario/components/CreateStandModal'
 import {
   deleteStand,
   getBodegas,
+  getStandsBySubBodega,
 } from '@/modules/inventario/data/bodega'
 import { getElementos } from '@/modules/inventario/data/elemento'
-import type { BodegaApi, StandApi } from '@/modules/inventario/types/bodega'
+import type { BodegaApi } from '@/modules/inventario/types/bodega'
+import { useAuth } from '@/modules/auth/context/auth'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
-type StandRow = StandApi & {
+type StandRow = {
+  id: number
+  nombre: string
+  estado: boolean
   bodegaId: number
   bodegaNombre: string
+  subBodegaId: number
+  subBodegaNombre: string
   totalElementos: number
 }
 
@@ -62,10 +69,12 @@ function LayersIcon() {
 
 export default function StandsPage() {
   const navigate = useNavigate()
-  const { can } = useInventoryAccess()
-  const canCreate = can('stands', 'create')
-  const canEdit = can('stands', 'edit')
-  const canView = can('stands', 'view')
+  const { isAdmin } = useAuth()
+  const { permit } = useInventoryAccess()
+  const canCreate = permit('stand.crear', 'stands', 'create')
+  const canEdit = permit('stand.editar', 'stands', 'edit')
+  const canDelete = permit('stand.eliminar', 'stands', 'edit')
+  const canView = permit('stand.ver', 'stands', 'view')
 
   const { search, setSearch, page, setPage, resetPage } = useTableState()
 
@@ -75,7 +84,7 @@ export default function StandsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [createModalOpen, setCreateModalOpen] = useState(false)
-  const [newStandBodegaId, setNewStandBodegaId] = useState('')
+  const [subBodegaFilter, setSubBodegaFilter] = useState('')
   const [standToDelete, setStandToDelete] = useState<StandRow | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
@@ -106,19 +115,29 @@ export default function StandsPage() {
         )
       }
 
-      setStands(
-        bodegaList.flatMap((bodega) =>
-          (bodega.stands ?? []).map((stand) => ({
-            ...stand,
-            bodegaId: bodega.id,
-            bodegaNombre: bodega.nombre,
-            totalElementos:
-              elementosPorStand.get(stand.id) ??
-              elementosPorStand.get(stand.idStand) ??
-              0,
-          })),
-        ),
-      )
+      const rows: StandRow[] = []
+      for (const bodega of bodegaList) {
+        for (const sub of bodega.subBodegas ?? []) {
+          const nested = sub.stands ?? []
+          const stands =
+            nested.length > 0 || (sub.totalStands ?? 0) === 0
+              ? nested
+              : await getStandsBySubBodega(sub.id)
+          for (const stand of stands) {
+            rows.push({
+              id: stand.id,
+              nombre: stand.nombre,
+              estado: stand.estado,
+              bodegaId: bodega.id,
+              bodegaNombre: bodega.nombre,
+              subBodegaId: sub.id,
+              subBodegaNombre: sub.nombre,
+              totalElementos: elementosPorStand.get(stand.id) ?? 0,
+            })
+          }
+        }
+      }
+      setStands(rows)
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -140,26 +159,37 @@ export default function StandsPage() {
     return stands.filter((stand) => {
       const matchesSearch =
         !query ||
-        `${stand.nombre} ${stand.bodegaNombre} ${stand.id} ${stand.idStand}`
+        `${stand.nombre} ${stand.bodegaNombre} ${stand.subBodegaNombre} ${stand.id}`
           .toLowerCase()
           .includes(query)
 
       const matchesBodega = !bodegaFilter || String(stand.bodegaId) === bodegaFilter
+      const matchesSub = !subBodegaFilter || String(stand.subBodegaId) === subBodegaFilter
 
-      return matchesSearch && matchesBodega
+      return matchesSearch && matchesBodega && matchesSub
     })
-  }, [stands, search, bodegaFilter])
+  }, [stands, search, bodegaFilter, subBodegaFilter])
 
   const { pageRows, totalPages, currentPage, from, to, total } = usePagination(
     filteredStands,
     page,
   )
 
-  const hasActiveFilters = search.trim() !== '' || bodegaFilter !== ''
+  const singleAssignedBodega = !isAdmin && bodegas.length === 1
+  const subBodegasFiltro = bodegas
+    .filter((bodega) => !bodegaFilter || String(bodega.id) === bodegaFilter)
+    .flatMap((bodega) =>
+      (bodega.subBodegas ?? []).map((sub) => ({
+        id: sub.id,
+        nombre: `${bodega.nombre} · ${sub.nombre}`,
+      })),
+    )
+  const hasActiveFilters = search.trim() !== '' || bodegaFilter !== '' || subBodegaFilter !== ''
 
   const clearFilters = () => {
     setSearch('')
     setBodegaFilter('')
+    setSubBodegaFilter('')
   }
 
   function handleCreateStand() {
@@ -167,33 +197,7 @@ export default function StandsPage() {
       setError('No hay bodegas disponibles. Primero debes crear una bodega.')
       return
     }
-
-    if (bodegas.length === 1) {
-      navigate(`/inventario/bodegas/${bodegas[0].id}/stands/crear`)
-      return
-    }
-
-    setNewStandBodegaId('')
     setCreateModalOpen(true)
-  }
-
-  function closeCreateModal() {
-    setCreateModalOpen(false)
-    setNewStandBodegaId('')
-  }
-
-  function continueCreateStand() {
-    if (!newStandBodegaId) return
-
-    const bodega = bodegas.find((item) => String(item.id) === newStandBodegaId)
-
-    if (!bodega) {
-      setError('La bodega seleccionada no existe.')
-      return
-    }
-
-    closeCreateModal()
-    navigate(`/inventario/bodegas/${bodega.id}/stands/crear`)
   }
 
   async function handleDeleteStand(stand: StandRow) {
@@ -224,7 +228,7 @@ export default function StandsPage() {
     <AppLayout title="Gestionar stands">
       <PageHeader
         title="Gestionar stands"
-        description="Consulta y administra los stands registrados en las bodegas."
+        description="Cada stand pertenece a una sub-bodega. El nombre no se repite dentro de ella."
         action={
           canCreate ? (
             <Button
@@ -244,23 +248,48 @@ export default function StandsPage() {
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Buscar por stand, bodega o código..."
+          placeholder="Buscar por stand, sub-bodega o bodega..."
         />
 
         <FilterGroup label="Bodega">
+          {singleAssignedBodega ? (
+            <div className={`${filterSelectClass} flex items-center lg:w-64`}>
+              {bodegas[0]?.nombre}
+            </div>
+          ) : (
+            <select
+              value={bodegaFilter}
+              onChange={(event) => {
+                setBodegaFilter(event.target.value)
+                setSubBodegaFilter('')
+                resetPage()
+              }}
+              className={`${filterSelectClass} lg:w-64`}
+            >
+              <option value="">{isAdmin ? 'Todas las bodegas' : 'Todas las asignadas'}</option>
+
+              {bodegas.map((bodega) => (
+                <option key={bodega.id} value={String(bodega.id)}>
+                  {bodega.nombre}
+                </option>
+              ))}
+            </select>
+          )}
+        </FilterGroup>
+
+        <FilterGroup label="Sub-bodega">
           <select
-            value={bodegaFilter}
+            value={subBodegaFilter}
             onChange={(event) => {
-              setBodegaFilter(event.target.value)
+              setSubBodegaFilter(event.target.value)
               resetPage()
             }}
             className={`${filterSelectClass} lg:w-64`}
           >
-            <option value="">Todas las bodegas</option>
-
-            {bodegas.map((bodega) => (
-              <option key={bodega.id} value={String(bodega.id)}>
-                {bodega.nombre}
+            <option value="">Todas</option>
+            {subBodegasFiltro.map((sub) => (
+              <option key={sub.id} value={String(sub.id)}>
+                {sub.nombre}
               </option>
             ))}
           </select>
@@ -279,7 +308,7 @@ export default function StandsPage() {
                 <thead>
                   <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
                     <TableHeader width={tableColumns.name}>Stand</TableHeader>
-                    <TableHeader width={tableColumns.relation}>Bodega</TableHeader>
+                    <TableHeader width={tableColumns.relation}>Ubicación</TableHeader>
                     <TableHeader align="center" width={tableColumns.count}>
                       Elementos
                     </TableHeader>
@@ -308,15 +337,14 @@ export default function StandsPage() {
                               <p className="truncate font-semibold text-sena-text">
                                 {stand.nombre}
                               </p>
-                              <p className="mt-0.5 text-xs text-sena-text/45">
-                                ID: {stand.idStand || stand.id}
-                              </p>
+                              <p className="mt-0.5 text-xs text-sena-text/45">ID {stand.id}</p>
                             </div>
                           </div>
                         </td>
 
-                        <td className="truncate px-5 py-4 font-medium text-sena-dark">
-                          {stand.bodegaNombre}
+                        <td className="px-5 py-4">
+                          <p className="truncate font-medium text-sena-dark">{stand.subBodegaNombre}</p>
+                          <p className="mt-0.5 truncate text-xs text-sena-text/45">{stand.bodegaNombre}</p>
                         </td>
 
                         <td className="px-5 py-4 text-center text-sena-text/70">
@@ -335,9 +363,7 @@ export default function StandsPage() {
                               <ActionButton
                                 title="Ver stand"
                                 onClick={() =>
-                                  navigate(
-                                    `/inventario/bodegas/${stand.bodegaId}/stands/${stand.id}`,
-                                  )
+                                  navigate(`/inventario/stands/${stand.id}`)
                                 }
                               >
                                 <EyeIcon className="size-[18px]" />
@@ -348,16 +374,14 @@ export default function StandsPage() {
                               <ActionButton
                                 title="Editar stand"
                                 onClick={() =>
-                                  navigate(
-                                    `/inventario/bodegas/${stand.bodegaId}/stands/${stand.id}/editar`,
-                                  )
+                                  navigate(`/inventario/stands/${stand.id}/editar`)
                                 }
                               >
                                 <PencilIcon className="size-[18px]" />
                               </ActionButton>
                             ) : null}
 
-                            {canEdit ? (
+                            {canDelete ? (
                               <ActionButton
                                 title="Eliminar stand"
                                 danger
@@ -390,94 +414,29 @@ export default function StandsPage() {
       </TableCard>
 
       {createModalOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-          onClick={closeCreateModal}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="create-stand-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="grid size-12 shrink-0 place-items-center rounded-full bg-emerald-100 text-sena-dark">
-                  <LayersIcon />
-                </div>
-
-                <div>
-                  <h2 id="create-stand-title" className="text-lg font-bold text-sena-dark">
-                    Agregar nuevo stand
-                  </h2>
-
-                  <p className="mt-1 text-sm text-sena-text/55">
-                    Selecciona la bodega donde deseas crear el stand.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                aria-label="Cerrar"
-                onClick={closeCreateModal}
-                className="grid size-9 shrink-0 place-items-center rounded-lg border border-sena-dark/8 text-sena-text/60 transition hover:bg-sena-muted hover:text-sena-dark"
-              >
-                <CloseIcon className="size-4" />
-              </button>
-            </div>
-
-            <label
-              htmlFor="newStandBodega"
-              className="mt-5 flex flex-col gap-1.5 text-sm font-medium text-sena-text/75"
-            >
-              Bodega *
-              <select
-                id="newStandBodega"
-                value={newStandBodegaId}
-                onChange={(event) => setNewStandBodegaId(event.target.value)}
-                className={filterSelectClass}
-              >
-                <option value="">Selecciona una bodega</option>
-
-                {bodegas.map((bodega) => (
-                  <option key={bodega.id} value={bodega.id}>
-                    {bodega.nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <Button type="button" variant="secondary" onClick={closeCreateModal}>
-                Cancelar
-              </Button>
-
-              <Button
-                type="button"
-                disabled={!newStandBodegaId}
-                onClick={continueCreateStand}
-              >
-                Continuar
-              </Button>
-            </div>
-          </div>
-        </div>
+        <CreateStandModal
+          bodegas={bodegas}
+          initialBodegaId={singleAssignedBodega ? bodegas[0]?.id : undefined}
+          onClose={() => setCreateModalOpen(false)}
+          onCreated={() => {
+            setCreateModalOpen(false)
+            void loadStands()
+          }}
+        />
       ) : null}
 
       {standToDelete ? (
         <ConfirmDialog
           title="Eliminar stand"
-          subtitle="Esta acción no se puede deshacer."
+          subtitle="Solo se elimina si ya no tiene elementos."
           confirmLabel="Eliminar"
           pendingLabel="Eliminando…"
           pending={deletingId === standToDelete.id}
           onConfirm={() => void handleDeleteStand(standToDelete)}
           onCancel={() => setStandToDelete(null)}
         >
-          ¿Deseas eliminar el stand <strong>{standToDelete.nombre}</strong> de la bodega{' '}
-          <strong>{standToDelete.bodegaNombre}</strong>?
+          ¿Deseas eliminar el stand <strong>{standToDelete.nombre}</strong> de la sub-bodega{' '}
+          <strong>{standToDelete.subBodegaNombre}</strong>?
         </ConfirmDialog>
       ) : null}
     </AppLayout>

@@ -21,6 +21,7 @@ const EMPTY_FORM = {
   passwordConfirmation: '',
   idPerfil: '',
   idCformacion: '',
+  bodegaIds: [] as number[],
   active: true,
 }
 
@@ -28,7 +29,7 @@ type ModalMode = 'create' | 'edit'
 
 export default function UsersPage() {
   const [users, setUsers] = useState<ManagedUser[]>([])
-  const [options, setOptions] = useState<UserFormOptions>({ roles: [], centers: [] })
+  const [options, setOptions] = useState<UserFormOptions>({ roles: [], centers: [], bodegas: [] })
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [search, setSearch] = useState('')
@@ -48,7 +49,21 @@ export default function UsersPage() {
   }, [])
 
   const patchForm = (field: keyof typeof EMPTY_FORM, value: string | boolean) => {
-    setForm((current) => ({ ...current, [field]: value }))
+    setForm((current) => {
+      if (field === 'idCformacion' && value !== current.idCformacion) {
+        return { ...current, idCformacion: String(value), bodegaIds: [] }
+      }
+      return { ...current, [field]: value }
+    })
+  }
+
+  const toggleBodega = (bodegaId: number) => {
+    setForm((current) => ({
+      ...current,
+      bodegaIds: current.bodegaIds.includes(bodegaId)
+        ? current.bodegaIds.filter((id) => id !== bodegaId)
+        : [...current.bodegaIds, bodegaId],
+    }))
   }
 
   const loadUsers = async () => {
@@ -129,6 +144,7 @@ export default function UsersPage() {
       passwordConfirmation: '',
       idPerfil: String(user.roleId),
       idCformacion: String(user.trainingCenterId),
+      bodegaIds: user.bodegaIds ?? [],
       active: user.active,
     })
     setModal('edit')
@@ -152,6 +168,7 @@ export default function UsersPage() {
           passwordConfirmation: form.passwordConfirmation,
           idPerfil: Number(form.idPerfil),
           idCformacion: Number(form.idCformacion),
+          bodegaIds: isAdministratorRole(form.idPerfil, options) ? [] : form.bodegaIds,
         }),
       })
       const list = await loadUsers()
@@ -187,9 +204,15 @@ export default function UsersPage() {
         payload.password = form.password
         payload.passwordConfirmation = form.passwordConfirmation
       }
-      const updated = await api<ManagedUser>(`/users/${selectedId}`, {
+      await api<ManagedUser>(`/users/${selectedId}`, {
         method: 'PATCH',
         body: JSON.stringify(payload),
+      })
+      const updated = await api<ManagedUser>(`/users/${selectedId}/bodegas`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          bodegaIds: isAdministratorRole(form.idPerfil, options) ? [] : form.bodegaIds,
+        }),
       })
       await loadUsers()
       setMessage(`Usuario actualizado. Perfil: ${updated.role}.`)
@@ -212,7 +235,7 @@ export default function UsersPage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-sena-text">Usuarios</h1>
             <p className="mt-1 max-w-2xl text-sm text-sena-text/60">
-              Cree cuentas y asígneles un perfil. Los módulos los ve cada persona según el perfil.
+              Cree cuentas, asígneles un perfil y las bodegas de su centro. Con esa bodega queda amarrado el inventario.
             </p>
           </div>
           <Button
@@ -327,14 +350,20 @@ export default function UsersPage() {
           title={editing ? 'Editar usuario' : 'Registrar usuario'}
           description={
             editing
-              ? 'Cambie el perfil para que, al entrar, vea solo los módulos de ese perfil.'
-              : 'Complete los datos y asígnele un perfil. Los módulos salen de ese perfil.'
+              ? 'El perfil define los módulos. Las bodegas definen de dónde ve y registra el inventario.'
+              : 'Complete los datos, el perfil y las bodegas de su centro de formación.'
           }
           onClose={closeModal}
           wide
         >
           <form className="grid gap-3 sm:grid-cols-2" onSubmit={editing ? handleUpdate : handleCreate}>
-            <UserFields form={form} options={options} onChange={patchForm} editing={editing} />
+            <UserFields
+              form={form}
+              options={options}
+              onChange={patchForm}
+              onToggleBodega={toggleBodega}
+              editing={editing}
+            />
             {editing ? (
               <label className="flex items-center gap-2 text-sm text-sena-text sm:col-span-2">
                 <input
@@ -362,20 +391,30 @@ export default function UsersPage() {
   )
 }
 
+function isAdministratorRole(roleId: string, options: UserFormOptions) {
+  return options.roles.find((role) => String(role.id) === roleId)?.name === 'Administrador'
+}
+
 function UserFields({
   form,
   options,
   onChange,
+  onToggleBodega,
   editing = false,
 }: {
   form: typeof EMPTY_FORM
   options: UserFormOptions
   onChange: (field: keyof typeof EMPTY_FORM, value: string | boolean) => void
+  onToggleBodega: (bodegaId: number) => void
   editing?: boolean
 }) {
   const documentOptions = DOCUMENT_TYPES.includes(form.tipoDocumento)
     ? DOCUMENT_TYPES
     : [form.tipoDocumento, ...DOCUMENT_TYPES]
+  const administrator = isAdministratorRole(form.idPerfil, options)
+  const centerBodegas = options.bodegas.filter(
+    (bodega) => String(bodega.trainingCenterId) === form.idCformacion,
+  )
 
   return (
     <>
@@ -434,6 +473,37 @@ function UserFields({
           label: center.regional ? `${center.name} — ${center.regional}` : center.name,
         }))}
       />
+      {administrator ? (
+        <p className="text-sm text-sena-text/60 sm:col-span-2">
+          El perfil Administrador ve todos los centros y todas las bodegas, así que no se le asigna una.
+        </p>
+      ) : (
+        <div className="sm:col-span-2">
+          <p className="text-sm font-medium text-sena-text/75">Bodegas del centro</p>
+          <p className="mt-1 text-xs text-sena-text/55">
+            El inventario de esta persona queda amarrado a las bodegas que marques. No vuelve a elegir bodega.
+          </p>
+          {!form.idCformacion ? (
+            <p className="mt-2 text-sm text-sena-text/55">Primero elige el centro de formación.</p>
+          ) : centerBodegas.length === 0 ? (
+            <p className="mt-2 text-sm text-sena-text/55">Este centro no tiene bodegas activas.</p>
+          ) : (
+            <div className="mt-2 max-h-40 space-y-2 overflow-y-auto rounded-lg bg-sena-muted p-3">
+              {centerBodegas.map((bodega) => (
+                <label key={bodega.id} className="flex items-center gap-2 text-sm text-sena-text">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-[#00a651]"
+                    checked={form.bodegaIds.includes(bodega.id)}
+                    onChange={() => onToggleBodega(bodega.id)}
+                  />
+                  {bodega.name}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <TextField
         id="password"
         label={editing ? 'Nueva contraseña (opcional)' : 'Contraseña'}

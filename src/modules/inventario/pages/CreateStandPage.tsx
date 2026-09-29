@@ -11,10 +11,7 @@ export default function CreateStandPage() {
       return
     }
 
-    navigate(`/inventario/bodegas/${id_bodega}`, {
-      replace: true,
-      state: { openCreateStand: true },
-    })
+    navigate('/inventario/stands', { replace: true })
   }, [id_bodega, navigate])
 
   return null

@@ -85,7 +85,7 @@ export default function StandForm({
           <p className="mt-1 text-sm text-sena-text/55">
             {isEdit
               ? 'Actualiza la información del stand.'
-              : 'Registra un nuevo stand para esta bodega.'}
+              : 'Registra un nuevo stand para esta sub-bodega.'}
           </p>
         </div>
 

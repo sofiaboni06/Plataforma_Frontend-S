@@ -10,9 +10,14 @@ export type UserProfile = {
   phone: string
   address: string
   trainingCenter: string
+  trainingCenterId?: number
   groupCode: string
   role: string
   initials: string
+  isAdmin?: boolean
+  permissions?: string[]
+  bodegaIds?: number[]
+  bodegas?: Array<{ id: number; name: string }>
 }
 
 export type ProfileDraft = Pick<UserProfile, 'documentId' | 'email' | 'phone' | 'address'>
@@ -66,9 +71,12 @@ export type ManagedUser = {
   trainingCenterId: number
   location: string
   active: boolean
+  bodegaIds?: number[]
+  bodegas?: Array<{ id: number; name: string }>
 }
 
 export type UserFormOptions = {
   roles: Array<{ id: number; name: string }>
   centers: Array<{ id: number; name: string; regional: string }>
+  bodegas: Array<{ id: number; name: string; trainingCenterId: number }>
 }
