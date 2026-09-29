@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import { StatusPill } from '@/shared/components/ResourceBoard'
@@ -15,6 +15,7 @@ import {
   tableClass,
   tableColumns,
 } from '@/shared/components/DataTable'
+import InventoryFunctions from '@/modules/administracion/InventoryFunctions'
 import { ApiError, api } from '@/shared/lib/api'
 import type { ModuleNode, RoleDetail } from '@/shared/types/profile'
 
@@ -57,17 +58,18 @@ export default function RoleModulesPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [permissionMatch, setPermissionMatch] = useState<{ moduleId: string; matched: boolean } | null>(null)
 
   const current = detail && moduleId ? findNode(detail.tree, Number(moduleId)) : null
   const modules = moduleId ? (current?.children ?? []) : (detail?.tree ?? [])
 
   useEffect(() => {
     const previousTitle = document.title
-    document.title = 'Módulos | SENA'
+    document.title = current ? `${current.label} | SENA` : 'Módulos | SENA'
     return () => {
       document.title = previousTitle
     }
-  }, [])
+  }, [current])
 
   useEffect(() => {
     let cancelled = false
@@ -93,6 +95,17 @@ export default function RoleModulesPage() {
       cancelled = true
     }
   }, [id])
+
+  const permissionMode =
+    moduleId && permissionMatch?.moduleId === moduleId ? (permissionMatch.matched ? 'yes' : 'no') : 'unknown'
+
+  const handlePermissionMatch = useCallback(
+    (matched: boolean) => {
+      if (!moduleId) return
+      setPermissionMatch({ moduleId, matched })
+    },
+    [moduleId],
+  )
 
   const handleToggle = (moduleNodeId: number) => {
     setSelectedModules((currentSelection) => {
@@ -140,10 +153,14 @@ export default function RoleModulesPage() {
     navigate(`/perfiles/${id}/modulos/nuevo${parent}`)
   }
 
+  const editingPermissions = Boolean(moduleId && permissionMode === 'yes')
+  const showChildModules = Boolean(moduleId && permissionMode === 'no')
   const title = current?.label ?? 'Módulos'
   const description = current
-    ? `Módulos dentro de ${current.label}. Elige cuáles usa ${detail?.name ?? 'este perfil'}.`
-    : `${detail?.name ?? 'Perfil'}. Elige los módulos de este nivel. Los de adentro se abren en otra pantalla.`
+    ? editingPermissions
+      ? `Permisos de ${current.label} para ${detail?.name ?? 'este perfil'}.`
+      : `Módulos dentro de ${current.label}. Elige cuáles usa ${detail?.name ?? 'este perfil'}.`
+    : `${detail?.name ?? 'Perfil'}. Marca los módulos. Permisos abre los de ese módulo.`
 
   return (
     <AppLayout title={title}>
@@ -155,12 +172,16 @@ export default function RoleModulesPage() {
             <Button type="button" variant="secondary" onClick={goBack}>
               Volver
             </Button>
-            <Button type="button" variant="secondary" icon={<PlusIcon className="size-4" />} onClick={openCreate}>
-              Nuevo módulo
-            </Button>
-            <Button type="button" onClick={() => void handleSave()} disabled={saving || !detail}>
-              Guardar
-            </Button>
+            {editingPermissions ? null : (
+              <>
+                <Button type="button" variant="secondary" icon={<PlusIcon className="size-4" />} onClick={openCreate}>
+                  Nuevo módulo
+                </Button>
+                <Button type="button" onClick={() => void handleSave()} disabled={saving || !detail}>
+                  Guardar
+                </Button>
+              </>
+            )}
           </div>
         }
       />
@@ -168,70 +189,91 @@ export default function RoleModulesPage() {
       {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}
       {message ? <p className="mb-4 text-sm text-sena">{message}</p> : null}
 
-      <TableCard>
-        {loading ? (
-          <TableLoading label="Cargando módulos…" />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className={tableClass}>
-              <thead>
-                <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
-                  <TableHeader width={tableColumns.name}>Módulo</TableHeader>
-                  <TableHeader width={tableColumns.relation}>Descripción</TableHeader>
-                  <TableHeader align="center" width={tableColumns.count}>
-                    Dentro
-                  </TableHeader>
-                  <TableHeader align="center" width={tableColumns.status}>
-                    Asignado
-                  </TableHeader>
-                  <TableHeader align="center" width={tableColumns.actions}>
-                    Acciones
-                  </TableHeader>
-                </tr>
-              </thead>
-              <tbody>
-                {modules.length === 0 ? (
-                  <TableEmpty colSpan={5}>No hay módulos en este nivel.</TableEmpty>
-                ) : (
-                  modules.map((module) => (
-                    <TableRow key={module.id}>
-                      <td className="px-5 py-4">
-                        <p className="truncate font-semibold text-sena-text">{module.label}</p>
-                      </td>
-                      <td className="truncate px-5 py-4 font-medium text-sena-dark">
-                        {module.description || '—'}
-                      </td>
-                      <td className="px-5 py-4 text-center text-sena-text/70">{module.children.length}</td>
-                      <td className="px-5 py-4 text-center">
-                        <label className="inline-flex items-center justify-center gap-2 text-sm text-sena-text">
-                          <input
-                            type="checkbox"
-                            className="size-4 accent-[#00a651]"
-                            checked={selectedModules.has(module.id)}
-                            onChange={() => handleToggle(module.id)}
-                          />
-                          <StatusPill tone={selectedModules.has(module.id) ? 'ok' : 'warn'}>
-                            {selectedModules.has(module.id) ? 'Sí' : 'No'}
-                          </StatusPill>
-                        </label>
-                      </td>
-                      <td className="px-5 py-4 text-center">
-                        <button
-                          type="button"
-                          className="text-sm font-semibold text-sena hover:underline"
-                          onClick={() => navigate(`/perfiles/${id}/modulos/${module.id}`)}
-                        >
-                          Ver módulos
-                        </button>
-                      </td>
-                    </TableRow>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </TableCard>
+      {moduleId && current && id && detail ? (
+        <InventoryFunctions
+          key={current.id}
+          roleId={id}
+          moduleNodeId={current.id}
+          moduleLabel={current.label}
+          moduleCode={current.code}
+          selectedModuleIds={[...selectedModules]}
+          permissionCodes={detail.permissionCodes ?? []}
+          onMatch={handlePermissionMatch}
+          onSaved={(next) => {
+            setDetail(next)
+            setSelectedModules(collectGranted(next.tree, new Set()))
+          }}
+        />
+      ) : null}
+
+      {!moduleId || showChildModules ? (
+          <TableCard>
+            {loading ? (
+              <TableLoading label="Cargando módulos…" />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className={tableClass}>
+                  <thead>
+                    <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
+                      <TableHeader width={tableColumns.name}>Módulo</TableHeader>
+                      <TableHeader width={tableColumns.relation}>Descripción</TableHeader>
+                      <TableHeader align="center" width={tableColumns.count}>
+                        Dentro
+                      </TableHeader>
+                      <TableHeader align="center" width={tableColumns.status}>
+                        Asignado
+                      </TableHeader>
+                      <TableHeader align="center" width={tableColumns.actions}>
+                        Acciones
+                      </TableHeader>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modules.length === 0 ? (
+                      <TableEmpty colSpan={5}>
+                        {moduleId ? 'Este módulo no tiene permisos.' : 'No hay módulos en este nivel.'}
+                      </TableEmpty>
+                    ) : (
+                      modules.map((module) => (
+                          <TableRow key={module.id}>
+                            <td className="px-5 py-4">
+                              <p className="truncate font-semibold text-sena-text">{module.label}</p>
+                            </td>
+                            <td className="truncate px-5 py-4 font-medium text-sena-dark">
+                              {module.description || '—'}
+                            </td>
+                            <td className="px-5 py-4 text-center text-sena-text/70">{module.children.length}</td>
+                            <td className="px-5 py-4 text-center">
+                              <label className="inline-flex items-center justify-center gap-2 text-sm text-sena-text">
+                                <input
+                                  type="checkbox"
+                                  className="size-4 accent-[#00a651]"
+                                  checked={selectedModules.has(module.id)}
+                                  onChange={() => handleToggle(module.id)}
+                                />
+                                <StatusPill tone={selectedModules.has(module.id) ? 'ok' : 'warn'}>
+                                  {selectedModules.has(module.id) ? 'Sí' : 'No'}
+                                </StatusPill>
+                              </label>
+                            </td>
+                            <td className="px-5 py-4 text-center">
+                              <button
+                                type="button"
+                                className="text-sm font-semibold text-sena hover:underline"
+                                onClick={() => navigate(`/perfiles/${id}/modulos/${module.id}`)}
+                              >
+                                Permisos
+                              </button>
+                            </td>
+                          </TableRow>
+                        ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </TableCard>
+      ) : null}
     </AppLayout>
   )
 }

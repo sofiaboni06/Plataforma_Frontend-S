@@ -54,6 +54,7 @@ export type Role = {
 
 export type RoleDetail = Role & {
   moduleIds: number[]
+  permissionCodes: string[]
   tree: ModuleNode[]
 }
 

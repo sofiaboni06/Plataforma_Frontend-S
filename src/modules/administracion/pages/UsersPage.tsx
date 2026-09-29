@@ -481,7 +481,7 @@ function UserFields({
         <div className="sm:col-span-2">
           <p className="text-sm font-medium text-sena-text/75">Bodegas del centro</p>
           <p className="mt-1 text-xs text-sena-text/55">
-            El inventario de esta persona queda amarrado a las bodegas que marques. No vuelve a elegir bodega.
+            Marca la bodega de esta persona, casi siempre una. Lo que puede hacer ahí lo defines en su perfil, en las funciones de Inventario.
           </p>
           {!form.idCformacion ? (
             <p className="mt-2 text-sm text-sena-text/55">Primero elige el centro de formación.</p>

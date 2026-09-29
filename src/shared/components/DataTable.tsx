@@ -169,9 +169,9 @@ export const tableColumns = {
 
 export const tableClass = 'w-full min-w-[900px] table-fixed text-sm'
 
-export function TableRow({ children }: { children: ReactNode }) {
+export function TableRow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <tr className="border-b border-sena-dark/6 last:border-b-0 hover:bg-sena-muted/40">
+    <tr className={cn('border-b border-sena-dark/6 last:border-b-0 hover:bg-sena-muted/40', className)}>
       {children}
     </tr>
   )
