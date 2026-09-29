@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
-import CreateStandModal from '@/modules/inventario/components/CreateStandModal'
+import SubBodegaForm from '@/modules/inventario/components/SubBodegaForm'
 import {
-  deleteStand,
+  createSubBodega,
   getBodega,
-  getStandsBySubBodega,
 } from '@/modules/inventario/data/bodega'
-import type { BodegaApi, StandResumen, SubBodegaApi } from '@/modules/inventario/types/bodega'
-import ConfirmDialog from '@/shared/components/ui/ConfirmDialog'
+import type { BodegaApi } from '@/modules/inventario/types/bodega'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
-import { ApiError } from '@/shared/lib/api'
 
 function WarehouseIcon() {
   return (
@@ -25,19 +22,13 @@ export default function ViewBodegaPage() {
   const navigate = useNavigate()
   const { permit } = useInventoryAccess()
   const canEdit = permit('bodega.editar', 'bodegas', 'edit')
-  const canCreateStand = permit('stand.crear', 'stands', 'create')
-  const canViewStand = permit('stand.ver', 'stands', 'view')
-  const canEditStand = permit('stand.editar', 'stands', 'edit')
-  const canDeleteStand = permit('stand.eliminar', 'stands', 'edit')
 
   const { id } = useParams<{ id: string }>()
   const [bodega, setBodega] = useState<BodegaApi | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [standToDelete, setStandToDelete] = useState<{ id: number; nombre: string } | null>(null)
-  const [deleting, setDeleting] = useState(false)
-  const [standModal, setStandModal] = useState<{ subBodegaId: number } | null>(null)
-  const [standsBySub, setStandsBySub] = useState<Record<number, StandResumen[]>>({})
+  const [subBodegaModal, setSubBodegaModal] = useState(false)
+  const [savingSubBodega, setSavingSubBodega] = useState(false)
 
   async function loadBodega(currentId: string) {
     const result = await getBodega(currentId)
@@ -84,45 +75,20 @@ export default function ViewBodegaPage() {
     }
   }, [id])
 
-  useEffect(() => {
-    if (!bodega) return
-    let cancelled = false
+  async function handleCreateSubBodega(data: { nombre: string; estado: boolean }) {
+    if (!id) return
 
-    async function loadStands() {
-      const entries = await Promise.all(
-        (bodega?.subBodegas ?? []).map(async (sub) => {
-          if ((sub.stands?.length ?? 0) > 0) return [sub.id, sub.stands] as const
-          if ((sub.totalStands ?? 0) === 0) return [sub.id, [] as StandResumen[]] as const
-          const stands = await getStandsBySubBodega(sub.id)
-          return [sub.id, stands] as const
-        }),
-      )
-      if (!cancelled) {
-        setStandsBySub(Object.fromEntries(entries) as Record<number, StandResumen[]>)
-      }
-    }
-
-    void loadStands()
-    return () => {
-      cancelled = true
-    }
-  }, [bodega])
-
-  async function confirmDeleteStand() {
-    if (!id || !standToDelete) return
     try {
-      setDeleting(true)
-      setError('')
-      await deleteStand(standToDelete.id)
-      setStandToDelete(null)
-      await loadBodega(id)
-    } catch (deleteError) {
-      setError(
-        deleteError instanceof ApiError ? deleteError.message : 'No se pudo eliminar el stand.',
-      )
-      setStandToDelete(null)
+      setSavingSubBodega(true)
+      await createSubBodega(id, data)
+      setSubBodegaModal(false)
+      try {
+        await loadBodega(id)
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'No se pudo actualizar la bodega.')
+      }
     } finally {
-      setDeleting(false)
+      setSavingSubBodega(false)
     }
   }
 
@@ -181,7 +147,7 @@ export default function ViewBodegaPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-sena-text">Información de la bodega</h1>
           <p className="mt-1 text-sm text-sena-text/55">
-            El stand se crea sobre una sub-bodega que ya viene en la bodega.
+            Administra las sub-bodegas asociadas y consulta sus stands.
           </p>
         </div>
 
@@ -221,25 +187,38 @@ export default function ViewBodegaPage() {
           </div>
 
           <div className="pt-7">
-            <div className="mb-4">
-              <h3 className="text-sm font-bold text-sena-dark">Sub-bodegas</h3>
-              <p className="mt-1 text-xs text-sena-text/50">
-                Se elige una que ya exista. Desde aquí no se crean, editan ni eliminan.
-              </p>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-sena-dark">
+                  Sub-bodegas
+                </h3>
+
+                <p className="mt-1 text-xs text-sena-text/50">
+                  Administra las sub-bodegas que pertenecen a esta bodega.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="rounded-lg bg-sena px-4 py-2 text-xs font-semibold text-white hover:bg-sena-dark"
+                onClick={() => setSubBodegaModal(true)}
+              >
+                Nueva sub-bodega
+              </button>
             </div>
 
             {subBodegas.length === 0 ? (
               <div className="rounded-xl border border-dashed border-sena-dark/15 px-5 py-8 text-center">
                 <p className="text-sm font-semibold text-sena-text">Esta bodega no trae sub-bodegas.</p>
                 <p className="mt-1 text-sm text-sena-text/50">
-                  El stand necesita una sub-bodega que ya exista.
+                  Crea una sub-bodega para organizar los stands de esta bodega.
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {subBodegas.map((sub) => (
                   <article key={sub.id} className="rounded-xl border border-sena-dark/10">
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sena-dark/8 px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
                       <div>
                         <p className="font-semibold text-sena-text">{sub.nombre}</p>
                         <p className="text-xs text-sena-text/50">
@@ -247,66 +226,14 @@ export default function ViewBodegaPage() {
                           {sub.estado ? 'Activa' : 'Inactiva'}
                         </p>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {canCreateStand ? (
-                          <button
-                            type="button"
-                            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-sena-dark hover:bg-sena-muted"
-                            onClick={() => setStandModal({ subBodegaId: sub.id })}
-                          >
-                            Nuevo stand
-                          </button>
-                        ) : null}
-                      </div>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-sena/25 px-3 py-1.5 text-xs font-semibold text-sena-dark hover:bg-sena/5"
+                        onClick={() => navigate(`/inventario/bodegas/${bodega.id}/sub-bodegas/${sub.id}`)}
+                      >
+                        Ver sub-bodega
+                      </button>
                     </div>
-
-                    {standsOf(sub, standsBySub) === undefined ? (
-                      <p className="px-4 py-4 text-sm text-sena-text/50">Cargando stands…</p>
-                    ) : standsOf(sub, standsBySub)?.length === 0 ? (
-                      <p className="px-4 py-4 text-sm text-sena-text/50">Sin stands.</p>
-                    ) : (
-                      <ul className="divide-y divide-sena-dark/8">
-                        {standsOf(sub, standsBySub)?.map((stand) => (
-                          <li key={stand.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                            <div>
-                              <p className="text-sm font-semibold text-sena-text">{stand.nombre}</p>
-                              <p className="text-xs text-sena-text/45">
-                                {stand.estado ? 'Activo' : 'Inactivo'}
-                              </p>
-                            </div>
-                            <div className="flex gap-2">
-                              {canViewStand ? (
-                                <button
-                                  type="button"
-                                  className="text-xs font-semibold text-sena-dark"
-                                  onClick={() => navigate(`/inventario/stands/${stand.id}`)}
-                                >
-                                  Ver
-                                </button>
-                              ) : null}
-                              {canEditStand ? (
-                                <button
-                                  type="button"
-                                  className="text-xs font-semibold text-sena-dark"
-                                  onClick={() => navigate(`/inventario/stands/${stand.id}/editar`)}
-                                >
-                                  Editar
-                                </button>
-                              ) : null}
-                              {canDeleteStand ? (
-                                <button
-                                  type="button"
-                                  className="text-xs font-semibold text-red-600"
-                                  onClick={() => setStandToDelete(stand)}
-                                >
-                                  Eliminar
-                                </button>
-                              ) : null}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
                   </article>
                 ))}
               </div>
@@ -334,41 +261,17 @@ export default function ViewBodegaPage() {
         </section>
       </div>
 
-      {standModal && id ? (
-        <CreateStandModal
-          bodegas={[{ id: bodega.id, nombre: bodega.nombre, subBodegas }]}
-          initialBodegaId={bodega.id}
-          initialSubBodegaId={standModal.subBodegaId}
-          onClose={() => setStandModal(null)}
-          onCreated={() => {
-            setStandModal(null)
-            void loadBodega(id)
-          }}
+      {subBodegaModal ? (
+        <SubBodegaForm
+          mode="create"
+          loading={savingSubBodega}
+          onClose={() => setSubBodegaModal(false)}
+          onSubmit={handleCreateSubBodega}
         />
       ) : null}
 
-      {standToDelete ? (
-        <ConfirmDialog
-          title="Eliminar stand"
-          subtitle="Solo se elimina si ya no tiene elementos."
-          confirmLabel="Eliminar"
-          pendingLabel="Eliminando…"
-          pending={deleting}
-          onConfirm={() => void confirmDeleteStand()}
-          onCancel={() => setStandToDelete(null)}
-        >
-          ¿Deseas eliminar el stand <strong>{standToDelete.nombre}</strong>?
-        </ConfirmDialog>
-      ) : null}
     </AppLayout>
   )
-}
-
-function standsOf(sub: SubBodegaApi, loaded: Record<number, StandResumen[]>) {
-  if (loaded[sub.id]) return loaded[sub.id]
-  if ((sub.stands?.length ?? 0) > 0) return sub.stands
-  if ((sub.totalStands ?? 0) === 0) return []
-  return undefined
 }
 
 function Info({ label, value }: { label: string; value: string }) {

@@ -126,6 +126,9 @@ export function locateInventoryPath(path: string): { screen: InventoryScreenCode
 
   if (path === '/inventario/bodegas') return { screen: 'bodegas', action: 'list' }
   if (path === '/inventario/bodegas/crear') return { screen: 'bodegas', action: 'create' }
+  if (/^\/inventario\/bodegas\/[^/]+\/sub-bodegas\/[^/]+$/.test(path)) {
+    return { screen: 'bodegas', action: 'view' }
+  }
   if (/^\/inventario\/bodegas\/[^/]+\/editar$/.test(path)) return { screen: 'bodegas', action: 'edit' }
   if (/^\/inventario\/bodegas\/[^/]+$/.test(path)) return { screen: 'bodegas', action: 'view' }
 
