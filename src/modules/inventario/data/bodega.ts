@@ -1,4 +1,4 @@
-import { api } from '@/shared/lib/api'
+import { listAll, api } from '@/shared/lib/api'
 import type {
   BodegaApi,
   CreateBodegaPayload,
@@ -8,8 +8,29 @@ import type {
   UpdateStandPayload,
 } from '@/modules/inventario/types/bodega'
 
-export async function getBodegas(): Promise<BodegaApi[]> {
-  return api<BodegaApi[]>('/bodegas')
+function mergeById<T extends { id: number }>(groups: T[][]) {
+  const map = new Map<number, T>()
+  for (const group of groups) {
+    for (const item of group) map.set(item.id, item)
+  }
+  return [...map.values()]
+}
+
+async function listActiveAndInactive<T extends { id: number }>(
+  path: string,
+  extra: Record<string, string> = {},
+) {
+  const [active, inactive] = await Promise.all([
+    listAll<T>(path, { ...extra, estado: 'true' }),
+    listAll<T>(path, { ...extra, estado: 'false' }),
+  ])
+  return mergeById([active, inactive])
+}
+
+export async function getBodegas(filters?: { idCformacion?: number }): Promise<BodegaApi[]> {
+  const extra: Record<string, string> = {}
+  if (filters?.idCformacion) extra.idCformacion = String(filters.idCformacion)
+  return listActiveAndInactive<BodegaApi>('/bodegas', extra)
 }
 
 export async function getBodega(id: string | number): Promise<BodegaApi | null> {
@@ -30,9 +51,7 @@ export async function getBodega(id: string | number): Promise<BodegaApi | null> 
   }
 }
 
-export async function createBodega(
-  payload: CreateBodegaPayload,
-): Promise<BodegaApi> {
+export async function createBodega(payload: CreateBodegaPayload): Promise<BodegaApi> {
   return api<BodegaApi>('/bodegas', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -55,17 +74,12 @@ export async function deleteBodega(id: string | number): Promise<void> {
   })
 }
 
-export async function getStandsByBodega(
-  bodegaId: string | number,
-): Promise<StandApi[]> {
-  if (!bodegaId) return []
-
-  return api<StandApi[]>(`/bodegas/${bodegaId}/stands`)
+export async function getStandsBySubBodega(subBodegaId: string | number): Promise<StandApi[]> {
+  if (!subBodegaId) return []
+  return listActiveAndInactive<StandApi>(`/bodegas/sub-bodegas/${subBodegaId}/stands`)
 }
 
-export async function getStand(
-  standId: string | number,
-): Promise<StandApi | null> {
+export async function getStand(standId: string | number): Promise<StandApi | null> {
   if (!standId) return null
 
   try {
@@ -84,10 +98,10 @@ export async function getStand(
 }
 
 export async function createStand(
-  bodegaId: string | number,
+  subBodegaId: string | number,
   payload: CreateStandPayload,
 ): Promise<StandApi> {
-  return api<StandApi>(`/bodegas/${bodegaId}/stands`, {
+  return api<StandApi>(`/bodegas/sub-bodegas/${subBodegaId}/stands`, {
     method: 'POST',
     body: JSON.stringify(payload),
   })
@@ -103,9 +117,7 @@ export async function updateStand(
   })
 }
 
-export async function deleteStand(
-  standId: string | number,
-): Promise<void> {
+export async function deleteStand(standId: string | number): Promise<void> {
   await api<unknown>(`/bodegas/stands/${standId}`, {
     method: 'DELETE',
   })

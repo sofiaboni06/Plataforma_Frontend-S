@@ -3,28 +3,49 @@ export type CentroFormacion = {
   nombre: string
 }
 
-export type StandApi = {
+export type StandResumen = {
   id: number
-  idStand: number
-  idBodega?: number
   nombre: string
   estado: boolean
+}
+
+export type SubBodegaApi = {
+  id: number
+  idBodega: number
+  nombre: string
+  estado: boolean
+  stands?: StandResumen[]
+  totalStands: number
   bodega?: {
     id: number
     nombre: string
+    idCformacion: number
+  } | null
+}
+
+export type StandApi = StandResumen & {
+  idSubBodega: number
+  subBodega?: {
+    id: number
+    nombre: string
+    idBodega: number
+  } | null
+  bodega?: {
+    id: number
+    nombre: string
+    idCformacion: number
   } | null
 }
 
 export type BodegaApi = {
   id: number
-  id_bodega: number
-  id_cformacion: number | null
+  idCformacion?: number
   nombre: string
   estado: boolean
   ubicacion: string | null
   centroFormacion: CentroFormacion | null
-  stands: StandApi[]
-  totalStands: number
+  subBodegas: SubBodegaApi[]
+  totalSubBodegas: number
 }
 
 export type CreateBodegaPayload = {

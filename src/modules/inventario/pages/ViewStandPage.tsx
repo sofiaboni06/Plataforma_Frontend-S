@@ -4,15 +4,11 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
 
-import {
-  getBodega,
-  getStand,
-} from '@/modules/inventario/data/bodega'
+import { getElementos } from '@/modules/inventario/data/elemento'
+import { getStand } from '@/modules/inventario/data/bodega'
 
-import type {
-  BodegaApi,
-  StandApi,
-} from '@/modules/inventario/types/bodega'
+import type { StandApi } from '@/modules/inventario/types/bodega'
+import type { ElementoApi } from '@/modules/inventario/types/elemento'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
 function LayersIcon() {
@@ -71,23 +67,26 @@ function ArrowLeftIcon() {
 
 export default function ViewStandPage() {
   const navigate = useNavigate()
-  const { can } = useInventoryAccess()
-  const canEdit = can('stands', 'edit')
+  const { permit } = useInventoryAccess()
+  const canEdit = permit('stand.editar', 'stands', 'edit')
+  const canViewElemento = permit('elemento.ver', 'elementos', 'view')
 
-  const { id_bodega, id_stand } = useParams<{
-    id_bodega: string
-    id_stand: string
+  const params = useParams<{
+    id?: string
+    id_bodega?: string
+    id_stand?: string
   }>()
+  const id_stand = params.id ?? params.id_stand
 
   const [stand, setStand] = useState<StandApi | null>(null)
-  const [bodega, setBodega] = useState<BodegaApi | null>(null)
+  const [elementos, setElementos] = useState<ElementoApi[]>([])
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     async function loadData() {
-      if (!id_bodega || !id_stand) {
+      if (!id_stand) {
         setError('No se encontró el stand solicitado.')
         setLoading(false)
         return
@@ -97,10 +96,8 @@ export default function ViewStandPage() {
         setLoading(true)
         setError('')
 
-        const [standResult, bodegaResult] = await Promise.all([
-          getStand(id_stand),
-          getBodega(id_bodega),
-        ])
+        const standResult = await getStand(id_stand)
+        const elementoList = await getElementos().catch(() => [])
 
         if (!standResult) {
           setError('No se encontró el stand solicitado.')
@@ -108,7 +105,7 @@ export default function ViewStandPage() {
         }
 
         setStand(standResult)
-        setBodega(bodegaResult ?? null)
+        setElementos(elementoList.filter((elemento) => elemento.idStand === standResult.id))
       } catch (loadError) {
         console.error('Error al cargar el stand:', loadError)
 
@@ -123,7 +120,7 @@ export default function ViewStandPage() {
     }
 
     void loadData()
-  }, [id_bodega, id_stand])
+  }, [id_stand])
 
   /*
    * IMPORTANTE:
@@ -136,13 +133,8 @@ export default function ViewStandPage() {
   }
 
   function handleEdit() {
-    if (!id_bodega || !id_stand) {
-      return
-    }
-
-    navigate(
-      `/inventario/bodegas/${id_bodega}/stands/${id_stand}/editar`,
-    )
+    if (!id_stand) return
+    navigate(`/inventario/stands/${id_stand}/editar`)
   }
 
   if (loading) {
@@ -291,13 +283,21 @@ export default function ViewStandPage() {
             {/* BODEGA */}
             <div>
               <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-sena-text/45">
+                Sub-bodega
+              </p>
+
+              <div className="rounded-lg border border-sena-dark/10 bg-slate-50 px-4 py-3 text-sm font-medium text-sena-text">
+                {stand.subBodega?.nombre || 'Sin sub-bodega'}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-sena-text/45">
                 Bodega
               </p>
 
               <div className="rounded-lg border border-sena-dark/10 bg-slate-50 px-4 py-3 text-sm font-medium text-sena-text">
-                {stand.bodega?.nombre ||
-                  bodega?.nombre ||
-                  'Sin bodega'}
+                {stand.bodega?.nombre || 'Sin bodega'}
               </div>
             </div>
 
@@ -328,24 +328,41 @@ export default function ViewStandPage() {
           {/* PRODUCTOS */}
           <div className="border-t border-sena-dark/8 px-6 py-5">
             <h2 className="border-l-2 border-sena pl-2 text-sm font-bold uppercase tracking-wide text-sena-dark">
-              Productos del stand
+              Elementos del stand
             </h2>
           </div>
 
           <div className="px-6 pb-6">
-            <div className="rounded-xl border border-dashed border-sena-dark/15 bg-slate-50 px-6 py-10 text-center">
-              <div className="mx-auto mb-3 grid size-11 place-items-center rounded-xl bg-emerald-50 text-sena">
-                <LayersIcon />
+            {elementos.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-sena-dark/15 bg-slate-50 px-6 py-10 text-center">
+                <p className="text-sm font-medium text-sena-text">Este stand no tiene elementos.</p>
               </div>
-
-              <p className="text-sm font-medium text-sena-text">
-                No hay productos registrados
-              </p>
-
-              <p className="mt-1 text-xs text-sena-text/45">
-                Los productos asociados a este stand aparecerán aquí.
-              </p>
-            </div>
+            ) : (
+              <ul className="divide-y divide-sena-dark/8 rounded-xl border border-sena-dark/10">
+                {elementos.map((elemento) => (
+                  <li key={elemento.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-sena-text">{elemento.codigo}</p>
+                      <p className="text-xs text-sena-text/50">
+                        {elemento.item
+                          ? `Ítem ${elemento.item.id} · ${elemento.item.nombre}`
+                          : elemento.nombre}{' '}
+                        · {elemento.cantidad}
+                      </p>
+                    </div>
+                    {canViewElemento ? (
+                      <button
+                        type="button"
+                        className="text-sm font-semibold text-sena-dark"
+                        onClick={() => navigate(`/inventario/elementos/${elemento.id}`)}
+                      >
+                        Ver elemento
+                      </button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
        {/* FOOTER */}

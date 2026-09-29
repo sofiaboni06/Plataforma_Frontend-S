@@ -44,7 +44,14 @@ function errorMessage(body: unknown, fallback: string) {
   return fallback
 }
 
-export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+export type PageMeta = {
+  total: number
+  perPage: number
+  currentPage: number
+  lastPage: number
+}
+
+async function requestJson(path: string, options: RequestInit = {}) {
   const token = getToken()
   const headers = new Headers(options.headers)
   headers.set('Accept', 'application/json')
@@ -62,9 +69,42 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     throw new ApiError(response.status, errorMessage(body, 'No se pudo completar la solicitud'), body)
   }
 
+  return body
+}
+
+export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const body = await requestJson(path, options)
+
   if (body && typeof body === 'object' && 'data' in body) {
     return (body as { data: T }).data
   }
 
   return body as T
+}
+
+export async function listAll<T>(path: string, query: Record<string, string> = {}): Promise<T[]> {
+  const rows: T[] = []
+  let page = 1
+  let lastPage = 1
+
+  do {
+    const params = new URLSearchParams({
+      ...query,
+      page: String(page),
+      perPage: '100',
+    })
+    const body = await requestJson(`${path}?${params}`)
+    const envelope =
+      body && typeof body === 'object' && 'data' in body
+        ? (body as { data?: T[]; meta?: PageMeta; metadata?: PageMeta })
+        : { data: Array.isArray(body) ? (body as T[]) : [], meta: undefined, metadata: undefined }
+    const meta = envelope.meta ?? envelope.metadata
+    const batch = envelope.data ?? []
+    rows.push(...batch)
+    lastPage = meta?.lastPage ?? 1
+    if (!meta && batch.length < 100) break
+    page += 1
+  } while (page <= lastPage && page <= 50)
+
+  return rows
 }

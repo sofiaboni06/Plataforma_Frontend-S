@@ -4,22 +4,26 @@ import AppLayout from '@/shared/components/layout/AppLayout'
 import { PencilIcon } from '@/shared/components/icons/AppIcons'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
-import { ApiError, api } from '@/shared/lib/api'
+import { ApiError } from '@/shared/lib/api'
 import { getBodegas } from '@/modules/inventario/data/bodega'
 import { getElemento } from '@/modules/inventario/data/elemento'
+import { getItem } from '@/modules/inventario/data/item'
+import { formatCantidad, lugarDelElemento } from '@/modules/inventario/lib/lugar'
+import type { BodegaApi } from '@/modules/inventario/types/bodega'
 import type { ElementoApi } from '@/modules/inventario/types/elemento'
+import type { ItemApi } from '@/modules/inventario/types/item'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
-import type { CategoryApi, SubcategoryApi } from '@/shared/types/category'
 
 export default function ViewElementoPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { can } = useInventoryAccess()
-  const canEdit = can('elementos', 'edit')
+  const { permit } = useInventoryAccess()
+  const canEdit = permit('elemento.editar', 'elementos', 'edit')
+  const canViewItem = permit('item.ver', 'items', 'view')
 
   const [elemento, setElemento] = useState<ElementoApi | null>(null)
-  const [categoryName, setCategoryName] = useState('—')
-  const [bodegaName, setBodegaName] = useState('—')
+  const [relatedItem, setRelatedItem] = useState<ItemApi | null>(null)
+  const [bodegas, setBodegas] = useState<BodegaApi[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,35 +34,18 @@ export default function ViewElementoPage() {
       if (!id) return
 
       try {
-        const [elementoData, categories, subcategories, bodegas] = await Promise.all([
-          getElemento(id),
-          api<CategoryApi[]>('/categorias'),
-          api<SubcategoryApi[]>('/subcategorias'),
-          getBodegas(),
-        ])
+        const [elementoData, bodegas] = await Promise.all([getElemento(id), getBodegas()])
 
         if (cancelled) return
 
         setElemento(elementoData)
+        setBodegas(bodegas)
         document.title = `${elementoData.nombre} | Inventario | SENA`
 
-        const subcategory = subcategories.find(
-          (item) => item.id === elementoData.idSubcategoria,
-        )
-
-        setCategoryName(
-          categories.find((item) => item.id === subcategory?.idCategoria)?.nombre ?? '—',
-        )
-
-        setBodegaName(
-          bodegas.find((bodega) =>
-            bodega.stands?.some(
-              (stand) =>
-                stand.id === elementoData.idStand ||
-                stand.idStand === elementoData.idStand,
-            ),
-          )?.nombre ?? '—',
-        )
+        if (elementoData.item) {
+          const item = await getItem(elementoData.item.id).catch(() => null)
+          if (!cancelled) setRelatedItem(item)
+        }
       } catch (caught) {
         if (!cancelled) {
           setError(
@@ -120,18 +107,80 @@ export default function ViewElementoPage() {
             </h1>
           </div>
 
+          {elemento.item ? (
+            <div className="mt-7 flex flex-col gap-4 rounded-xl bg-sena-muted/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <span className="block text-xs font-semibold uppercase tracking-wider text-sena-text/45">
+                  Ítem de este elemento
+                </span>
+                <span className="mt-1 block text-sm font-semibold text-sena-dark">
+                  Ítem {elemento.item.id} · {elemento.item.nombre}
+                </span>
+              </div>
+
+              {canViewItem ? (
+                <Link to={`/inventario/items/${elemento.item.id}`}>
+                  <Button type="button" variant="secondary">
+                    Ver ítem
+                  </Button>
+                </Link>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-7 rounded-xl border border-dashed border-sena-dark/10 bg-sena-muted/40 px-4 py-4">
+              <span className="block text-xs font-semibold uppercase tracking-wider text-sena-text/45">
+                Ítem de este elemento
+              </span>
+              <span className="mt-1 block text-sm font-semibold text-sena-text/55">Sin ítem</span>
+            </div>
+          )}
+
           <div className="mt-7 grid gap-x-10 gap-y-6 sm:grid-cols-2">
             <InfoItem label="Código" value={elemento.codigo} />
             <InfoItem label="Nombre del elemento" value={elemento.nombre} />
-            <InfoItem label="Categoría" value={categoryName} />
-            <InfoItem label="Subcategoría" value={elemento.subcategoria?.nombre ?? '—'} />
-            <InfoItem label="Bodega" value={bodegaName} />
-            <InfoItem label="Stand" value={elemento.stand?.nombre ?? '—'} />
+            <InfoItem
+              label="Categoría"
+              value={relatedItem?.subcategoria?.categoria?.nombre ?? '—'}
+            />
+            <InfoItem
+              label="Subcategoría"
+              value={
+                elemento.subcategoria?.nombre ?? relatedItem?.subcategoria?.nombre ?? '—'
+              }
+            />
+            <InfoItem label="Bodega" value={lugarDelElemento(elemento, bodegas).bodega} />
+            <InfoItem label="Sub-bodega" value={lugarDelElemento(elemento, bodegas).subBodega} />
+            <InfoItem label="Stand" value={lugarDelElemento(elemento, bodegas).stand} />
             <InfoItem
               label="Cantidad"
               value={`${elemento.cantidad} ${elemento.unidadMedida?.abreviatura ?? ''}`.trim()}
             />
+            <InfoItem
+              label="Gramaje"
+              value={elemento.gramaje == null ? '—' : String(elemento.gramaje)}
+            />
+            <InfoItem label="Clasificación" value={elemento.clasificacion?.nombre ?? '—'} />
+            <InfoItem
+              label="Código UNSPSC"
+              value={
+                elemento.codigoEstandar
+                  ? `${elemento.codigoEstandar.codigo} · ${elemento.codigoEstandar.nombre}`
+                  : '—'
+              }
+            />
+            <InfoItem
+              label="Valor unitario promedio"
+              value={formatCantidad(elemento.valorUnitarioPromedio)}
+            />
+            <InfoItem
+              label="Porcentaje de aumento"
+              value={
+                elemento.porcentajeAumento == null ? '—' : `${elemento.porcentajeAumento} %`
+              }
+            />
+            <InfoItem label="Valor con aumento" value={formatCantidad(elemento.valorConAumento)} />
             <InfoItem label="Marca" value={elemento.marca || '—'} />
+            <InfoItem label="Color" value={elemento.color || '—'} />
 
             <div>
               <span className="block text-xs font-semibold uppercase tracking-wider text-sena-text/45">
@@ -150,6 +199,15 @@ export default function ViewElementoPage() {
               value={elemento.unidadMedida?.nombre ?? '—'}
             />
           </div>
+
+          {elemento.item?.descripcion ? (
+            <div className="mt-7 border-t border-sena-dark/10 pt-6">
+              <h2 className="mb-3 text-sm font-bold text-sena-dark">Descripción del ítem</h2>
+              <p className="rounded-xl bg-sena-muted/40 px-4 py-3 text-sm leading-6 text-sena-text/75">
+                {elemento.item.descripcion}
+              </p>
+            </div>
+          ) : null}
 
           <div className="mt-7 border-t border-sena-dark/10 pt-6">
             <h2 className="mb-3 text-sm font-bold text-sena-dark">Descripción técnica</h2>

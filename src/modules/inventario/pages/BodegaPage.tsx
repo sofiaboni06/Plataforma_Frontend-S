@@ -34,7 +34,10 @@ import {
   getBodegas,
 } from '@/modules/inventario/data/bodega'
 import type { BodegaApi } from '@/modules/inventario/types/bodega'
+import { useAuth } from '@/modules/auth/context/auth'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
+import { api } from '@/shared/lib/api'
+import type { UserFormOptions } from '@/shared/types/profile'
 
 type StatusFilter = 'Todos' | 'Activa' | 'Inactiva'
 
@@ -56,10 +59,12 @@ function WarehouseIcon() {
 
 export default function BodegasPage() {
   const navigate = useNavigate()
-  const { can } = useInventoryAccess()
-  const canCreate = can('bodegas', 'create')
-  const canEdit = can('bodegas', 'edit')
-  const canView = can('bodegas', 'view')
+  const { isAdmin } = useAuth()
+  const { permit } = useInventoryAccess()
+  const canCreate = permit('bodega.crear', 'bodegas', 'create')
+  const canEdit = permit('bodega.editar', 'bodegas', 'edit')
+  const canDelete = permit('bodega.eliminar', 'bodegas', 'edit')
+  const canView = permit('bodega.ver', 'bodegas', 'view')
 
   const { search, setSearch, page, setPage, resetPage } = useTableState()
 
@@ -69,6 +74,8 @@ export default function BodegasPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('Todos')
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [bodegaToDelete, setBodegaToDelete] = useState<BodegaApi | null>(null)
+  const [centers, setCenters] = useState<UserFormOptions['centers']>([])
+  const [centerFilter, setCenterFilter] = useState('')
 
   useEffect(() => {
     document.title = 'Gestionar bodegas | SENA'
@@ -79,8 +86,10 @@ export default function BodegasPage() {
       setLoading(true)
       setError('')
 
-      const result = await getBodegas()
-      setBodegas([...result].sort((a, b) => b.id_bodega - a.id_bodega))
+      const result = await getBodegas(
+        isAdmin && centerFilter ? { idCformacion: Number(centerFilter) } : undefined,
+      )
+      setBodegas([...result].sort((a, b) => b.id - a.id))
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -94,7 +103,22 @@ export default function BodegasPage() {
 
   useEffect(() => {
     void loadBodegas()
-  }, [])
+  }, [centerFilter, isAdmin])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    let cancelled = false
+    api<UserFormOptions>('/users/options')
+      .then((options) => {
+        if (!cancelled) setCenters(options.centers)
+      })
+      .catch(() => {
+        if (!cancelled) setCenters([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAdmin])
 
   const filteredBodegas = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -120,11 +144,12 @@ export default function BodegasPage() {
     page,
   )
 
-  const hasActiveFilters = search.trim() !== '' || statusFilter !== 'Todos'
+  const hasActiveFilters = search.trim() !== '' || statusFilter !== 'Todos' || centerFilter !== ''
 
   const clearFilters = () => {
     setSearch('')
     setStatusFilter('Todos')
+    setCenterFilter('')
   }
 
   async function handleDelete(bodega: BodegaApi) {
@@ -151,7 +176,7 @@ export default function BodegasPage() {
     <AppLayout title="Gestionar bodegas">
       <PageHeader
         title="Gestionar bodegas"
-        description="Administra las bodegas y sus stands para organizar el inventario."
+        description="Cada bodega pertenece a un centro y agrupa sub-bodegas. Un centro puede tener varias."
         action={
           canCreate ? (
             <Button
@@ -169,6 +194,26 @@ export default function BodegasPage() {
 
       <FilterCard>
         <SearchInput value={search} onChange={setSearch} placeholder="Buscar bodega..." />
+
+        {isAdmin ? (
+          <FilterGroup label="Centro">
+            <select
+              value={centerFilter}
+              onChange={(event) => {
+                setCenterFilter(event.target.value)
+                resetPage()
+              }}
+              className={`${filterSelectClass} lg:w-72`}
+            >
+              <option value="">Todos los centros</option>
+              {centers.map((center) => (
+                <option key={center.id} value={String(center.id)}>
+                  {center.name}
+                </option>
+              ))}
+            </select>
+          </FilterGroup>
+        ) : null}
 
         <FilterGroup label="Estado">
           <select
@@ -200,7 +245,7 @@ export default function BodegasPage() {
                     <TableHeader width={tableColumns.name}>Bodega</TableHeader>
                     <TableHeader width={tableColumns.relation}>Ubicación</TableHeader>
                     <TableHeader align="center" width={tableColumns.count}>
-                      Stands
+                      Sub-bodegas
                     </TableHeader>
                     <TableHeader align="center" width={tableColumns.status}>
                       Estado
@@ -227,9 +272,7 @@ export default function BodegasPage() {
                               <p className="truncate font-semibold text-sena-text">
                                 {bodega.nombre}
                               </p>
-                              <p className="mt-0.5 text-xs text-sena-text/45">
-                                B{String(bodega.id_bodega).padStart(3, '0')}
-                              </p>
+                              <p className="mt-0.5 text-xs text-sena-text/45">ID {bodega.id}</p>
                             </div>
                           </div>
                         </td>
@@ -239,7 +282,7 @@ export default function BodegasPage() {
                         </td>
 
                         <td className="px-5 py-4 text-center text-sena-text/70">
-                          {bodega.totalStands}
+                          {bodega.totalSubBodegas ?? bodega.subBodegas?.length ?? 0}
                         </td>
 
                         <td className="px-5 py-4 text-center">
@@ -270,7 +313,7 @@ export default function BodegasPage() {
                               </ActionButton>
                             ) : null}
 
-                            {canEdit ? (
+                            {canDelete ? (
                               <ActionButton
                                 title="Eliminar bodega"
                                 danger
@@ -305,14 +348,15 @@ export default function BodegasPage() {
       {bodegaToDelete ? (
         <ConfirmDialog
           title="Eliminar bodega"
-          subtitle="Esta acción no se puede deshacer."
+          subtitle="Solo se elimina si ya no tiene sub-bodegas."
           confirmLabel="Eliminar"
           pendingLabel="Eliminando…"
           pending={deletingId === bodegaToDelete.id}
           onConfirm={() => void handleDelete(bodegaToDelete)}
           onCancel={() => setBodegaToDelete(null)}
         >
-          ¿Deseas eliminar la bodega <strong>{bodegaToDelete.nombre}</strong>?
+          ¿Deseas eliminar la bodega <strong>{bodegaToDelete.nombre}</strong>? Si todavía
+          tiene sub-bodegas, el sistema no la borra.
         </ConfirmDialog>
       ) : null}
     </AppLayout>

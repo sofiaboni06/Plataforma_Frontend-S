@@ -4,7 +4,7 @@ import { canOpenPath } from '@/shared/lib/access'
 import type { ReactNode } from 'react'
 
 export default function RequireModule({ children }: { children: ReactNode }) {
-  const { isReady, token, modules, isAdmin } = useAuth()
+  const { isReady, token, modules, isAdmin, user } = useAuth()
   const location = useLocation()
 
   if (!isReady) {
@@ -19,7 +19,7 @@ export default function RequireModule({ children }: { children: ReactNode }) {
     return <Navigate to="/login" replace />
   }
 
-  if (!canOpenPath(location.pathname, modules, isAdmin)) {
+  if (!canOpenPath(location.pathname, modules, isAdmin, user?.permissions)) {
     return <Navigate to="/inicio" replace />
   }
 

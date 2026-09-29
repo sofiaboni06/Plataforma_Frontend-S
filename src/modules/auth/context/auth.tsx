@@ -36,7 +36,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = async () => {
     const profile = await api<UserProfile>('/account/profile')
     const allowed = await api<AppModule[]>('/modules')
-    setUser(profile)
+    setUser((current) => ({
+      ...profile,
+      permissions: profile.permissions ?? current?.permissions,
+      isAdmin: profile.isAdmin ?? current?.isAdmin,
+      bodegaIds: profile.bodegaIds ?? current?.bodegaIds,
+      bodegas: profile.bodegas ?? current?.bodegas,
+      trainingCenterId: profile.trainingCenterId ?? current?.trainingCenterId,
+    }))
     setModules(allowed)
   }
 
@@ -75,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       modules,
       isReady,
-      isAdmin: user?.role === 'Administrador',
+      isAdmin: user?.isAdmin === true || user?.role === 'Administrador',
       login: async ({ usuario, password, remember = true }) => {
         const payload = usuario.includes('@') ? { email: usuario, password } : { usuario, password }
         const result = await api<{ token: string; user: UserProfile }>('/auth/login', {
