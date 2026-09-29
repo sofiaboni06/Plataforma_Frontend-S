@@ -5,6 +5,9 @@ export type InventoryScreenCode =
   | 'items'
   | 'elementos'
   | 'clasificaciones'
+  | 'unidades'
+  | 'usos'
+  | 'codigos'
   | 'bodegas'
   | 'stands'
 
@@ -51,8 +54,26 @@ export const INVENTORY_SCREENS: InventoryScreen[] = [
   {
     code: 'clasificaciones',
     label: 'Clasificaciones',
-    description: 'Catálogo del elemento: consumo, devolutivo, EPP.',
+    description: 'Catálogo del centro. El elemento guarda el id, no el nombre.',
     to: '/inventario/clasificaciones',
+  },
+  {
+    code: 'unidades',
+    label: 'Unidades de medida',
+    description: 'Catálogo del centro. Sin una unidad activa no se puede crear el elemento.',
+    to: '/inventario/unidades',
+  },
+  {
+    code: 'usos',
+    label: 'Usos presupuestales',
+    description: 'Partida del centro. No es el código UNSPSC.',
+    to: '/inventario/usos-presupuestales',
+  },
+  {
+    code: 'codigos',
+    label: 'Códigos UNSPSC',
+    description: 'Catálogo del centro. El elemento guarda el id, no el código escrito.',
+    to: '/inventario/codigos-estandar',
   },
   {
     code: 'bodegas',
@@ -73,6 +94,9 @@ const SCREEN_WORDS: Array<{ code: InventoryScreenCode; words: string[] }> = [
   { code: 'items', words: ['item', 'items'] },
   { code: 'elementos', words: ['elemento', 'elementos'] },
   { code: 'clasificaciones', words: ['clasificacion', 'clasificaciones'] },
+  { code: 'unidades', words: ['unidad', 'unidades'] },
+  { code: 'usos', words: ['presupuestal', 'presupuestales'] },
+  { code: 'codigos', words: ['unspsc', 'estandar'] },
   { code: 'bodegas', words: ['bodega', 'bodegas'] },
   { code: 'stands', words: ['stand', 'stands'] },
 ]
@@ -116,6 +140,9 @@ export function locateInventoryPath(path: string): { screen: InventoryScreenCode
   if (/^\/inventario\/elementos\/[^/]+$/.test(path)) return { screen: 'elementos', action: 'view' }
 
   if (path === '/inventario/clasificaciones') return { screen: 'clasificaciones', action: 'list' }
+  if (path === '/inventario/unidades') return { screen: 'unidades', action: 'list' }
+  if (path === '/inventario/usos-presupuestales') return { screen: 'usos', action: 'list' }
+  if (path === '/inventario/codigos-estandar') return { screen: 'codigos', action: 'list' }
 
   if (/^\/inventario\/bodegas\/[^/]+\/stands\/crear$/.test(path)) return { screen: 'stands', action: 'create' }
   if (/^\/inventario\/bodegas\/[^/]+\/stands\/[^/]+\/editar$/.test(path)) return { screen: 'stands', action: 'edit' }
@@ -164,9 +191,29 @@ export function hasInventoryAccess(modules: AppModule[]) {
   return modules.some((mod) => isInventoryParent(mod) || classifyInventoryModule(mod) !== null)
 }
 
+const CATALOG_SCREENS = new Set<InventoryScreenCode>([
+  'clasificaciones',
+  'unidades',
+  'usos',
+  'codigos',
+])
+
 export function canSeeClasificaciones(access: InventoryCaller = {}) {
+  return canSeeCatalog('clasificaciones', access)
+}
+
+export function canSeeCatalog(code: InventoryScreenCode, access: InventoryCaller = {}) {
+  if (!CATALOG_SCREENS.has(code)) return true
   if (access.isAdmin) return true
-  return access.permissions?.includes('clasificacion_elemento.ver') ?? false
+  const permission =
+    code === 'clasificaciones'
+      ? 'clasificacion_elemento.ver'
+      : code === 'unidades'
+        ? 'unidad_medida.ver'
+        : code === 'usos'
+          ? 'uso_presupuestal.ver'
+          : 'elemento.ver'
+  return access.permissions?.includes(permission) ?? false
 }
 
 export function visibleInventoryScreens(modules: AppModule[], access: InventoryCaller = {}) {
@@ -180,24 +227,41 @@ export function visibleInventoryScreens(modules: AppModule[], access: InventoryC
           grants.some((grant) => grant.screen === screen.code),
         )
 
-  const screens = withItemsBesideElementos(base).filter(
-    (screen) => screen.code !== 'clasificaciones' || canSeeClasificaciones(access),
+  const allowed = withItemsBesideElementos(base).filter(
+    (screen) => !CATALOG_SCREENS.has(screen.code) || canSeeCatalog(screen.code, access),
   )
 
-  if (
-    !canSeeClasificaciones(access) ||
-    screens.some((screen) => screen.code === 'clasificaciones') ||
-    !hasInventoryAccess(modules)
-  ) {
-    return screens
-  }
+  return placeCatalogs(injectCatalogs(allowed, modules, access))
+}
 
-  const clasificaciones = INVENTORY_SCREENS.find((screen) => screen.code === 'clasificaciones')
-  if (!clasificaciones) return screens
+function injectCatalogs(
+  screens: InventoryScreen[],
+  modules: AppModule[],
+  access: InventoryCaller,
+) {
+  if (!hasInventoryAccess(modules)) return screens
+
+  const missing = INVENTORY_SCREENS.filter(
+    (screen) =>
+      CATALOG_SCREENS.has(screen.code) &&
+      canSeeCatalog(screen.code, access) &&
+      !screens.some((item) => item.code === screen.code),
+  )
+  if (!missing.length) return screens
 
   const index = screens.findIndex((screen) => screen.code === 'elementos')
-  if (index === -1) return [...screens, clasificaciones]
-  return [...screens.slice(0, index + 1), clasificaciones, ...screens.slice(index + 1)]
+  if (index === -1) return [...screens, ...missing]
+  return [...screens.slice(0, index + 1), ...missing, ...screens.slice(index + 1)]
+}
+
+function placeCatalogs(screens: InventoryScreen[]) {
+  const catalogs = INVENTORY_SCREENS.filter(
+    (screen) => CATALOG_SCREENS.has(screen.code) && screens.some((item) => item.code === screen.code),
+  )
+  const rest = screens.filter((screen) => !CATALOG_SCREENS.has(screen.code))
+  const index = rest.findIndex((screen) => screen.code === 'elementos')
+  if (index === -1) return [...rest, ...catalogs]
+  return [...rest.slice(0, index + 1), ...catalogs, ...rest.slice(index + 1)]
 }
 
 function withItemsBesideElementos(screens: InventoryScreen[]) {
@@ -244,8 +308,8 @@ export function canOpenInventoryPath(
 
   const located = locateInventoryPath(path)
   if (!located) return false
-  if (located.screen === 'clasificaciones') {
-    return canSeeClasificaciones(access) && hasInventoryAccess(modules)
+  if (CATALOG_SCREENS.has(located.screen)) {
+    return canSeeCatalog(located.screen, access) && hasInventoryAccess(modules)
   }
   if (located.action === 'list') return canSeeInventoryScreen(modules, located.screen, access)
   return canInventoryAction(modules, located.screen, located.action)

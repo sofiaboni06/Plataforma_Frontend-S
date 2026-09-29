@@ -4,6 +4,7 @@ import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
 import TextField from '@/shared/components/ui/TextField'
 import { useAuth } from '@/modules/auth/context/auth'
+import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { ApiError, api } from '@/shared/lib/api'
 import {
   createSubcategoria,
@@ -22,6 +23,8 @@ type SubcategoryDraft = {
 export default function CreateInventoryCategoryPage() {
   const navigate = useNavigate()
   const { isAdmin, user } = useAuth()
+  const lockedCenter = useInventoryCenterOptional()
+  const lockedCenterId = lockedCenter?.centerId ?? null
   const { permit } = useInventoryAccess()
   const canCreateSub = permit('subcategoria.crear', 'categorias', 'create')
 
@@ -41,6 +44,10 @@ export default function CreateInventoryCategoryPage() {
   useEffect(() => {
     document.title = 'Crear categoría | Inventario | SENA'
   }, [])
+
+  useEffect(() => {
+    if (lockedCenterId) setTrainingCenterId(String(lockedCenterId))
+  }, [lockedCenterId])
 
   useEffect(() => {
     let cancelled = false
@@ -141,7 +148,9 @@ export default function CreateInventoryCategoryPage() {
 
     const normalizedName = name.trim().toLowerCase()
     const duplicatedCategory = existingCategories.some(
-      (category) => category.nombre.trim().toLowerCase() === normalizedName,
+      (category) =>
+        category.nombre.trim().toLowerCase() === normalizedName &&
+        (!lockedCenterId || category.idCformacion === lockedCenterId),
     )
 
     if (duplicatedCategory) {
@@ -259,7 +268,17 @@ export default function CreateInventoryCategoryPage() {
           ) : null}
 
           <div className="mt-7 grid gap-5">
-            {isAdmin ? (
+            {isAdmin && lockedCenterId ? (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-sena-text/75">Centro de formación</span>
+                <div className="flex h-11 items-center rounded-lg bg-sena-muted px-3.5 text-sm font-medium text-sena-text">
+                  {lockedCenter?.centerName}
+                </div>
+                <p className="text-xs text-sena-text/55">
+                  La categoría queda en el centro que elegiste al entrar a inventario.
+                </p>
+              </div>
+            ) : isAdmin ? (
               <SelectField
                 id="trainingCenterId"
                 label="Centro de formación"

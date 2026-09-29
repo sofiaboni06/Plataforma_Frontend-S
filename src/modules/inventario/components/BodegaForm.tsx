@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/context/auth'
+import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import Button from '@/shared/components/ui/Button'
 import { api } from '@/shared/lib/api'
 import type { BodegaApi } from '@/modules/inventario/types/bodega'
@@ -82,6 +83,8 @@ function StatusSwitch({ checked, onChange }: { checked: boolean; onChange: () =>
 export default function BodegaForm({ mode, initialData, loading = false, onSubmit }: BodegaFormProps) {
   const navigate = useNavigate()
   const { isAdmin, user } = useAuth()
+  const lockedCenter = useInventoryCenterOptional()
+  const lockedCenterId = lockedCenter?.centerId ?? null
   const [nombre, setNombre] = useState('')
   const [estado, setEstado] = useState(true)
   const [error, setError] = useState('')
@@ -93,8 +96,18 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
     if (!initialData) return
     setNombre(initialData.nombre)
     setEstado(initialData.estado)
-    setTrainingCenterId(initialData.idCformacion ? String(initialData.idCformacion) : '')
-  }, [initialData])
+    setTrainingCenterId(
+      lockedCenterId && mode === 'create'
+        ? String(lockedCenterId)
+        : initialData.idCformacion
+          ? String(initialData.idCformacion)
+          : '',
+    )
+  }, [initialData, lockedCenterId, mode])
+
+  useEffect(() => {
+    if (mode === 'create' && lockedCenterId) setTrainingCenterId(String(lockedCenterId))
+  }, [lockedCenterId, mode])
 
   useEffect(() => {
     let cancelled = false
@@ -206,7 +219,21 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
                 disabled={loading}
               />
 
-              {isAdmin ? (
+              {isAdmin && lockedCenterId ? (
+                <div className="flex flex-col gap-1.5 text-sm font-medium text-sena-text/75">
+                  Centro de formación
+                  <div className="flex h-11 items-center rounded-lg border border-sena-dark/10 bg-sena-muted px-3.5 text-sm text-sena-text">
+                    {mode === 'edit'
+                      ? (centers.find((center) => String(center.id) === trainingCenterId)?.name ||
+                        lockedCenter?.centerName ||
+                        'Centro seleccionado')
+                      : (lockedCenter?.centerName || 'Centro seleccionado')}
+                  </div>
+                  <p className="text-xs font-normal text-sena-text/55">
+                    Queda en el centro que elegiste al entrar a inventario.
+                  </p>
+                </div>
+              ) : isAdmin ? (
                 <label className="flex flex-col gap-1.5 text-sm font-medium text-sena-text/75">
                   Centro de formación *
                   <select

@@ -5,6 +5,7 @@ import { PencilIcon } from '@/shared/components/icons/AppIcons'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import { ApiError } from '@/shared/lib/api'
+import ElementoFoto, { fotoUrlDelElemento } from '@/modules/inventario/components/ElementoFoto'
 import { getBodegas } from '@/modules/inventario/data/bodega'
 import { getElemento } from '@/modules/inventario/data/elemento'
 import { getItem } from '@/modules/inventario/data/item'
@@ -12,6 +13,7 @@ import { formatCantidad, lugarDelElemento } from '@/modules/inventario/lib/lugar
 import type { BodegaApi } from '@/modules/inventario/types/bodega'
 import type { ElementoApi } from '@/modules/inventario/types/elemento'
 import type { ItemApi } from '@/modules/inventario/types/item'
+import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
 export default function ViewElementoPage() {
@@ -20,6 +22,7 @@ export default function ViewElementoPage() {
   const { permit } = useInventoryAccess()
   const canEdit = permit('elemento.editar', 'elementos', 'edit')
   const canViewItem = permit('item.ver', 'items', 'view')
+  const centerId = useInventoryCenterOptional()?.centerId ?? null
 
   const [elemento, setElemento] = useState<ElementoApi | null>(null)
   const [relatedItem, setRelatedItem] = useState<ItemApi | null>(null)
@@ -34,7 +37,10 @@ export default function ViewElementoPage() {
       if (!id) return
 
       try {
-        const [elementoData, bodegas] = await Promise.all([getElemento(id), getBodegas()])
+        const [elementoData, bodegas] = await Promise.all([
+          getElemento(id),
+          getBodegas(centerId ? { idCformacion: centerId } : undefined),
+        ])
 
         if (cancelled) return
 
@@ -62,7 +68,7 @@ export default function ViewElementoPage() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [centerId, id])
 
   if (loading) {
     return (
@@ -160,6 +166,7 @@ export default function ViewElementoPage() {
               value={elemento.gramaje == null ? '—' : String(elemento.gramaje)}
             />
             <InfoItem label="Clasificación" value={elemento.clasificacion?.nombre ?? '—'} />
+            <InfoItem label="Uso presupuestal" value={elemento.usoPresupuestal?.nombre ?? '—'} />
             <InfoItem
               label="Código UNSPSC"
               value={
@@ -227,8 +234,8 @@ export default function ViewElementoPage() {
             <div className="mt-7 border-t border-sena-dark/10 pt-6">
               <h2 className="mb-3 text-sm font-bold text-sena-dark">Fotografía</h2>
 
-              <img
-                src={elemento.urlFotografia}
+              <ElementoFoto
+                src={fotoUrlDelElemento(elemento.id, elemento.urlFotografia)}
                 alt={elemento.nombre}
                 className="max-h-64 rounded-xl border border-sena-dark/8 object-contain"
               />

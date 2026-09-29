@@ -4,6 +4,7 @@ import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
 import TextField from '@/shared/components/ui/TextField'
 import { useAuth } from '@/modules/auth/context/auth'
+import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { ApiError, api } from '@/shared/lib/api'
 import {
   createSubcategoria,
@@ -19,6 +20,8 @@ export default function EditInventoryCategoryPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { isAdmin, user } = useAuth()
+  const lockedCenter = useInventoryCenterOptional()
+  const lockedCenterId = lockedCenter?.centerId ?? null
   const { permit } = useInventoryAccess()
   const canChangeEstado = permit('categoria.eliminar', 'categorias', 'edit')
   const canSeeSub = permit('subcategoria.ver', 'categorias', 'view')
@@ -280,7 +283,15 @@ export default function EditInventoryCategoryPage() {
           ) : null}
 
           <div className="mt-7 grid gap-5">
-            {isAdmin ? (
+            {isAdmin && lockedCenterId ? (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-sena-text/75">Centro de formación</span>
+                <div className="flex h-11 items-center rounded-lg bg-sena-muted px-3.5 text-sm font-medium text-sena-text">
+                  {centers.find((center) => String(center.id) === trainingCenterId)?.name ||
+                    lockedCenter?.centerName}
+                </div>
+              </div>
+            ) : isAdmin ? (
               <SelectField
                 id="trainingCenterId"
                 label="Centro de formación"

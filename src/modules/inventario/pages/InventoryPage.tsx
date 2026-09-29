@@ -1,16 +1,20 @@
 import { Link } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
+import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
 export default function InventoryPage() {
   const { screens } = useInventoryAccess()
+  const center = useInventoryCenterOptional()
 
   return (
     <AppLayout title="Inventario">
       <p className="text-sm font-medium text-sena">Inventario</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight text-sena-text">Inventario</h1>
       <p className="mt-2 max-w-2xl text-sm text-sena-text/60">
-        Entra a la sección que te corresponde. Crear, ver y editar se hacen dentro de cada lista.
+        {center?.centerId
+          ? `Esto es el inventario de ${center.centerName}. Crear, ver y editar se hacen dentro de cada lista.`
+          : 'Entra a la sección que te corresponde. Crear, ver y editar se hacen dentro de cada lista.'}
       </p>
 
       {screens.length ? (

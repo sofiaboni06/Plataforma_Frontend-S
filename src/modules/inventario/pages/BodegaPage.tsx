@@ -34,10 +34,8 @@ import {
   getBodegas,
 } from '@/modules/inventario/data/bodega'
 import type { BodegaApi } from '@/modules/inventario/types/bodega'
-import { useAuth } from '@/modules/auth/context/auth'
+import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
-import { api } from '@/shared/lib/api'
-import type { UserFormOptions } from '@/shared/types/profile'
 
 type StatusFilter = 'Todos' | 'Activa' | 'Inactiva'
 
@@ -59,8 +57,8 @@ function WarehouseIcon() {
 
 export default function BodegasPage() {
   const navigate = useNavigate()
-  const { isAdmin } = useAuth()
   const { permit } = useInventoryAccess()
+  const centerId = useInventoryCenterOptional()?.centerId ?? null
   const canCreate = permit('bodega.crear', 'bodegas', 'create')
   const canEdit = permit('bodega.editar', 'bodegas', 'edit')
   const canDelete = permit('bodega.eliminar', 'bodegas', 'edit')
@@ -74,8 +72,6 @@ export default function BodegasPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('Todos')
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [bodegaToDelete, setBodegaToDelete] = useState<BodegaApi | null>(null)
-  const [centers, setCenters] = useState<UserFormOptions['centers']>([])
-  const [centerFilter, setCenterFilter] = useState('')
 
   useEffect(() => {
     document.title = 'Gestionar bodegas | SENA'
@@ -86,9 +82,7 @@ export default function BodegasPage() {
       setLoading(true)
       setError('')
 
-      const result = await getBodegas(
-        isAdmin && centerFilter ? { idCformacion: Number(centerFilter) } : undefined,
-      )
+      const result = await getBodegas(centerId ? { idCformacion: centerId } : undefined)
       setBodegas([...result].sort((a, b) => b.id - a.id))
     } catch (loadError) {
       setError(
@@ -103,22 +97,7 @@ export default function BodegasPage() {
 
   useEffect(() => {
     void loadBodegas()
-  }, [centerFilter, isAdmin])
-
-  useEffect(() => {
-    if (!isAdmin) return
-    let cancelled = false
-    api<UserFormOptions>('/users/options')
-      .then((options) => {
-        if (!cancelled) setCenters(options.centers)
-      })
-      .catch(() => {
-        if (!cancelled) setCenters([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [isAdmin])
+  }, [centerId])
 
   const filteredBodegas = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -144,12 +123,11 @@ export default function BodegasPage() {
     page,
   )
 
-  const hasActiveFilters = search.trim() !== '' || statusFilter !== 'Todos' || centerFilter !== ''
+  const hasActiveFilters = search.trim() !== '' || statusFilter !== 'Todos'
 
   const clearFilters = () => {
     setSearch('')
     setStatusFilter('Todos')
-    setCenterFilter('')
   }
 
   async function handleDelete(bodega: BodegaApi) {
@@ -194,26 +172,6 @@ export default function BodegasPage() {
 
       <FilterCard>
         <SearchInput value={search} onChange={setSearch} placeholder="Buscar bodega..." />
-
-        {isAdmin ? (
-          <FilterGroup label="Centro">
-            <select
-              value={centerFilter}
-              onChange={(event) => {
-                setCenterFilter(event.target.value)
-                resetPage()
-              }}
-              className={`${filterSelectClass} lg:w-72`}
-            >
-              <option value="">Todos los centros</option>
-              {centers.map((center) => (
-                <option key={center.id} value={String(center.id)}>
-                  {center.name}
-                </option>
-              ))}
-            </select>
-          </FilterGroup>
-        ) : null}
 
         <FilterGroup label="Estado">
           <select
