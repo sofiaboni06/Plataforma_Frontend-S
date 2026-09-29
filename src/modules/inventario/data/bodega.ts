@@ -4,6 +4,7 @@ import type {
   CreateBodegaPayload,
   CreateStandPayload,
   StandApi,
+  SubBodegaApi,
   UpdateBodegaPayload,
   UpdateStandPayload,
 } from '@/modules/inventario/types/bodega'
@@ -121,4 +122,83 @@ export async function deleteStand(standId: string | number): Promise<void> {
   await api<unknown>(`/bodegas/stands/${standId}`, {
     method: 'DELETE',
   })
+}
+
+export type CreateSubBodegaPayload = {
+  nombre: string
+  estado?: boolean
+}
+
+export type UpdateSubBodegaPayload = {
+  nombre?: string
+  estado?: boolean
+}
+
+export async function getSubBodegas(
+  bodegaId: string | number,
+): Promise<SubBodegaApi[]> {
+  if (!bodegaId) return []
+
+  return listActiveAndInactive<SubBodegaApi>(
+    `/bodegas/${bodegaId}/sub-bodegas`,
+  )
+}
+
+export async function getSubBodega(
+  subBodegaId: string | number,
+): Promise<SubBodegaApi | null> {
+  if (!subBodegaId) return null
+
+  try {
+    return await api<SubBodegaApi>(
+      `/bodegas/sub-bodegas/${subBodegaId}`,
+    )
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      'status' in error &&
+      Number((error as { status?: number }).status) === 404
+    ) {
+      return null
+    }
+
+    throw error
+  }
+}
+
+export async function createSubBodega(
+  bodegaId: string | number,
+  payload: CreateSubBodegaPayload,
+): Promise<SubBodegaApi> {
+  return api<SubBodegaApi>(
+    `/bodegas/${bodegaId}/sub-bodegas`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
+}
+
+export async function updateSubBodega(
+  subBodegaId: string | number,
+  payload: UpdateSubBodegaPayload,
+): Promise<SubBodegaApi> {
+  return api<SubBodegaApi>(
+    `/bodegas/sub-bodegas/${subBodegaId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+  )
+}
+
+export async function deleteSubBodega(
+  subBodegaId: string | number,
+): Promise<void> {
+  await api<unknown>(
+    `/bodegas/sub-bodegas/${subBodegaId}`,
+    {
+      method: 'DELETE',
+    },
+  )
 }

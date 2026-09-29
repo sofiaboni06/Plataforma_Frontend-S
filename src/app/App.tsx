@@ -29,6 +29,7 @@ import BodegasPage from '@/modules/inventario/pages/BodegaPage'
 import CreateBodegaPage from '@/modules/inventario/pages/CreateBodegaPage'
 import EditBodegaPage from '@/modules/inventario/pages/EditBodegaPage'
 import ViewBodegaPage from '@/modules/inventario/pages/ViewBodegaPage'
+import ViewSubBodegaPage from '@/modules/inventario/pages/ViewSubBodegaPage'
 
 import StandsPage from '@/modules/inventario/pages/StandsPage'
 import ViewStandPage from '@/modules/inventario/pages/ViewStandPage'
@@ -244,6 +245,15 @@ function App() {
             element={
               <ModuleRoute>
                 <CreateBodegaPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/inventario/bodegas/:id/sub-bodegas/:subBodegaId"
+            element={
+              <ModuleRoute>
+                <ViewSubBodegaPage />
               </ModuleRoute>
             }
           />
