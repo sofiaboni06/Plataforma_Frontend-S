@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { MenuIcon } from '@/shared/components/icons/AppIcons'
 import SenaMark from '@/shared/components/icons/SenaMark'
 import { useAuth } from '@/modules/auth/context/auth'
+import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import Sidebar from './Sidebar'
 
 type AppLayoutProps = {
@@ -11,6 +12,7 @@ type AppLayoutProps = {
 
 export default function AppLayout({ title, children }: AppLayoutProps) {
   const { user } = useAuth()
+  const inventoryCenter = useInventoryCenterOptional()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const closeSidebar = useCallback(() => setIsSidebarOpen(false), [])
   const today = new Intl.DateTimeFormat('es-CO', {
@@ -97,6 +99,22 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
         </div>
 
         <main id="contenido" className="min-h-svh px-4 pb-8 sm:px-6 lg:px-8">
+          {inventoryCenter?.isAdmin && inventoryCenter.centerId ? (
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-sena-dark/8">
+              <p className="text-sm text-sena-text">
+                <span className="text-sena-text/55">Inventario de</span>{' '}
+                <span className="font-semibold">{inventoryCenter.centerName}</span>
+                <span className="text-sena-text/45"> · {inventoryCenter.regional}</span>
+              </p>
+              <button
+                type="button"
+                onClick={inventoryCenter.clear}
+                className="text-sm font-semibold text-sena"
+              >
+                Cambiar centro
+              </button>
+            </div>
+          ) : null}
           {children}
         </main>
       </div>

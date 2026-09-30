@@ -33,14 +33,25 @@ export function shouldRememberSession() {
   return localStorage.getItem(REMEMBER_KEY) !== '0'
 }
 
+function humanizeApiMessage(message: string) {
+  const text = message.trim()
+  if (/the codigo has already been taken/i.test(text) || /codigo has already been taken/i.test(text)) {
+    return 'Ese código interno ya lo tiene otro elemento. Escribe uno distinto. No es el UNSPSC.'
+  }
+  if (/already been taken/i.test(text)) {
+    return 'Ese valor ya está en uso. Cámbialo e inténtalo de nuevo.'
+  }
+  return text
+}
+
 function errorMessage(body: unknown, fallback: string) {
   if (!body || typeof body !== 'object') return fallback
   const payload = body as {
     message?: string
-    errors?: Array<{ message?: string }>
+    errors?: Array<{ message?: string; field?: string }>
   }
-  if (payload.message) return payload.message
-  if (payload.errors?.[0]?.message) return payload.errors[0].message
+  if (payload.message) return humanizeApiMessage(payload.message)
+  if (payload.errors?.[0]?.message) return humanizeApiMessage(payload.errors[0].message)
   return fallback
 }
 
@@ -55,7 +66,7 @@ async function requestJson(path: string, options: RequestInit = {}) {
   const token = getToken()
   const headers = new Headers(options.headers)
   headers.set('Accept', 'application/json')
-  if (options.body && !headers.has('Content-Type')) {
+  if (options.body && !headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json')
   }
   if (token) {

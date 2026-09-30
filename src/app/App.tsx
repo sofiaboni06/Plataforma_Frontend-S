@@ -19,6 +19,7 @@ import EnvironmentalPage from '@/modules/ambiental/pages/EnvironmentalPage'
 
 import HomePage from '@/modules/inicio/pages/HomePage'
 
+import InventoryCenterLayout from '@/modules/inventario/centerScope'
 import InventoryPage from '@/modules/inventario/pages/InventoryPage'
 import InventoryCategoriesPage from '@/modules/inventario/pages/InventoryCategoriesPage'
 import CreateInventoryCategoryPage from '@/modules/inventario/pages/CreateInventoryCategoryPage'
@@ -40,7 +41,7 @@ import ItemsPage from '@/modules/inventario/pages/ItemsPage'
 import ViewItemPage from '@/modules/inventario/pages/ViewItemPage'
 import ElementosPage from '@/modules/inventario/pages/ElementosPage'
 import ViewElementoPage from '@/modules/inventario/pages/ViewElementoPage'
-import ClasificacionesPage from '@/modules/inventario/pages/ClasificacionesPage'
+import CatalogoCentroPage from '@/modules/inventario/pages/CatalogoCentroPage'
 
 import Dashboard from '@/modules/landing/pages/Dashboard'
 import LoginPage from '@/modules/auth/pages/LoginPage'
@@ -121,221 +122,39 @@ function App() {
             }
           />
 
-          {/* =========================
-              INVENTARIO
-          ========================== */}
-
           <Route
             path="/inventario"
             element={
               <ModuleRoute>
-                <InventoryPage />
+                <InventoryCenterLayout />
               </ModuleRoute>
             }
-          />
-
-          {/* =========================
-              ÍTEMS
-          ========================== */}
-
-          <Route
-            path="/inventario/items"
-            element={
-              <ModuleRoute>
-                <ItemsPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/items/:id"
-            element={
-              <ModuleRoute>
-                <ViewItemPage />
-              </ModuleRoute>
-            }
-          />
-
-          {/* =========================
-              ELEMENTOS
-          ========================== */}
-
-          <Route
-            path="/inventario/elementos"
-            element={
-              <ModuleRoute>
-                <ElementosPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/elementos/:id"
-            element={
-              <ModuleRoute>
-                <ViewElementoPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/clasificaciones"
-            element={
-              <ModuleRoute>
-                <ClasificacionesPage />
-              </ModuleRoute>
-            }
-          />
-
-          {/* =========================
-              CATEGORÍAS
-          ========================== */}
-
-          <Route
-            path="/inventario/categorias"
-            element={
-              <ModuleRoute>
-                <InventoryCategoriesPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/categorias/crear"
-            element={
-              <ModuleRoute>
-                <CreateInventoryCategoryPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/categorias/:id"
-            element={
-              <ModuleRoute>
-                <ViewInventoryCategoryPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/categorias/:id/editar"
-            element={
-              <ModuleRoute>
-                <EditInventoryCategoryPage />
-              </ModuleRoute>
-            }
-          />
-
-          {/* =========================
-              BODEGAS
-          ========================== */}
-
-          <Route
-            path="/inventario/bodegas"
-            element={
-              <ModuleRoute>
-                <BodegasPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/bodegas/crear"
-            element={
-              <ModuleRoute>
-                <CreateBodegaPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/bodegas/:id/sub-bodegas/:subBodegaId"
-            element={
-              <ModuleRoute>
-                <ViewSubBodegaPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/bodegas/:id"
-            element={
-              <ModuleRoute>
-                <ViewBodegaPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/bodegas/:id/editar"
-            element={
-              <ModuleRoute>
-                <EditBodegaPage />
-              </ModuleRoute>
-            }
-          />
-
-          {/* =========================
-              STANDS
-          ========================== */}
-
-          <Route
-            path="/inventario/stands"
-            element={
-              <ModuleRoute>
-                <StandsPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/stands/:id/editar"
-            element={
-              <ModuleRoute>
-                <EditStandPage />
-              </ModuleRoute>
-            }
-          />
-
-          <Route
-            path="/inventario/stands/:id"
-            element={
-              <ModuleRoute>
-                <ViewStandPage />
-              </ModuleRoute>
-            }
-          />
-
-          {/* Crear stand dentro de una bodega */}
-          <Route
-            path="/inventario/bodegas/:id_bodega/stands/crear"
-            element={
-              <ModuleRoute>
-                <CreateStandPage />
-              </ModuleRoute>
-            }
-          />
-
-          {/* Ver stand */}
-          <Route
-            path="/inventario/bodegas/:id_bodega/stands/:id_stand"
-            element={
-              <ModuleRoute>
-                <ViewStandPage />
-              </ModuleRoute>
-            }
-          />
-
-          {/* Editar stand */}
-          <Route
-            path="/inventario/bodegas/:id_bodega/stands/:id_stand/editar"
-            element={
-              <ModuleRoute>
-                <EditStandPage />
-              </ModuleRoute>
-            }
-          />
+          >
+            <Route index element={<InventoryPage />} />
+            <Route path="items" element={<ItemsPage />} />
+            <Route path="items/:id" element={<ViewItemPage />} />
+            <Route path="elementos" element={<ElementosPage />} />
+            <Route path="elementos/:id" element={<ViewElementoPage />} />
+            <Route path="clasificaciones" element={<CatalogoCentroPage kind="clasificacion" />} />
+            <Route path="unidades" element={<CatalogoCentroPage kind="unidad" />} />
+            <Route path="usos-presupuestales" element={<CatalogoCentroPage kind="uso" />} />
+            <Route path="codigos-estandar" element={<CatalogoCentroPage kind="codigo" />} />
+            <Route path="categorias" element={<InventoryCategoriesPage />} />
+            <Route path="categorias/crear" element={<CreateInventoryCategoryPage />} />
+            <Route path="categorias/:id" element={<ViewInventoryCategoryPage />} />
+            <Route path="categorias/:id/editar" element={<EditInventoryCategoryPage />} />
+            <Route path="bodegas" element={<BodegasPage />} />
+            <Route path="bodegas/crear" element={<CreateBodegaPage />} />
+            <Route path="bodegas/:id/sub-bodegas/:subBodegaId" element={<ViewSubBodegaPage />} />
+            <Route path="bodegas/:id_bodega/stands/crear" element={<CreateStandPage />} />
+            <Route path="bodegas/:id_bodega/stands/:id_stand/editar" element={<EditStandPage />} />
+            <Route path="bodegas/:id_bodega/stands/:id_stand" element={<ViewStandPage />} />
+            <Route path="bodegas/:id/editar" element={<EditBodegaPage />} />
+            <Route path="bodegas/:id" element={<ViewBodegaPage />} />
+            <Route path="stands" element={<StandsPage />} />
+            <Route path="stands/:id/editar" element={<EditStandPage />} />
+            <Route path="stands/:id" element={<ViewStandPage />} />
+          </Route>
 
           {/* =========================
               MATERIALES

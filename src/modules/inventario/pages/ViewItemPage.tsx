@@ -5,6 +5,7 @@ import { PencilIcon } from '@/shared/components/icons/AppIcons'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import { ApiError } from '@/shared/lib/api'
+import ElementoFoto, { fotoUrlDelElemento } from '@/modules/inventario/components/ElementoFoto'
 import { getBodegas } from '@/modules/inventario/data/bodega'
 import { getElementos } from '@/modules/inventario/data/elemento'
 import { getItem } from '@/modules/inventario/data/item'
@@ -12,6 +13,8 @@ import type { BodegaApi } from '@/modules/inventario/types/bodega'
 import type { ElementoApi } from '@/modules/inventario/types/elemento'
 import type { ItemApi } from '@/modules/inventario/types/item'
 import { lugarDelElemento } from '@/modules/inventario/lib/lugar'
+import { elementosOfBodegas } from '@/modules/inventario/lib/centro'
+import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
 export default function ViewItemPage() {
@@ -20,6 +23,7 @@ export default function ViewItemPage() {
   const { permit } = useInventoryAccess()
   const canEdit = permit('item.editar', 'items', 'edit')
   const canViewElemento = permit('elemento.ver', 'elementos', 'view')
+  const centerId = useInventoryCenterOptional()?.centerId ?? null
 
   const [item, setItem] = useState<ItemApi | null>(null)
   const [elementos, setElementos] = useState<ElementoApi[]>([])
@@ -42,12 +46,16 @@ export default function ViewItemPage() {
 
         const [elementoData, bodegaData] = await Promise.all([
           getElementos().catch(() => [] as ElementoApi[]),
-          getBodegas().catch(() => [] as BodegaApi[]),
+          getBodegas(centerId ? { idCformacion: centerId } : undefined).catch(() => [] as BodegaApi[]),
         ])
 
         if (cancelled) return
 
-        setElementos(elementoData.filter((elemento) => elemento.idItem === itemData.id))
+        setElementos(
+          elementosOfBodegas(elementoData, bodegaData, centerId).filter(
+            (elemento) => elemento.idItem === itemData.id,
+          ),
+        )
         setBodegas(bodegaData)
       } catch (caught) {
         if (!cancelled) {
@@ -63,7 +71,7 @@ export default function ViewItemPage() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [centerId, id])
 
   if (loading) {
     return (
@@ -149,6 +157,7 @@ export default function ViewItemPage() {
                 <table className="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr className="bg-sena-muted/50 text-left text-xs font-bold uppercase tracking-wider text-sena-dark">
+                      <th className="px-4 py-3">Foto</th>
                       <th className="px-4 py-3">Elemento</th>
                       <th className="px-4 py-3">Ubicación</th>
                       <th className="px-4 py-3 text-center">Cantidad</th>
@@ -159,6 +168,19 @@ export default function ViewItemPage() {
                   <tbody>
                     {elementos.map((elemento) => (
                       <tr key={elemento.id} className="border-t border-sena-dark/6">
+                        <td className="px-4 py-3">
+                          {elemento.urlFotografia ? (
+                            <ElementoFoto
+                              src={fotoUrlDelElemento(elemento.id, elemento.urlFotografia)}
+                              alt={elemento.nombre}
+                              className="size-12 rounded-lg object-cover ring-1 ring-sena-dark/8"
+                            />
+                          ) : (
+                            <span className="grid size-12 place-items-center rounded-lg bg-sena-muted text-[10px] uppercase tracking-wide text-sena-text/40">
+                              —
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           <p className="font-semibold text-sena-text">{elemento.codigo}</p>
                           <p className="mt-0.5 text-xs text-sena-text/45">

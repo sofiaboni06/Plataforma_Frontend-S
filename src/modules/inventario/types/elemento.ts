@@ -1,11 +1,20 @@
 export type ClasificacionElementoApi = {
   id: number
+  idCformacion?: number
+  nombre: string
+  estado: boolean
+}
+
+export type UsoPresupuestalApi = {
+  id: number
+  idCformacion?: number
   nombre: string
   estado: boolean
 }
 
 export type CodigoEstandarApi = {
   id: number
+  idCformacion?: number
   codigo: string
   nombre: string
 }
@@ -31,6 +40,11 @@ export type ElementoApi = {
   codigo: string
   idCodigoEstandar: number | null
   codigoEstandar: CodigoEstandarApi | null
+  idUsoPresupuestal?: number | null
+  usoPresupuestal?: {
+    id: number
+    nombre: string
+  } | null
   descripcion: string | null
   marca: string | null
   color: string | null
@@ -73,18 +87,21 @@ export type CreateElementoPayload = {
   descripcion?: string | null
   marca?: string | null
   color?: string | null
-  urlFotografia?: string | null
   idClasificacion?: number | null
   valorUnitarioPromedio?: number | null
   porcentajeAumento?: number | null
   idCodigoEstandar?: number | null
+  idUsoPresupuestal?: number | null
 }
 
 export type UpdateElementoPayload = Partial<CreateElementoPayload>
 
 export type UnidadMedidaApi = {
   id: number
+  idCformacion?: number
   nombre: string
   abreviatura: string
   estado: boolean
 }
+
+export type CatalogoElementoKind = 'clasificacion' | 'unidad' | 'uso' | 'codigo'

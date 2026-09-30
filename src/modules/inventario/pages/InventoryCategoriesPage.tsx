@@ -29,18 +29,20 @@ import {
   tableColumns,
 } from '@/shared/components/DataTable'
 import { filterSelectClass, usePagination, useTableState } from '@/shared/lib/table'
-import { ApiError, api } from '@/shared/lib/api'
+import { ApiError } from '@/shared/lib/api'
 import { useAuth } from '@/modules/auth/context/auth'
+import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { disableCategoria, getAllCategorias, getSubcategorias } from '@/modules/inventario/data/categoria'
+import { categoriesOfCenter } from '@/modules/inventario/lib/centro'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import type { CategoryApi, SubcategoryApi } from '@/shared/types/category'
-import type { UserFormOptions } from '@/shared/types/profile'
 
 type StatusFilter = 'Todos' | 'Activa' | 'Inactiva'
 
 export default function InventoryCategoriesPage() {
   const navigate = useNavigate()
-  const { isAdmin, user } = useAuth()
+  const { user } = useAuth()
+  const center = useInventoryCenterOptional()
   const { permit } = useInventoryAccess()
   const canCreate = permit('categoria.crear', 'categorias', 'create')
   const canEdit = permit('categoria.editar', 'categorias', 'edit')
@@ -52,8 +54,6 @@ export default function InventoryCategoriesPage() {
 
   const [categories, setCategories] = useState<CategoryApi[]>([])
   const [subcategories, setSubcategories] = useState<SubcategoryApi[]>([])
-  const [centers, setCenters] = useState<UserFormOptions['centers']>([])
-  const [centerFilter, setCenterFilter] = useState('Todos')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('Todos')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -69,17 +69,15 @@ export default function InventoryCategoriesPage() {
 
     async function loadData() {
       try {
-        const [categoryList, subcategoryList, options] = await Promise.all([
+        const [categoryList, subcategoryList] = await Promise.all([
           getAllCategorias(),
           canSeeSub ? getSubcategorias() : Promise.resolve([]),
-          isAdmin ? api<UserFormOptions>('/users/options') : Promise.resolve(null),
         ])
 
         if (cancelled) return
 
         setCategories(categoryList)
         setSubcategories(subcategoryList)
-        setCenters(options?.centers ?? [])
       } catch (caught) {
         if (!cancelled) {
           setError(
@@ -98,12 +96,14 @@ export default function InventoryCategoriesPage() {
     return () => {
       cancelled = true
     }
-  }, [canSeeSub, isAdmin])
+  }, [canSeeSub])
 
-  const centerMap = useMemo(
-    () => new Map(centers.map((center) => [center.id, center.name])),
-    [centers],
+  const visibleCategories = useMemo(
+    () => categoriesOfCenter(categories, center?.centerId ?? null),
+    [categories, center?.centerId],
   )
+
+  const centerLabel = center?.centerId ? center.centerName : (user?.trainingCenter ?? '')
 
   const subcategoriesByCategory = useMemo(() => {
     const map = new Map<number, SubcategoryApi[]>()
@@ -120,40 +120,33 @@ export default function InventoryCategoriesPage() {
   const filteredCategories = useMemo(() => {
     const query = search.trim().toLowerCase()
 
-    return categories.filter((category) => {
-      const centerName = centerMap.get(category.idCformacion) ?? ''
-
+    return visibleCategories.filter((category) => {
       const subcategoryText = (subcategoriesByCategory.get(category.id) ?? [])
         .map((item) => item.nombre)
         .join(' ')
 
       const matchesSearch =
         !query ||
-        `${category.nombre} ${centerName} ${subcategoryText}`.toLowerCase().includes(query)
-
-      const matchesCenter =
-        centerFilter === 'Todos' || String(category.idCformacion) === centerFilter
+        `${category.nombre} ${centerLabel} ${subcategoryText}`.toLowerCase().includes(query)
 
       const matchesStatus =
         statusFilter === 'Todos' ||
         (statusFilter === 'Activa' && category.estado) ||
         (statusFilter === 'Inactiva' && !category.estado)
 
-      return matchesSearch && matchesCenter && matchesStatus
+      return matchesSearch && matchesStatus
     })
-  }, [categories, centerMap, search, centerFilter, statusFilter, subcategoriesByCategory])
+  }, [centerLabel, search, statusFilter, subcategoriesByCategory, visibleCategories])
 
   const { pageRows, totalPages, currentPage, from, to, total } = usePagination(
     filteredCategories,
     page,
   )
 
-  const hasActiveFilters =
-    search.trim() !== '' || centerFilter !== 'Todos' || statusFilter !== 'Todos'
+  const hasActiveFilters = search.trim() !== '' || statusFilter !== 'Todos'
 
   const clearFilters = () => {
     setSearch('')
-    setCenterFilter('Todos')
     setStatusFilter('Todos')
   }
 
@@ -211,27 +204,6 @@ export default function InventoryCategoriesPage() {
           placeholder="Buscar categoría..."
         />
 
-        {isAdmin ? (
-          <FilterGroup label="Centro de formación">
-            <select
-              value={centerFilter}
-              onChange={(event) => {
-                setCenterFilter(event.target.value)
-                resetPage()
-              }}
-              className={`${filterSelectClass} lg:w-64`}
-            >
-              <option value="Todos">Todos</option>
-
-              {centers.map((center) => (
-                <option key={center.id} value={String(center.id)}>
-                  {center.name}
-                </option>
-              ))}
-            </select>
-          </FilterGroup>
-        ) : null}
-
         <FilterGroup label="Estado">
           <select
             value={statusFilter}
@@ -286,9 +258,7 @@ export default function InventoryCategoriesPage() {
                         </td>
 
                         <td className="truncate px-5 py-4 font-medium text-sena-dark">
-                          {isAdmin
-                            ? (centerMap.get(category.idCformacion) ?? '—')
-                            : (user?.trainingCenter || '—')}
+                          {centerLabel || '—'}
                         </td>
 
                         <td className="px-5 py-4 text-center text-sena-text/70">
