@@ -3,6 +3,7 @@ import {
   canOpenInventoryPath,
   isInventoryDescendantPath,
 } from '@/modules/inventario/navigation'
+
 import type { AppModule } from '@/shared/types/profile'
 import type { NavIconName } from '@/shared/constants/navigation'
 
@@ -47,14 +48,25 @@ export function grantedModuleLinks(modules: AppModule[]) {
       }
 
       seen.add(path)
+
       return true
     })
 
-  if (hasInventoryAccess(modules) && !links.some((item) => item.to === '/inventario')) {
+  /*
+   * Inventario se maneja como un módulo padre.
+   * Sus pantallas internas, incluyendo Actividades y
+   * Préstamos, se muestran desde visibleInventoryScreens().
+   */
+  if (
+    hasInventoryAccess(modules) &&
+    !links.some((item) => item.to === '/inventario')
+  ) {
     links.push(INVENTORY_ENTRY)
   }
 
-  return links.sort((left, right) => left.order - right.order)
+  return links.sort(
+    (left, right) => left.order - right.order,
+  )
 }
 
 export function canOpenPath(
@@ -63,20 +75,59 @@ export function canOpenPath(
   isAdmin: boolean,
   permissions?: string[],
 ) {
-  if (path === '/inicio' || path === '/perfil') {
-    return true
-  }
-
+  /*
+   * Rutas que cualquier usuario autenticado puede abrir.
+   */
   if (
-    isAdmin &&
-    (path === '/usuarios' || path === '/perfiles')
+    path === '/inicio' ||
+    path === '/perfil'
   ) {
     return true
   }
 
-  if (path === '/inventario' || path.startsWith('/inventario/')) {
-    return canOpenInventoryPath(path, modules, { isAdmin, permissions })
+  /*
+   * Rutas exclusivas de administración.
+   */
+  if (
+    isAdmin &&
+    (
+      path === '/usuarios' ||
+      path === '/perfiles'
+    )
+  ) {
+    return true
   }
 
-  return modules.some((item) => item.to === path)
+  /*
+   * TODO lo que empiece por /inventario
+   * se controla desde navigation.ts.
+   *
+   * Ejemplos:
+   *
+   * /inventario
+   * /inventario/bodegas
+   * /inventario/stands
+   * /inventario/actividades
+   * /inventario/prestamos
+   */
+  if (
+    path === '/inventario' ||
+    path.startsWith('/inventario/')
+  ) {
+    return canOpenInventoryPath(
+      path,
+      modules,
+      {
+        isAdmin,
+        permissions,
+      },
+    )
+  }
+
+  /*
+   * Resto de módulos principales.
+   */
+  return modules.some(
+    (item) => item.to === path,
+  )
 }
