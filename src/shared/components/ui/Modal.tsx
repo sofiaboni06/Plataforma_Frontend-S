@@ -30,7 +30,7 @@ export default function Modal({ title, description, onClose, children, wide = fa
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-8 sm:items-center">
       <button
         type="button"
-        className="fixed inset-0 bg-sena-forest/45"
+        className="fixed inset-0 bg-sena-forest/55 backdrop-blur-[6px]"
         aria-label="Cerrar"
         onClick={onClose}
       />
@@ -39,20 +39,22 @@ export default function Modal({ title, description, onClose, children, wide = fa
         aria-modal="true"
         aria-labelledby="dialog-title"
         className={cn(
-          'relative z-10 flex w-full max-h-[min(92vh,880px)] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_rgba(0,20,10,0.25)]',
+          'relative z-10 flex w-full max-h-[min(92vh,880px)] flex-col overflow-hidden rounded-[24px] border border-glass-line bg-white/85 shadow-[0_24px_70px_rgba(0,60,40,0.22)] backdrop-blur-[28px]',
           wide ? 'max-w-3xl' : 'max-w-2xl',
         )}
       >
-        <div className="flex items-start justify-between gap-4 px-6 pt-6 sm:px-8 sm:pt-8">
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 bg-sena-dark/92 px-6 py-4 text-white backdrop-blur-glass sm:px-8">
           <div>
-            <h2 id="dialog-title" className="text-lg font-semibold text-sena-text">
+            <h2 id="dialog-title" className="text-lg font-bold">
               {title}
             </h2>
-            {description ? <p className="mt-1 text-sm text-sena-text/55">{description}</p> : null}
+            {description ? (
+              <p className="mt-1 text-sm leading-6 text-white/75">{description}</p>
+            ) : null}
           </div>
           <button
             type="button"
-            className="grid size-9 shrink-0 place-items-center rounded-lg text-sena-text/50 hover:bg-sena-muted hover:text-sena-text"
+            className="grid size-9 shrink-0 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
             onClick={onClose}
             aria-label="Cerrar"
           >

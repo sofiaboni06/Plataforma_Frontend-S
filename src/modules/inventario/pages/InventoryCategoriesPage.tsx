@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
   EyeIcon,
+  InventoryIcon,
   PencilIcon,
   PlusIcon,
   TrashIcon,
@@ -178,15 +179,31 @@ export default function InventoryCategoriesPage() {
   }
 
   return (
-    <AppLayout title="Gestionar categorías">
+    <AppLayout title="Gestionar categorías" showCenterBanner={false}>
       <PageHeader
+        icon={<InventoryIcon />}
         title="Gestionar categorías"
         description="Nombre, estado y subcategorías. La subcategoría se guarda aparte, colgada de la categoría."
+        context={
+          <div className="inline-flex items-center gap-3 rounded-full border border-glass-line bg-glass-strong px-4 py-2.5 text-[0.8125rem] text-sena-strong shadow-hairline backdrop-blur-glass-sm">
+            <span className="font-semibold text-sena-text">{centerLabel}</span>
+            {center?.isAdmin && center.centerId ? (
+              <button
+                type="button"
+                onClick={center.clear}
+                className="border-l border-sena-line pl-3 text-xs font-semibold text-sena-strong transition hover:text-sena-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sena"
+              >
+                Cambiar centro
+              </button>
+            ) : null}
+          </div>
+        }
         action={
           canCreate ? (
             <Button
               type="button"
               icon={<PlusIcon className="size-4" />}
+              className="category-create-button px-8"
               onClick={() => navigate('/inventario/categorias/crear')}
             >
               Nueva categoría
@@ -211,7 +228,7 @@ export default function InventoryCategoriesPage() {
               setStatusFilter(event.target.value as StatusFilter)
               resetPage()
             }}
-            className={`${filterSelectClass} lg:w-40`}
+            className={`${filterSelectClass} lg:w-[212px]`}
           >
             <option value="Todos">Todos</option>
             <option value="Activa">Activa</option>
@@ -230,7 +247,7 @@ export default function InventoryCategoriesPage() {
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>
-                  <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
+                  <tr className="border-b border-sena-hairline bg-sena-soft/85">
                     <TableHeader width={tableColumns.name}>Categoría</TableHeader>
                     <TableHeader width={tableColumns.relation}>
                       Centro de formación
@@ -253,15 +270,15 @@ export default function InventoryCategoriesPage() {
                   ) : (
                     pageRows.map((category) => (
                       <TableRow key={category.id}>
-                        <td className="truncate px-5 py-4 font-semibold text-sena-text">
+                        <td className="truncate px-6 py-5 font-semibold text-sena-text">
                           {category.nombre}
                         </td>
 
-                        <td className="truncate px-5 py-4 font-medium text-sena-dark">
+                        <td className="truncate px-6 py-5 font-medium text-sena-dark/90">
                           {centerLabel || '—'}
                         </td>
 
-                        <td className="px-5 py-4 text-center text-sena-text/70">
+                        <td className="px-6 py-5 text-center text-sena-text-soft">
                           {canSeeSub
                             ? (subcategoriesByCategory.get(category.id) ?? []).filter(
                                 (item) => item.estado,
@@ -269,13 +286,13 @@ export default function InventoryCategoriesPage() {
                             : '—'}
                         </td>
 
-                        <td className="px-5 py-4 text-center">
+                        <td className="px-6 py-5 text-center">
                           <StatusPill tone={category.estado ? 'ok' : 'danger'}>
                             {category.estado ? 'Activa' : 'Inactiva'}
                           </StatusPill>
                         </td>
 
-                        <td className="px-5 py-4">
+                        <td className="px-6 py-5">
                           <RowActions>
                             {canView ? (
                               <ActionButton
@@ -284,7 +301,7 @@ export default function InventoryCategoriesPage() {
                                   navigate(`/inventario/categorias/${category.id}`)
                                 }
                               >
-                                <EyeIcon className="size-[18px]" />
+                                <EyeIcon className="size-5" />
                               </ActionButton>
                             ) : null}
 
@@ -295,7 +312,7 @@ export default function InventoryCategoriesPage() {
                                   navigate(`/inventario/categorias/${category.id}/editar`)
                                 }
                               >
-                                <PencilIcon className="size-[18px]" />
+                                <PencilIcon className="size-5" />
                               </ActionButton>
                             ) : null}
 
@@ -306,7 +323,7 @@ export default function InventoryCategoriesPage() {
                                 disabled={!category.estado}
                                 onClick={() => setCategoryToDisable(category)}
                               >
-                                <TrashIcon className="size-[18px]" />
+                                <TrashIcon className="size-5" />
                               </ActionButton>
                             ) : null}
                           </RowActions>

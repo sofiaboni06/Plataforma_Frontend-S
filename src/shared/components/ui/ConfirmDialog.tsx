@@ -23,19 +23,19 @@ export default function ConfirmDialog({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-sena-forest/55 px-4 backdrop-blur-[6px]"
       onClick={() => {
         if (!pending) onCancel()
       }}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+        className="w-full max-w-md rounded-[24px] border border-glass-line bg-white/85 p-6 shadow-[0_24px_70px_rgba(0,60,40,0.22)] backdrop-blur-[28px]"
         role="dialog"
         aria-modal="true"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-3">
-          <div className="grid size-12 shrink-0 place-items-center rounded-full bg-red-100 text-red-600">
+          <div className="grid size-12 shrink-0 place-items-center rounded-full bg-sena-danger-soft text-sena-danger-text ring-1 ring-sena-danger-line">
             <TrashIcon className="size-6" />
           </div>
 
@@ -56,7 +56,7 @@ export default function ConfirmDialog({
             type="button"
             disabled={pending}
             onClick={onConfirm}
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-sena-danger-text hover:bg-[#9A1C12]"
           >
             {pending ? pendingLabel : confirmLabel}
           </Button>

@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
-import { PencilIcon, PlusIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
+import {
+  InventoryIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+} from '@/shared/components/icons/AppIcons'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import ConfirmDialog from '@/shared/components/ui/ConfirmDialog'
@@ -372,6 +377,7 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
   return (
     <AppLayout title={config.title}>
       <PageHeader
+        icon={<InventoryIcon />}
         title={config.heading}
         description={description}
         action={

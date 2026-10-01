@@ -8,9 +8,14 @@ import Sidebar from './Sidebar'
 type AppLayoutProps = {
   title: string
   children: ReactNode
+  showCenterBanner?: boolean
 }
 
-export default function AppLayout({ title, children }: AppLayoutProps) {
+export default function AppLayout({
+  title,
+  children,
+  showCenterBanner = true,
+}: AppLayoutProps) {
   const { user } = useAuth()
   const inventoryCenter = useInventoryCenterOptional()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -46,10 +51,10 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
   }, [isSidebarOpen, closeSidebar])
 
   return (
-    <div className="app-shell bg-sena-muted">
+    <div className="app-shell app-canvas">
       <a
         href="#contenido"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sena-dark"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sena-dark focus:shadow-surface"
       >
         Saltar al contenido
       </a>
@@ -57,7 +62,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
       {isSidebarOpen ? (
         <button
           type="button"
-          className="fixed inset-0 z-30 bg-sena-forest/40 md:hidden"
+          className="fixed inset-0 z-30 bg-sena-forest/55 backdrop-blur-[6px] md:hidden"
           aria-label="Cerrar menú"
           onClick={closeSidebar}
         />
@@ -65,12 +70,12 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
 
       <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
 
-      <div className="md:pl-60">
-        <header className="flex items-center justify-between gap-3 bg-sena-dark px-4 py-3 text-white md:hidden">
+      <div className="flex min-h-svh flex-col md:pl-[266px]">
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-sena-line/50 bg-glass px-5 py-3.5 text-sena-dark backdrop-blur-glass md:hidden">
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className="rounded-md p-1.5 hover:bg-white/10"
+              className="rounded-lg p-1.5 text-sena-dark transition hover:bg-white/60"
               aria-label="Abrir menú"
               aria-expanded={isSidebarOpen}
               aria-controls="navegacion-principal"
@@ -78,38 +83,48 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
             >
               <MenuIcon className="size-6" />
             </button>
-            <SenaMark className="h-8 w-8" />
-            <span className="text-sm font-semibold">{title}</span>
+            <SenaMark className="h-8 w-8 text-sena" />
+            <span className="text-sm font-semibold tracking-tight">{title}</span>
           </div>
         </header>
 
-        <div className="hidden items-center justify-end gap-4 px-8 py-4 md:flex">
-          <p className="text-sm text-sena-text/55">{today}</p>
-          {user ? (
-            <div className="flex items-center gap-2 rounded-full bg-white px-2 py-1">
-              <span className="grid size-8 place-items-center rounded-full bg-sena/15 text-xs font-semibold text-sena-dark">
-                {user.initials}
-              </span>
-              <span className="pr-2 text-sm font-medium text-sena-text">
-                {user.fullName}
-                <span className="block text-xs font-normal text-sena-text/50">{user.roleLabel}</span>
-              </span>
-            </div>
-          ) : null}
+        <div className="sticky top-0 z-20 hidden items-center justify-between gap-4 border-b border-sena-line/50 bg-glass px-8 py-3 backdrop-blur-glass md:flex">
+          <p className="text-[0.9375rem] font-semibold tracking-tight text-sena-dark">{title}</p>
+
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-sena-text-soft">{today}</p>
+
+            {user ? (
+              <div className="flex items-center gap-3 rounded-full border border-glass-line bg-glass-strong py-1 pr-5 pl-1 backdrop-blur-glass-sm">
+                <span className="grid size-9 place-items-center rounded-full bg-sena text-xs font-bold text-white shadow-brand-sm">
+                  {user.initials}
+                </span>
+                <span className="text-sm font-semibold leading-tight text-sena-text">
+                  {user.fullName}
+                  <span className="block text-xs font-normal text-sena-text-soft">
+                    {user.roleLabel}
+                  </span>
+                </span>
+              </div>
+            ) : null}
+          </div>
         </div>
 
-        <main id="contenido" className="min-h-svh px-4 pb-8 sm:px-6 lg:px-8">
-          {inventoryCenter?.isAdmin && inventoryCenter.centerId ? (
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-sena-dark/8">
-              <p className="text-sm text-sena-text">
-                <span className="text-sena-text/55">Inventario de</span>{' '}
+        <main
+          id="contenido"
+          className="w-full flex-1 px-5 py-3 sm:px-7 sm:py-4"
+        >
+          {showCenterBanner && inventoryCenter?.isAdmin && inventoryCenter.centerId ? (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-glass-line bg-glass px-5 py-2 shadow-hairline backdrop-blur-glass">
+              <p className="text-[0.8125rem] text-sena-text">
+                <span className="text-sena-text-soft">Inventario de</span>{' '}
                 <span className="font-semibold">{inventoryCenter.centerName}</span>
-                <span className="text-sena-text/45"> · {inventoryCenter.regional}</span>
+                <span className="text-sena-text-soft"> · {inventoryCenter.regional}</span>
               </p>
               <button
                 type="button"
                 onClick={inventoryCenter.clear}
-                className="text-sm font-semibold text-sena"
+                className="rounded-full border border-sena-line bg-glass-strong px-5 py-1 text-[0.8125rem] font-semibold text-sena-strong shadow-hairline backdrop-blur-glass-sm transition duration-150 hover:border-sena/45 hover:bg-white/90 hover:text-sena-dark"
               >
                 Cambiar centro
               </button>

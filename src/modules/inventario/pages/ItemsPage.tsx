@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
-import { EyeIcon, PencilIcon, PlusIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
+import {
+  EyeIcon,
+  InventoryIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+} from '@/shared/components/icons/AppIcons'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import ConfirmDialog from '@/shared/components/ui/ConfirmDialog'
@@ -252,6 +258,7 @@ export default function ItemsPage() {
   return (
     <AppLayout title="Gestionar ítems">
       <PageHeader
+        icon={<InventoryIcon />}
         title="Gestionar ítems"
         description="El ítem es la ficha del producto. El nombre dice qué es, por ejemplo pintura para techos vinilo color rojo."
         action={

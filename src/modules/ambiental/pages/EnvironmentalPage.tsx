@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import ResourceBoard, { StatusPill } from '@/shared/components/ResourceBoard'
+import { LeafIcon } from '@/shared/components/icons/AppIcons'
 import { WASTE_ROWS } from '@/modules/ambiental/data/rows'
 
 const TABS = ['Residuos', 'Consumos', 'Reportes', 'Configuración']
@@ -19,6 +20,7 @@ export default function EnvironmentalPage() {
   return (
     <AppLayout title="Gestión Ambiental">
       <ResourceBoard
+        icon={<LeafIcon />}
         title="Gestión Ambiental"
         subtitle="Registra y controla los procesos ambientales del centro."
         tabs={TABS}

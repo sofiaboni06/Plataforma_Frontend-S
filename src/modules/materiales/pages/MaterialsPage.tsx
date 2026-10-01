@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import ResourceBoard, { StatusPill } from '@/shared/components/ResourceBoard'
+import { InventoryIcon } from '@/shared/components/icons/AppIcons'
 import { MATERIAL_ROWS } from '@/modules/materiales/data/rows'
 
 const TABS = ['Materiales', 'Préstamos', 'Devoluciones']
@@ -19,6 +20,7 @@ export default function MaterialsPage() {
   return (
     <AppLayout title="Material de Formación">
       <ResourceBoard
+        icon={<InventoryIcon />}
         title="Material de Formación"
         subtitle="Administra guías, kits y material de apoyo del centro."
         tabs={TABS}

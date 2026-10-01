@@ -2,13 +2,234 @@
 @import "tailwindcss";
 
 @theme {
+  /* Verdes institucionales */
   --color-sena: #00a651;
-  --color-sena-dark: #004623;
-  --color-sena-forest: #013318;
+  --color-sena-bright: #16b955;
+  --color-sena-dark: #005c3b;
+  --color-sena-forest: #004d32;
   --color-sena-orange: #f7931e;
+
+  /* Superficies del área principal */
+  --color-sena-canvas: #eaf7f0;
+  --color-sena-soft: #eaf7f0;
+  --color-sena-veil: #eaf6f0;
+  --color-sena-hairline: #dcf0e7;
+
+  /* Estados suaves */
+  --color-sena-active-soft: #ddf5e8;
+  --color-sena-off-soft: #f1f4f2;
+  --color-sena-ok-text: #087a45;
+  --color-sena-ok-line: #bfe8d1;
+  --color-sena-warn-soft: #fff4db;
+  --color-sena-warn-text: #b76e00;
+  --color-sena-warn-line: #f3dca8;
+  --color-sena-danger-soft: #fde7e7;
+  --color-sena-danger-text: #b42318;
+  --color-sena-danger-line: #f6cfcf;
+
+  /* Texto */
+  --color-sena-text: #073b2a;
+  --color-sena-text-soft: #5e766c;
+  --color-sena-strong: #146b4a;
+
+  /* Bordes */
+  --color-sena-line: #d8eae2;
+  --color-sena-line-soft: #e5f1ec;
+  --color-sena-sidebar-line: #1b7a54;
+
+  /* Superficies de vidrio (glassmorphism) */
+  --color-glass: rgba(255, 255, 255, 0.72);
+  --color-glass-soft: rgba(255, 255, 255, 0.45);
+  --color-glass-strong: rgba(255, 255, 255, 0.82);
+  --color-glass-line: rgba(255, 255, 255, 0.68);
+
   --color-sena-muted: #f4f6fb;
-  --color-sena-text: #212519;
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Desenfoques del sistema de vidrio */
+  --blur-glass: 22px;
+  --blur-glass-sm: 12px;
+
+  /* Sombras suaves reutilizables */
+  --shadow-card: 0 1px 2px rgba(0, 70, 35, 0.04), 0 10px 26px rgba(0, 70, 35, 0.07);
+  --shadow-card-hover: 0 2px 6px rgba(0, 70, 35, 0.06), 0 18px 40px rgba(0, 70, 35, 0.12);
+  --shadow-brand: 0 10px 24px rgba(0, 166, 81, 0.28);
+  --shadow-brand-sm: 0 4px 12px rgba(0, 166, 81, 0.18);
+  --shadow-surface: 0 18px 46px rgba(0, 80, 50, 0.11);
+  --shadow-hairline: 0 2px 10px rgba(0, 80, 50, 0.06);
+}
+
+/*
+ * Fondo ambiental de las vistas de gestión/listado.
+ * Reproduce la referencia: verde menta muy claro, blanco luminoso y manchas
+ * verdes difuminadas, hechas solo con capas CSS (gradientes + desenfoque real).
+ * Vive en una sola clase global reutilizada por AppLayout, así que todas las
+ * pantallas de gestión comparten exactamente el mismo fondo.
+ */
+.app-canvas {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  background-color: #e4f5ec;
+  background-image: linear-gradient(
+    155deg,
+    #eefaf4 0%,
+    #dcf1e6 46%,
+    #e7f7ef 100%
+  );
+  background-attachment: fixed;
+}
+
+/* Capa 1: manchas de luz (blanco luminoso + menta) con borde difuminado */
+.app-canvas::before {
+  content: '';
+  position: fixed;
+  inset: -10%;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(
+      34% 24% at 20% 4%,
+      rgba(255, 255, 255, 0.95),
+      rgba(255, 255, 255, 0) 74%
+    ),
+    radial-gradient(
+      38% 28% at 60% 44%,
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0) 76%
+    ),
+    radial-gradient(
+      26% 20% at 90% 68%,
+      rgba(255, 255, 255, 0.8),
+      rgba(255, 255, 255, 0) 74%
+    ),
+    radial-gradient(
+      36% 26% at -2% 14%,
+      rgba(150, 226, 190, 0.9),
+      rgba(150, 226, 190, 0) 74%
+    ),
+    radial-gradient(
+      40% 30% at 4% 92%,
+      rgba(158, 230, 196, 0.88),
+      rgba(158, 230, 196, 0) 74%
+    ),
+    radial-gradient(
+      38% 28% at 100% 2%,
+      rgba(152, 226, 191, 0.85),
+      rgba(152, 226, 191, 0) 74%
+    ),
+    radial-gradient(
+      44% 32% at 98% 98%,
+      rgba(144, 220, 184, 0.8),
+      rgba(144, 220, 184, 0) 74%
+    );
+  filter: blur(40px);
+}
+
+/* Capa 2: halos verdes difuminados que dan profundidad al conjunto */
+.app-canvas::after {
+  content: '';
+  position: fixed;
+  inset: -10%;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(
+      46% 34% at 64% -6%,
+      rgba(96, 202, 148, 0.62),
+      rgba(96, 202, 148, 0) 76%
+    ),
+    radial-gradient(
+      42% 32% at 20% 0%,
+      rgba(126, 220, 172, 0.45),
+      rgba(126, 220, 172, 0) 76%
+    ),
+    radial-gradient(
+      52% 40% at 2% 66%,
+      rgba(88, 196, 140, 0.5),
+      rgba(88, 196, 140, 0) 76%
+    ),
+    radial-gradient(
+      48% 38% at 96% 72%,
+      rgba(80, 190, 134, 0.46),
+      rgba(80, 190, 134, 0) 76%
+    ),
+    radial-gradient(
+      64% 44% at 54% 108%,
+      rgba(104, 206, 152, 0.42),
+      rgba(104, 206, 152, 0) 74%
+    );
+  filter: blur(72px);
+}
+
+/*
+ * Ritmo vertical del sistema de tablas.
+ * Una sola regla para todas las pantallas de gestión: así "Categorías",
+ * "Bodegas", "Stands", "Ítems" o "Perfiles" comparten exactamente la misma
+ * altura de fila, aire lateral y jerarquía, sin tocar el marcado de cada vista.
+ */
+.data-table thead th {
+  padding: 22px 26px;
+}
+
+.data-table tbody td {
+  padding: 16px 26px;
+}
+
+.category-create-button {
+  height: 56px;
+  background-image:
+    radial-gradient(ellipse 22% 76% at 18% 25%, rgba(205, 255, 222, 0.3), transparent 100%),
+    radial-gradient(ellipse 50% 100% at 12% 0%, rgba(171, 255, 202, 0.28), transparent 72%),
+    radial-gradient(ellipse 19% 64% at 73% 72%, rgba(93, 231, 145, 0.26), transparent 100%),
+    radial-gradient(ellipse 42% 95% at 100% 110%, rgba(0, 83, 43, 0.25), transparent 72%),
+    radial-gradient(ellipse 24% 70% at 66% 18%, rgba(255, 255, 255, 0.08), transparent 76%),
+    linear-gradient(125deg, #10b955 0%, #00a651 58%, #07984b 100%);
+  box-shadow: 0 12px 24px rgba(0, 166, 81, 0.3), inset 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.category-create-button:hover {
+  background-image:
+    radial-gradient(ellipse 22% 76% at 18% 25%, rgba(220, 255, 231, 0.38), transparent 100%),
+    radial-gradient(ellipse 50% 100% at 12% 0%, rgba(190, 255, 211, 0.34), transparent 72%),
+    radial-gradient(ellipse 19% 64% at 73% 72%, rgba(105, 241, 154, 0.32), transparent 100%),
+    radial-gradient(ellipse 42% 95% at 100% 110%, rgba(0, 83, 43, 0.22), transparent 72%),
+    radial-gradient(ellipse 24% 70% at 66% 18%, rgba(255, 255, 255, 0.12), transparent 76%),
+    linear-gradient(125deg, #18c45e 0%, #06ad55 58%, #0a9d50 100%);
+  box-shadow: 0 16px 30px rgba(0, 166, 81, 0.34), inset 0 1px rgba(255, 255, 255, 0.18);
+}
+
+/* Scrollbar discreto: sin franjas blancas dentro del layout */
+html {
+  scrollbar-color: rgba(0, 92, 59, 0.3) transparent;
+  scrollbar-width: thin;
+}
+
+* {
+  scrollbar-color: rgba(0, 92, 59, 0.3) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 92, 59, 0.28);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 92, 59, 0.45);
+  background-clip: content-box;
 }
 
 html {

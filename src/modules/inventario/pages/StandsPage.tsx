@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
   EyeIcon,
+  InventoryIcon,
   PencilIcon,
   PlusIcon,
   TrashIcon,
@@ -229,6 +230,7 @@ export default function StandsPage() {
   return (
     <AppLayout title="Gestionar stands">
       <PageHeader
+        icon={<InventoryIcon />}
         title="Gestionar stands"
         description="Cada stand pertenece a una sub-bodega. El nombre no se repite dentro de ella."
         action={

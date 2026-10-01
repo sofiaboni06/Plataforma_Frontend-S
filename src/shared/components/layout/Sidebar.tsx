@@ -19,7 +19,15 @@ type SidebarProps = {
 }
 
 const itemClass =
-  'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition duration-150'
+  'flex w-full items-center rounded-[15px] text-left font-medium transition duration-150'
+
+const activeClass =
+  'bg-gradient-to-r from-[#009d4d] via-[#00a651] to-[#19bf57] text-white shadow-[0_10px_26px_rgba(0,166,81,0.42)] ring-1 ring-white/20'
+
+const nestedActiveClass =
+  'bg-gradient-to-r from-[#0aa74c] via-[#12ba54] to-[#28c764] text-white shadow-[0_6px_18px_rgba(0,0,0,0.20)] ring-1 ring-white/[0.14]'
+
+const idleClass = 'text-white/85 hover:bg-white/10 hover:text-white'
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { logout, modules, isAdmin, user } = useAuth()
@@ -45,29 +53,37 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     <aside
       id="navegacion-principal"
       className={cn(
-        'fixed inset-y-0 left-0 z-40 flex w-60 flex-col overflow-y-auto bg-sena-dark text-white',
+        'fixed inset-y-0 left-0 z-40 flex w-[266px] flex-col overflow-y-auto overflow-x-clip',
+        'bg-gradient-to-b from-sena-dark to-sena-forest',
+        'shadow-[0_0_70px_rgba(0,77,50,0.28)]',
         'transition-transform duration-200 ease-out',
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
       )}
       aria-label="Módulos del sistema"
     >
-      <div className="flex items-center justify-between px-5 pt-6 pb-4">
+      {/* Luz difusa en la parte alta del sidelateral */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(120%_70%_at_0%_0%,rgba(255,255,255,0.14),rgba(255,255,255,0)_62%)]"
+      />
+
+      <div className="relative flex items-center justify-between px-7 pt-4 pb-4">
         <Link
           to="/inicio"
-          className="inline-flex items-center gap-2 text-white"
+          className="inline-flex items-center gap-3.5 text-white"
           aria-label="SENA, inicio"
           onClick={onClose}
         >
-          <SenaMark className="h-10 w-10" />
+          <SenaMark className="h-14 w-14" />
 
-          <span className="text-lg font-semibold tracking-tight">
+          <span className="text-[1.625rem] font-bold tracking-tight">
             SENA
           </span>
         </Link>
 
         <button
           type="button"
-          className="rounded-md p-1 text-white/80 hover:bg-white/10 md:hidden"
+          className="rounded-lg p-1 text-white/80 transition hover:bg-white/10 md:hidden"
           onClick={onClose}
           aria-label="Cerrar menú"
         >
@@ -75,7 +91,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </button>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 px-3 pt-2">
+      <nav className="relative flex flex-none flex-col gap-1 px-4 pt-2">
         <SideLink
           to="/inicio"
           icon="home"
@@ -108,9 +124,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 }}
                 className={cn(
                   itemClass,
+                  'gap-3 px-3.5 py-2 text-base',
                   location.pathname.startsWith('/inventario')
-                    ? 'bg-white/15 text-white'
-                    : 'text-white/85 hover:bg-white/10 hover:text-white',
+                    ? activeClass
+                    : idleClass,
                 )}
                 aria-expanded={inventoryOpen}
                 aria-controls="menu-inventario"
@@ -126,7 +143,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                 <span
                   className={cn(
-                    'text-xs transition-transform duration-150',
+                    'text-xs text-current/70 transition-transform duration-150',
                     inventoryOpen && 'rotate-180',
                   )}
                 >
@@ -137,8 +154,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               {inventoryOpen ? (
                 <div
                   id="menu-inventario"
-                  className="mt-1.5 mb-1 ml-5 flex flex-col gap-1.5 border-l border-white/10 py-1 pl-2"
+                  className="relative mt-1.5 mb-3 ml-[1.05rem] flex flex-col gap-1 py-1 pl-4"
                 >
+                  {/* Línea vertical fina: marca la jerarquía del submenú de Inventario */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-y-1 left-0 w-px bg-white/30"
+                  />
+
                   {inventoryScreens.map((screen) => (
                     <SideLink
                       key={screen.to}
@@ -187,13 +210,36 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         ) : null}
       </nav>
 
-      <div className="px-3 pb-5">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-56 overflow-hidden"
+      >
+        <svg
+          viewBox="0 0 266 224"
+          preserveAspectRatio="none"
+          className="absolute inset-0 size-full"
+          fill="none"
+        >
+          <g stroke="#16b955" strokeWidth="1" opacity="0.32">
+            <path d="M-14 188C32 155 70 137 111 148c38 10 78 31 169-61" />
+            <path d="M-14 194C34 162 73 144 114 155c38 10 78 31 166-58" />
+            <path d="M-14 200C36 169 76 151 117 162c38 10 78 30 163-55" />
+            <path d="M-14 206C38 176 79 158 120 169c38 10 78 29 160-52" />
+            <path d="M-14 212C40 183 82 165 123 176c38 10 78 28 157-49" />
+            <path d="M-14 218C42 190 85 172 126 183c38 10 78 27 154-46" />
+            <path d="M-14 224C44 197 88 179 129 190c38 10 78 26 151-43" />
+            <path d="M-14 230C46 204 91 186 132 197c38 10 78 25 148-40" />
+            <path d="M-14 236C48 211 94 193 135 204c38 10 78 24 145-37" />
+            <path d="M-14 242C50 218 97 200 138 211c38 10 78 23 142-34" />
+            <path d="M-14 248C52 225 100 207 141 218c38 10 78 22 139-31" />
+          </g>
+        </svg>
+      </div>
+
+      <div className="relative z-10 mt-auto flex justify-center px-4 pb-6">
         <button
           type="button"
-          className={cn(
-            itemClass,
-            'text-white/80 hover:bg-white/10 hover:text-white',
-          )}
+          className={cn(itemClass, idleClass, 'justify-center gap-3 px-3.5 py-2 text-base')}
           onClick={() => {
             void logout().then(() => {
               onClose()
@@ -232,10 +278,10 @@ function SideLink({
       className={({ isActive }) =>
         cn(
           itemClass,
-          nested && 'pl-3 text-xs',
-          isActive
-            ? 'bg-white/15 text-white'
-            : 'text-white/85 hover:bg-white/10 hover:text-white',
+          nested
+            ? 'gap-2 rounded-xl px-2 py-1 pl-3 pr-1 text-sm'
+            : 'gap-3 px-3.5 py-2 text-base',
+          isActive ? nestedActiveClass : idleClass,
         )
       }
     >
@@ -243,7 +289,7 @@ function SideLink({
         name={icon}
         className={
           nested
-            ? 'size-4 shrink-0'
+            ? 'size-4 shrink-0 opacity-90'
             : 'size-[1.15rem] shrink-0'
         }
       />
