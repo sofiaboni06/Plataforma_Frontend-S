@@ -4,5 +4,6 @@ export type NavIconName =
   | 'leaf'
   | 'calendar'
   | 'report'
+  | 'alert'
   | 'user'
   | 'settings'

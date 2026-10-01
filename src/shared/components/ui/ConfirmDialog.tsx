@@ -29,7 +29,7 @@ export default function ConfirmDialog({
       }}
     >
       <div
-        className="w-full max-w-md rounded-[24px] border border-glass-line bg-white/85 p-6 shadow-[0_24px_70px_rgba(0,60,40,0.22)] backdrop-blur-[28px]"
+        className="w-full max-w-md rounded-[26px] border border-glass-line bg-glass-strong p-6 shadow-modal backdrop-blur-glass"
         role="dialog"
         aria-modal="true"
         onClick={(event) => event.stopPropagation()}
@@ -41,11 +41,11 @@ export default function ConfirmDialog({
 
           <div>
             <h2 className="text-lg font-bold text-sena-dark">{title}</h2>
-            <p className="mt-1 text-sm text-sena-text/55">{subtitle}</p>
+            <p className="mt-1 text-sm text-sena-text-soft">{subtitle}</p>
           </div>
         </div>
 
-        <p className="mt-5 text-sm leading-6 text-sena-text/70">{children}</p>
+        <p className="mt-5 text-sm leading-6 text-sena-strong">{children}</p>
 
         <div className="mt-6 flex justify-end gap-3">
           <Button type="button" variant="secondary" disabled={pending} onClick={onCancel}>

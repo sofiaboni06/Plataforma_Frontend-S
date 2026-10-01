@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
+import InventoryCenterBadge from '@/modules/inventario/components/InventoryCenterBadge'
 import {
   EyeIcon,
   InventoryIcon,
@@ -228,11 +229,12 @@ export default function StandsPage() {
   }
 
   return (
-    <AppLayout title="Gestionar stands">
+    <AppLayout title="Gestionar stands" showCenterBanner={false}>
       <PageHeader
         icon={<InventoryIcon />}
         title="Gestionar stands"
         description="Cada stand pertenece a una sub-bodega. El nombre no se repite dentro de ella."
+        context={<InventoryCenterBadge />}
         action={
           canCreate ? (
             <Button

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
+import InventoryCenterBadge from '@/modules/inventario/components/InventoryCenterBadge'
 import {
   InventoryIcon,
   PencilIcon,
@@ -375,11 +376,12 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
     : `${config.heading}. Cada centro tiene las suyas.`
 
   return (
-    <AppLayout title={config.title}>
+    <AppLayout title={config.title} showCenterBanner={false}>
       <PageHeader
         icon={<InventoryIcon />}
         title={config.heading}
         description={description}
+        context={<InventoryCenterBadge />}
         action={
           canCreate ? (
             <Button type="button" icon={<PlusIcon className="size-4" />} onClick={openCreate}>

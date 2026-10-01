@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
+import InventoryCenterBadge from '@/modules/inventario/components/InventoryCenterBadge'
 import {
   EyeIcon,
   InventoryIcon,
@@ -256,11 +257,12 @@ export default function ItemsPage() {
   )
 
   return (
-    <AppLayout title="Gestionar ítems">
+    <AppLayout title="Gestionar ítems" showCenterBanner={false}>
       <PageHeader
         icon={<InventoryIcon />}
         title="Gestionar ítems"
         description="El ítem es la ficha del producto. El nombre dice qué es, por ejemplo pintura para techos vinilo color rojo."
+        context={<InventoryCenterBadge />}
         action={
           canCreate ? (
             <Button type="button" icon={<PlusIcon className="size-4" />} onClick={openCreate}>

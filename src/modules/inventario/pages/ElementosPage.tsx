@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
+import InventoryCenterBadge from '@/modules/inventario/components/InventoryCenterBadge'
 import {
   EyeIcon,
   InventoryIcon,
@@ -741,11 +742,12 @@ export default function ElementosPage() {
   )
 
   return (
-    <AppLayout title="Gestionar elementos">
+    <AppLayout title="Gestionar elementos" showCenterBanner={false}>
       <PageHeader
         icon={<InventoryIcon />}
         title="Gestionar elementos"
         description="El elemento es el stock de un ítem. La cantidad mínima es 10."
+        context={<InventoryCenterBadge />}
         action={
           canCreate ? (
             <Button

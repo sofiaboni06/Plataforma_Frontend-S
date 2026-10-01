@@ -36,11 +36,7 @@ function CloseIcon() {
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <h3 className="mb-3 border-l-2 border-sena pl-2 text-sm font-bold uppercase tracking-wide text-sena-dark">
-      {children}
-    </h3>
-  )
+  return <h3 className="form-section-title">{children}</h3>
 }
 
 function FormInput({
@@ -52,13 +48,9 @@ function FormInput({
   label: string
 } & InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className="flex flex-col gap-1.5 text-sm font-medium text-sena-text/75" htmlFor={id}>
-      {label}
-      <input
-        id={id}
-        {...props}
-        className="h-11 w-full rounded-lg border border-sena-dark/10 px-3.5 text-sm text-sena-text outline-none placeholder:text-sena-text/35 focus:border-sena focus:ring-2 focus:ring-sena/20"
-      />
+    <label className="flex flex-col gap-1.5" htmlFor={id}>
+      <span className="form-label">{label}</span>
+      <input id={id} {...props} className="form-field" />
     </label>
   )
 }
@@ -71,7 +63,7 @@ function StatusSwitch({ checked, onChange }: { checked: boolean; onChange: () =>
       aria-checked={checked}
       aria-label="Cambiar estado"
       onClick={onChange}
-      className={`relative h-7 w-12 shrink-0 rounded-full transition ${checked ? 'bg-sena-dark' : 'bg-slate-300'}`}
+      className={`relative h-7 w-12 shrink-0 rounded-full transition ${checked ? 'bg-sena' : 'bg-sena-off-soft ring-1 ring-sena-line'}`}
     >
       <span
         className={`absolute top-1 size-5 rounded-full bg-white shadow-sm transition ${checked ? 'left-6' : 'left-1'}`}
@@ -169,21 +161,21 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
   const isCreate = mode === 'create'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-sena-forest/20 px-4 py-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-sena-forest/45 px-4 py-6 backdrop-blur-[6px]">
       <form
         onSubmit={handleSubmit}
-        className="flex max-h-[calc(100svh-3rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-sena-dark/10"
+        className="form-panel flex max-h-[calc(100svh-3rem)] w-full max-w-2xl flex-col overflow-hidden"
       >
-        <div className="flex items-start justify-between border-b border-sena-dark/8 px-7 py-6">
+        <div className="flex items-start justify-between border-b border-sena-hairline px-7 py-6">
           <div className="flex items-start gap-3">
-            <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-emerald-100 text-sena-dark">
+            <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-sena text-white shadow-brand-sm">
               <WarehouseIcon />
             </div>
             <div>
               <h2 className="text-xl font-bold text-sena-text">
                 {isCreate ? 'Agregar nueva bodega' : 'Editar bodega'}
               </h2>
-              <p className="mt-1 text-sm text-sena/75">
+              <p className="mt-1 text-sm text-sena-strong">
                 {isCreate
                   ? 'La bodega queda en un centro. Los stands se agregan sobre una sub-bodega que ya exista.'
                   : `Modificando ${initialData?.nombre ?? 'bodega'}`}
@@ -194,7 +186,7 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
             type="button"
             aria-label="Cerrar formulario"
             onClick={() => navigate('/inventario/bodegas')}
-            className="grid size-9 place-items-center rounded-lg border border-sena-dark/8 text-sena-text/60 transition hover:bg-sena-muted hover:text-sena-dark"
+            className="grid size-9 place-items-center rounded-xl text-sena-dark/70 transition hover:bg-sena-veil hover:text-sena-dark"
           >
             <CloseIcon />
           </button>
@@ -204,7 +196,7 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
           <section>
             <SectionTitle>Información de la bodega</SectionTitle>
             {error ? (
-              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="mb-4 rounded-xl bg-sena-danger-soft px-4 py-3 text-sm text-sena-danger-text ring-1 ring-sena-danger-line">
                 {error}
               </div>
             ) : null}
@@ -220,27 +212,27 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
               />
 
               {isAdmin && lockedCenterId ? (
-                <div className="flex flex-col gap-1.5 text-sm font-medium text-sena-text/75">
-                  Centro de formación
-                  <div className="flex h-11 items-center rounded-lg border border-sena-dark/10 bg-sena-muted px-3.5 text-sm text-sena-text">
+                <div className="flex flex-col gap-1.5">
+                  <span className="form-label">Centro de formación</span>
+                  <div className="form-static">
                     {mode === 'edit'
                       ? (centers.find((center) => String(center.id) === trainingCenterId)?.name ||
                         lockedCenter?.centerName ||
                         'Centro seleccionado')
                       : (lockedCenter?.centerName || 'Centro seleccionado')}
                   </div>
-                  <p className="text-xs font-normal text-sena-text/55">
+                  <p className="form-hint">
                     Queda en el centro que elegiste al entrar a inventario.
                   </p>
                 </div>
               ) : isAdmin ? (
-                <label className="flex flex-col gap-1.5 text-sm font-medium text-sena-text/75">
-                  Centro de formación *
+                <label className="flex flex-col gap-1.5">
+                  <span className="form-label">Centro de formación *</span>
                   <select
                     value={trainingCenterId}
                     onChange={(event) => setTrainingCenterId(event.target.value)}
                     disabled={loadingCenters || loading}
-                    className="h-11 w-full rounded-lg border border-sena-dark/10 bg-white px-3.5 text-sm text-sena-text outline-none focus:border-sena focus:ring-2 focus:ring-sena/20 disabled:cursor-not-allowed disabled:bg-sena-muted"
+                    className="form-field form-select"
                   >
                     <option value="">
                       {loadingCenters ? 'Cargando centros de formación...' : 'Selecciona un centro de formación'}
@@ -253,21 +245,23 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
                   </select>
                 </label>
               ) : (
-                <div className="flex flex-col gap-1.5 text-sm font-medium text-sena-text/75">
-                  Centro de formación
-                  <div className="flex h-11 items-center rounded-lg border border-sena-dark/10 bg-sena-muted px-3.5 text-sm text-sena-text">
+                <div className="flex flex-col gap-1.5">
+                  <span className="form-label">Centro de formación</span>
+                  <div className="form-static">
                     {user?.trainingCenter || 'Tu centro de formación'}
                   </div>
-                  <p className="text-xs font-normal text-sena-text/55">
+                  <p className="form-hint">
                     Si no eliges centro, la bodega queda en el tuyo.
                   </p>
                 </div>
               )}
 
-              <div className="flex flex-col gap-1.5 text-sm font-medium text-sena-text/75 sm:col-span-2">
-                <span>Estado</span>
-                <div className="flex h-11 items-center justify-between rounded-lg border border-sena-dark/10 px-3.5">
-                  <span className="text-sm font-medium text-sena-text">{estado ? 'Activa' : 'Inactiva'}</span>
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <span className="form-label">Estado</span>
+                <div className="form-static">
+                  <span className="text-sm font-medium text-sena-text">
+                    {estado ? 'Activa' : 'Inactiva'}
+                  </span>
                   <StatusSwitch checked={estado} onChange={() => setEstado((current) => !current)} />
                 </div>
               </div>
@@ -275,7 +269,7 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
           </section>
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-sena-dark/8 px-7 py-4">
+        <div className="flex justify-end gap-3 border-t border-sena-hairline px-7 py-4">
           <Button variant="secondary" type="button" disabled={loading} onClick={() => navigate('/inventario/bodegas')}>
             Cancelar
           </Button>
