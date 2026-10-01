@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
+import InventoryCenterBadge from '@/modules/inventario/components/InventoryCenterBadge'
 import {
   EyeIcon,
   InventoryIcon,
@@ -152,11 +153,12 @@ export default function BodegasPage() {
   }
 
   return (
-    <AppLayout title="Gestionar bodegas">
+    <AppLayout title="Gestionar bodegas" showCenterBanner={false}>
       <PageHeader
         icon={<InventoryIcon />}
         title="Gestionar bodegas"
         description="Cada bodega pertenece a un centro y agrupa sub-bodegas. Un centro puede tener varias."
+        context={<InventoryCenterBadge />}
         action={
           canCreate ? (
             <Button

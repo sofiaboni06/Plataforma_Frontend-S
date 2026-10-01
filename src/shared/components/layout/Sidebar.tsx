@@ -15,6 +15,7 @@ import { CloseIcon, LogoutIcon, NavIcon } from '@/shared/components/icons/AppIco
 
 type SidebarProps = {
   isOpen: boolean
+  isDesktopOpen: boolean
   onClose: () => void
 }
 
@@ -29,7 +30,7 @@ const nestedActiveClass =
 
 const idleClass = 'text-white/85 hover:bg-white/10 hover:text-white'
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps) {
   const { logout, modules, isAdmin, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -53,11 +54,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     <aside
       id="navegacion-principal"
       className={cn(
-        'fixed inset-y-0 left-0 z-40 flex w-[266px] flex-col overflow-y-auto overflow-x-clip',
+        'fixed inset-y-0 left-0 z-40 flex w-[250px] flex-col overflow-y-auto overflow-x-clip',
         'bg-gradient-to-b from-sena-dark to-sena-forest',
         'shadow-[0_0_70px_rgba(0,77,50,0.28)]',
         'transition-transform duration-200 ease-out',
-        isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+        isOpen ? 'translate-x-0' : '-translate-x-full',
+        isDesktopOpen ? 'md:translate-x-0' : 'md:-translate-x-full',
       )}
       aria-label="Módulos del sistema"
     >
@@ -154,14 +156,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               {inventoryOpen ? (
                 <div
                   id="menu-inventario"
-                  className="relative mt-1.5 mb-3 ml-[1.05rem] flex flex-col gap-1 py-1 pl-4"
+                  className="mt-1.5 mb-3 ml-[0.85rem] flex flex-col gap-1"
                 >
-                  {/* Línea vertical fina: marca la jerarquía del submenú de Inventario */}
-                  <span
-                    aria-hidden="true"
-                    className="absolute inset-y-1 left-0 w-px bg-white/30"
-                  />
-
                   {inventoryScreens.map((screen) => (
                     <SideLink
                       key={screen.to}
@@ -179,6 +175,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           )
         })}
+
+        <SideLink
+          to="/alertas"
+          icon="alert"
+          onClose={onClose}
+        >
+          Alertas
+        </SideLink>
 
         <SideLink
           to="/perfil"

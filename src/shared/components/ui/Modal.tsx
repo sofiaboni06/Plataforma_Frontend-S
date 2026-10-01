@@ -39,22 +39,22 @@ export default function Modal({ title, description, onClose, children, wide = fa
         aria-modal="true"
         aria-labelledby="dialog-title"
         className={cn(
-          'relative z-10 flex w-full max-h-[min(92vh,880px)] flex-col overflow-hidden rounded-[24px] border border-glass-line bg-white/85 shadow-[0_24px_70px_rgba(0,60,40,0.22)] backdrop-blur-[28px]',
+          'relative z-10 flex w-full max-h-[min(92vh,880px)] flex-col overflow-hidden rounded-[26px] border border-glass-line bg-glass-strong shadow-modal backdrop-blur-glass',
           wide ? 'max-w-3xl' : 'max-w-2xl',
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-white/10 bg-sena-dark/92 px-6 py-4 text-white backdrop-blur-glass sm:px-8">
+        <div className="flex items-start justify-between gap-4 border-b border-sena-hairline bg-glass-strong px-6 py-4 text-sena-dark sm:px-8">
           <div>
-            <h2 id="dialog-title" className="text-lg font-bold">
+            <h2 id="dialog-title" className="text-lg font-bold text-sena-text">
               {title}
             </h2>
             {description ? (
-              <p className="mt-1 text-sm leading-6 text-white/75">{description}</p>
+              <p className="mt-1 text-sm leading-6 text-sena-strong">{description}</p>
             ) : null}
           </div>
           <button
             type="button"
-            className="grid size-9 shrink-0 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
+            className="grid size-9 shrink-0 place-items-center rounded-xl text-sena-dark/70 transition hover:bg-sena-veil hover:text-sena-dark"
             onClick={onClose}
             aria-label="Cerrar"
           >

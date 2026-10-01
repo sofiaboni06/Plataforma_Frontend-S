@@ -18,6 +18,7 @@ import UsersPage from '@/modules/administracion/pages/UsersPage'
 import EnvironmentalPage from '@/modules/ambiental/pages/EnvironmentalPage'
 
 import HomePage from '@/modules/inicio/pages/HomePage'
+import AlertsPage from '@/modules/alertas/pages/AlertsPage'
 
 import InventoryCenterLayout from '@/modules/inventario/centerScope'
 import InventoryPage from '@/modules/inventario/pages/InventoryPage'
@@ -118,6 +119,15 @@ function App() {
             element={
               <Private>
                 <HomePage />
+              </Private>
+            }
+          />
+
+          <Route
+            path="/alertas"
+            element={
+              <Private>
+                <AlertsPage />
               </Private>
             }
           />

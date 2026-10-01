@@ -4,8 +4,21 @@ import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import Modal from '@/shared/components/ui/Modal'
 import TextField from '@/shared/components/ui/TextField'
-import { PlusIcon, SearchIcon } from '@/shared/components/icons/AppIcons'
-import { cn } from '@/shared/lib/cn'
+import { PencilIcon, PlusIcon, UserIcon } from '@/shared/components/icons/AppIcons'
+import {
+  ActionButton,
+  ClearFiltersButton,
+  ErrorBanner,
+  FilterCard,
+  PageHeader,
+  SearchInput,
+  TableCard,
+  TableHeader,
+  TablePagination,
+  TableRow,
+  tableClass,
+  tableColumns,
+} from '@/shared/components/DataTable'
 import { ApiError, api } from '@/shared/lib/api'
 import type { ManagedUser, UserFormOptions } from '@/shared/types/profile'
 
@@ -230,120 +243,113 @@ export default function UsersPage() {
 
   return (
     <AppLayout title="Usuarios">
-      <div className="rounded-2xl bg-white p-6 sm:p-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-sena-text">Usuarios</h1>
-            <p className="mt-1 max-w-2xl text-sm text-sena-text/60">
-              Cree cuentas, asígneles un perfil y las bodegas de su centro. Con esa bodega queda amarrado el inventario.
-            </p>
-          </div>
-          <Button
-            type="button"
-            icon={<PlusIcon className="size-4" />}
-            onClick={openCreate}
-            className="h-11 shrink-0 rounded-xl"
-          >
+      <PageHeader
+        icon={<UserIcon />}
+        title="Usuarios"
+        description="Cree cuentas, asígneles un perfil y las bodegas de su centro. Con esa bodega queda amarrado el inventario."
+        action={
+          <Button type="button" icon={<PlusIcon className="size-4" />} onClick={openCreate}>
             Nuevo usuario
           </Button>
-        </div>
+        }
+      />
 
-        {listError ? <p className="mt-4 text-sm text-red-700">{listError}</p> : null}
-        {message ? <p className="mt-4 text-sm text-sena">{message}</p> : null}
+      {listError ? (
+        <ErrorBanner message={listError} onClose={() => setListError(null)} />
+      ) : null}
 
-        <label className="mt-6 flex h-11 w-full max-w-md items-center gap-2 rounded-xl bg-sena-muted px-3">
-          <SearchIcon className="size-4 text-sena-text/40" />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar usuario..."
-            className="h-full w-full bg-transparent text-sm outline-none placeholder:text-sena-text/40"
-          />
-        </label>
+      {message ? (
+        <p className="mb-4 rounded-2xl border border-sena-ok-line bg-sena-active-soft px-5 py-3.5 text-sm text-sena-ok-text">
+          {message}
+        </p>
+      ) : null}
 
+      <FilterCard>
+        <SearchInput value={search} onChange={setSearch} placeholder="Buscar usuario..." />
+
+        <ClearFiltersButton onClick={() => setSearch('')} disabled={!search} />
+      </FilterCard>
+
+      <TableCard>
         {loading ? (
-          <p className="mt-6 text-sm text-sena-text/60">Cargando usuarios…</p>
+          <div className="px-6 py-16 text-center text-sm text-sena-text-soft">Cargando usuarios…</div>
         ) : (
           <>
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full min-w-[920px] text-left text-sm">
+            <div className="overflow-x-auto">
+              <table className={tableClass}>
                 <thead>
-                  <tr className="border-b border-sena-dark/10 text-sena-text/55">
-                    <th className="px-3 py-3 font-medium">Nombre</th>
-                    <th className="px-3 py-3 font-medium">Documento</th>
-                    <th className="px-3 py-3 font-medium">Correo</th>
-                    <th className="px-3 py-3 font-medium">Perfil</th>
-                    <th className="px-3 py-3 font-medium">Centro</th>
-                    <th className="px-3 py-3 font-medium">Estado</th>
-                    <th className="px-3 py-3 font-medium"> </th>
+                  <tr className="border-b border-sena-hairline bg-sena-soft/85">
+                    <TableHeader width="w-[22%]">Nombre</TableHeader>
+                    <TableHeader width={tableColumns.count}>Documento</TableHeader>
+                    <TableHeader width="w-[22%]">Correo</TableHeader>
+                    <TableHeader width={tableColumns.status}>Perfil</TableHeader>
+                    <TableHeader width="w-[20%]">Centro</TableHeader>
+                    <TableHeader align="center" width="w-[12%]">
+                      Estado
+                    </TableHeader>
+                    <TableHeader align="center" width={tableColumns.actions}>
+                      Acciones
+                    </TableHeader>
                   </tr>
                 </thead>
+
                 <tbody>
-                  {pageRows.length ? (
-                    pageRows.map((user) => (
-                      <tr
-                        key={user.id}
-                        className="border-b border-sena-dark/8 last:border-b-0 hover:bg-sena-muted/80"
+                  {pageRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-6 py-16 text-center text-sm text-sena-text-soft"
                       >
-                        <td className="px-3 py-3 font-medium text-sena-text">{user.fullName}</td>
-                        <td className="px-3 py-3 text-sena-text/70">
+                        No hay usuarios que coincidan con la búsqueda.
+                      </td>
+                    </tr>
+                  ) : (
+                    pageRows.map((user) => (
+                      <TableRow key={user.id}>
+                        <td className="truncate font-semibold text-sena-text">{user.fullName}</td>
+
+                        <td className="truncate text-sena-strong">
                           {user.documentType} {user.documentId}
                         </td>
-                        <td className="px-3 py-3 text-sena-text/70">{user.email}</td>
-                        <td className="px-3 py-3 text-sena-text">{user.role}</td>
-                        <td className="max-w-[220px] truncate px-3 py-3 text-sena-text/70">
+
+                        <td className="truncate text-sena-strong">{user.email}</td>
+
+                        <td className="truncate text-sena-text">{user.role}</td>
+
+                        <td className="truncate text-sena-strong">
                           {user.trainingCenter || '—'}
                         </td>
-                        <td className="px-3 py-3">
+
+                        <td className="text-center">
                           <StatusPill tone={user.active ? 'ok' : 'danger'}>
                             {user.active ? 'Activo' : 'Inactivo'}
                           </StatusPill>
                         </td>
-                        <td className="px-3 py-3 text-right">
-                          <button
-                            type="button"
-                            className="text-sm font-semibold text-sena hover:underline"
-                            onClick={() => openEdit(user)}
-                          >
-                            Editar
-                          </button>
+
+                        <td>
+                          <ActionButton title="Editar usuario" onClick={() => openEdit(user)}>
+                            <PencilIcon className="size-[18px]" />
+                          </ActionButton>
                         </td>
-                      </tr>
+                      </TableRow>
                     ))
-                  ) : (
-                    <tr>
-                      <td colSpan={7} className="px-3 py-8 text-center text-sena-text/50">
-                        No hay usuarios que coincidan con la búsqueda.
-                      </td>
-                    </tr>
                   )}
                 </tbody>
               </table>
             </div>
 
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-sena-text/50">
-                Mostrando {from} - {to} de {filtered.length} registros
-              </p>
-              <div className="flex flex-wrap items-center gap-1">
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setPage(item)}
-                    className={cn(
-                      'grid size-8 place-items-center rounded-lg text-sm',
-                      item === currentPage ? 'bg-sena text-white' : 'text-sena-text/60 hover:bg-sena-muted',
-                    )}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <TablePagination
+              page={currentPage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              from={from}
+              to={to}
+              total={filtered.length}
+              noun="registros"
+            />
           </>
         )}
-      </div>
+      </TableCard>
 
       {modal ? (
         <Modal
@@ -375,7 +381,11 @@ export default function UsersPage() {
                 Cuenta activa
               </label>
             ) : null}
-            {formError ? <p className="text-sm text-red-700 sm:col-span-2">{formError}</p> : null}
+            {formError ? (
+              <div className="rounded-xl bg-sena-danger-soft px-4 py-3 text-sm text-sena-danger-text ring-1 ring-sena-danger-line sm:col-span-2">
+                {formError}
+              </div>
+            ) : null}
             <div className="mt-2 flex flex-wrap justify-end gap-2 sm:col-span-2">
               <Button type="button" variant="secondary" onClick={closeModal} disabled={saving}>
                 Cancelar
@@ -488,7 +498,7 @@ function UserFields({
           ) : centerBodegas.length === 0 ? (
             <p className="mt-2 text-sm text-sena-text/55">Este centro no tiene bodegas activas.</p>
           ) : (
-            <div className="mt-2 max-h-40 space-y-2 overflow-y-auto rounded-lg bg-sena-muted p-3">
+            <div className="mt-2 max-h-40 space-y-2 overflow-y-auto rounded-xl border border-sena-line bg-sena-veil/50 p-3">
               {centerBodegas.map((bodega) => (
                 <label key={bodega.id} className="flex items-center gap-2 text-sm text-sena-text">
                   <input
@@ -545,7 +555,7 @@ function SelectField({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-sena-text/75">
+      <label htmlFor={id} className="form-label">
         {label}
       </label>
       <select
@@ -553,7 +563,7 @@ function SelectField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required
-        className="h-11 w-full rounded-lg border border-transparent bg-sena-muted px-3.5 text-sm text-sena-text outline-none focus:border-sena focus:bg-white focus:ring-2 focus:ring-sena/20"
+        className="form-field form-select"
       >
         {placeholder ? <option value="">{placeholder}</option> : null}
         {options.map((option) => (

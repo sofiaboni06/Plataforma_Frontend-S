@@ -10,15 +10,17 @@
   --color-sena-orange: #f7931e;
 
   /* Superficies del área principal */
-  --color-sena-canvas: #eaf7f0;
-  --color-sena-soft: #eaf7f0;
+  --color-sena-canvas: #eaf5f1;
+  --color-sena-soft: #e9f7ef;
+  --color-sena-surface: #f2faf6;
   --color-sena-veil: #eaf6f0;
-  --color-sena-hairline: #dcf0e7;
+  --color-sena-hairline: #d7ece1;
+  --color-sena-muted: #eef5f1;
 
   /* Estados suaves */
   --color-sena-active-soft: #ddf5e8;
-  --color-sena-off-soft: #f1f4f2;
-  --color-sena-ok-text: #087a45;
+  --color-sena-off-soft: #eef2f0;
+  --color-sena-ok-text: #06794a;
   --color-sena-ok-line: #bfe8d1;
   --color-sena-warn-soft: #fff4db;
   --color-sena-warn-text: #b76e00;
@@ -38,12 +40,11 @@
   --color-sena-sidebar-line: #1b7a54;
 
   /* Superficies de vidrio (glassmorphism) */
-  --color-glass: rgba(255, 255, 255, 0.72);
-  --color-glass-soft: rgba(255, 255, 255, 0.45);
-  --color-glass-strong: rgba(255, 255, 255, 0.82);
-  --color-glass-line: rgba(255, 255, 255, 0.68);
+  --color-glass: rgba(255, 255, 255, 0.62);
+  --color-glass-soft: rgba(255, 255, 255, 0.38);
+  --color-glass-strong: rgba(255, 255, 255, 0.78);
+  --color-glass-line: rgba(255, 255, 255, 0.7);
 
-  --color-sena-muted: #f4f6fb;
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   /* Desenfoques del sistema de vidrio */
@@ -57,109 +58,20 @@
   --shadow-brand-sm: 0 4px 12px rgba(0, 166, 81, 0.18);
   --shadow-surface: 0 18px 46px rgba(0, 80, 50, 0.11);
   --shadow-hairline: 0 2px 10px rgba(0, 80, 50, 0.06);
+  --shadow-modal: 0 24px 70px rgba(0, 60, 40, 0.22);
 }
 
-/*
- * Fondo ambiental de las vistas de gestión/listado.
- * Reproduce la referencia: verde menta muy claro, blanco luminoso y manchas
- * verdes difuminadas, hechas solo con capas CSS (gradientes + desenfoque real).
- * Vive en una sola clase global reutilizada por AppLayout, así que todas las
- * pantallas de gestión comparten exactamente el mismo fondo.
- */
+/* Fondo compartido por las vistas autenticadas. */
 .app-canvas {
   position: relative;
   isolation: isolate;
   min-height: 100svh;
-  background-color: #e4f5ec;
-  background-image: linear-gradient(
-    155deg,
-    #eefaf4 0%,
-    #dcf1e6 46%,
-    #e7f7ef 100%
-  );
+  background-color: #eaf5f1;
+  background-image: url('/img/fondo-vistas.jpg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
   background-attachment: fixed;
-}
-
-/* Capa 1: manchas de luz (blanco luminoso + menta) con borde difuminado */
-.app-canvas::before {
-  content: '';
-  position: fixed;
-  inset: -10%;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    radial-gradient(
-      34% 24% at 20% 4%,
-      rgba(255, 255, 255, 0.95),
-      rgba(255, 255, 255, 0) 74%
-    ),
-    radial-gradient(
-      38% 28% at 60% 44%,
-      rgba(255, 255, 255, 0.9),
-      rgba(255, 255, 255, 0) 76%
-    ),
-    radial-gradient(
-      26% 20% at 90% 68%,
-      rgba(255, 255, 255, 0.8),
-      rgba(255, 255, 255, 0) 74%
-    ),
-    radial-gradient(
-      36% 26% at -2% 14%,
-      rgba(150, 226, 190, 0.9),
-      rgba(150, 226, 190, 0) 74%
-    ),
-    radial-gradient(
-      40% 30% at 4% 92%,
-      rgba(158, 230, 196, 0.88),
-      rgba(158, 230, 196, 0) 74%
-    ),
-    radial-gradient(
-      38% 28% at 100% 2%,
-      rgba(152, 226, 191, 0.85),
-      rgba(152, 226, 191, 0) 74%
-    ),
-    radial-gradient(
-      44% 32% at 98% 98%,
-      rgba(144, 220, 184, 0.8),
-      rgba(144, 220, 184, 0) 74%
-    );
-  filter: blur(40px);
-}
-
-/* Capa 2: halos verdes difuminados que dan profundidad al conjunto */
-.app-canvas::after {
-  content: '';
-  position: fixed;
-  inset: -10%;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    radial-gradient(
-      46% 34% at 64% -6%,
-      rgba(96, 202, 148, 0.62),
-      rgba(96, 202, 148, 0) 76%
-    ),
-    radial-gradient(
-      42% 32% at 20% 0%,
-      rgba(126, 220, 172, 0.45),
-      rgba(126, 220, 172, 0) 76%
-    ),
-    radial-gradient(
-      52% 40% at 2% 66%,
-      rgba(88, 196, 140, 0.5),
-      rgba(88, 196, 140, 0) 76%
-    ),
-    radial-gradient(
-      48% 38% at 96% 72%,
-      rgba(80, 190, 134, 0.46),
-      rgba(80, 190, 134, 0) 76%
-    ),
-    radial-gradient(
-      64% 44% at 54% 108%,
-      rgba(104, 206, 152, 0.42),
-      rgba(104, 206, 152, 0) 74%
-    );
-  filter: blur(72px);
 }
 
 /*
@@ -174,29 +86,6 @@
 
 .data-table tbody td {
   padding: 16px 26px;
-}
-
-.category-create-button {
-  height: 56px;
-  background-image:
-    radial-gradient(ellipse 22% 76% at 18% 25%, rgba(205, 255, 222, 0.3), transparent 100%),
-    radial-gradient(ellipse 50% 100% at 12% 0%, rgba(171, 255, 202, 0.28), transparent 72%),
-    radial-gradient(ellipse 19% 64% at 73% 72%, rgba(93, 231, 145, 0.26), transparent 100%),
-    radial-gradient(ellipse 42% 95% at 100% 110%, rgba(0, 83, 43, 0.25), transparent 72%),
-    radial-gradient(ellipse 24% 70% at 66% 18%, rgba(255, 255, 255, 0.08), transparent 76%),
-    linear-gradient(125deg, #10b955 0%, #00a651 58%, #07984b 100%);
-  box-shadow: 0 12px 24px rgba(0, 166, 81, 0.3), inset 0 1px rgba(255, 255, 255, 0.14);
-}
-
-.category-create-button:hover {
-  background-image:
-    radial-gradient(ellipse 22% 76% at 18% 25%, rgba(220, 255, 231, 0.38), transparent 100%),
-    radial-gradient(ellipse 50% 100% at 12% 0%, rgba(190, 255, 211, 0.34), transparent 72%),
-    radial-gradient(ellipse 19% 64% at 73% 72%, rgba(105, 241, 154, 0.32), transparent 100%),
-    radial-gradient(ellipse 42% 95% at 100% 110%, rgba(0, 83, 43, 0.22), transparent 72%),
-    radial-gradient(ellipse 24% 70% at 66% 18%, rgba(255, 255, 255, 0.12), transparent 76%),
-    linear-gradient(125deg, #18c45e 0%, #06ad55 58%, #0a9d50 100%);
-  box-shadow: 0 16px 30px rgba(0, 166, 81, 0.34), inset 0 1px rgba(255, 255, 255, 0.18);
 }
 
 /* Scrollbar discreto: sin franjas blancas dentro del layout */
@@ -232,6 +121,15 @@ html {
   background-clip: content-box;
 }
 
+/* El sidelateral nunca muestra un segundo scrollbar. */
+#navegacion-principal {
+  scrollbar-width: none;
+}
+
+#navegacion-principal::-webkit-scrollbar {
+  display: none;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -244,8 +142,8 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  background: #ffffff;
-  font-family: Arial, Helvetica, sans-serif;
+  background: #eaf5f1;
+  font-family: var(--font-sans);
 }
 
 * {
@@ -261,4 +159,135 @@ img {
   color: var(--color-sena-text);
   min-height: 100svh;
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Campos de formulario compartidos.
+ * Bodegas, sub-bodegas, stands, usuarios y roles usan estas clases, así que
+ * todos los formularios comparten el mismo lenguaje visual de la referencia
+ * (superficie clara translúcida, borde suave, foco verde).
+ */
+@layer components {
+  .form-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-sena-dark);
+  }
+
+  .form-field {
+    width: 100%;
+    height: 3rem;
+    border-radius: 0.875rem;
+    border: 1px solid var(--color-sena-line);
+    background: var(--color-glass-strong);
+    backdrop-filter: blur(var(--blur-glass-sm));
+    -webkit-backdrop-filter: blur(var(--blur-glass-sm));
+    padding: 0 0.875rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    color: var(--color-sena-text);
+    outline: none;
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease,
+      background-color 150ms ease;
+  }
+
+  .form-field::placeholder {
+    color: color-mix(in srgb, var(--color-sena-text-soft) 68%, transparent);
+  }
+
+  .form-field:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: #cbe3d8;
+  }
+
+  .form-field:focus {
+    background: #ffffff;
+    border-color: var(--color-sena);
+    box-shadow: 0 0 0 4px rgba(0, 166, 81, 0.12);
+  }
+
+  .form-field:disabled {
+    cursor: not-allowed;
+    background: rgba(233, 246, 240, 0.85);
+    border-color: var(--color-sena-hairline);
+    color: var(--color-sena-text-soft);
+  }
+
+  .form-field option {
+    background: #ffffff;
+    color: var(--color-sena-text);
+  }
+
+  /* Select: mismo campo, con la flecha dibujada en CSS (sin iconos nuevos). */
+  .form-field.form-select {
+    appearance: none;
+    cursor: pointer;
+    padding-right: 2.5rem;
+    background-image:
+      linear-gradient(45deg, transparent 50%, rgba(7, 59, 42, 0.55) 50%),
+      linear-gradient(135deg, rgba(7, 59, 42, 0.55) 50%, transparent 50%);
+    background-position:
+      calc(100% - 18px) calc(50% - 2px),
+      calc(100% - 13px) calc(50% - 2px);
+    background-size:
+      5px 5px,
+      5px 5px;
+    background-repeat: no-repeat;
+  }
+
+  /* Caja de solo lectura: mismo lenguaje, sin borde de formulario. */
+  .form-static {
+    display: flex;
+    height: 3rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-radius: 0.875rem;
+    border: 1px solid transparent;
+    background: rgba(238, 245, 241, 0.85);
+    padding: 0 0.875rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-sena-text);
+  }
+
+  .form-hint {
+    font-size: 0.75rem;
+    color: color-mix(in srgb, var(--color-sena-text-soft) 85%, transparent);
+  }
+
+  /* Título de bloque dentro de un formulario. */
+  .form-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-sena-dark);
+  }
+
+  .form-section-title::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 1rem;
+    border-radius: 999px;
+    background: var(--color-sena);
+  }
+
+  /* Panel de formulario: vidrio claro con borde y sombra suaves. */
+  .form-panel {
+    border: 1px solid var(--color-glass-line);
+    border-radius: 1.5rem;
+    background: var(--color-glass-strong);
+    backdrop-filter: blur(var(--blur-glass));
+    -webkit-backdrop-filter: blur(var(--blur-glass));
+    box-shadow: var(--shadow-surface);
+  }
 }

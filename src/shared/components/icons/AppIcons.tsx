@@ -58,6 +58,15 @@ export function CalendarIcon(props: IconProps) {
   )
 }
 
+export function AlertIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m10.3 4.2-8 14a2 2 0 0 0 1.7 3h16a2 2 0 0 0 1.7-3l-8-14a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4M12 16.5h.01" />
+    </BaseIcon>
+  )
+}
+
 export function ReportIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -98,6 +107,15 @@ export function MenuIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
       <path d="M4 7h16M4 12h16M4 17h16" />
+    </BaseIcon>
+  )
+}
+
+export function BellIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+      <path d="M10 21h4" />
     </BaseIcon>
   )
 }
@@ -188,6 +206,7 @@ const NAV_ICONS = {
   inventory: InventoryIcon,
   leaf: LeafIcon,
   calendar: CalendarIcon,
+  alert: AlertIcon,
   report: ReportIcon,
   user: UserIcon,
   settings: SettingsIcon,

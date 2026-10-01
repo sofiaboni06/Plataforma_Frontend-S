@@ -35,6 +35,7 @@ import { useAuth } from '@/modules/auth/context/auth'
 import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { disableCategoria, getAllCategorias, getSubcategorias } from '@/modules/inventario/data/categoria'
 import { categoriesOfCenter } from '@/modules/inventario/lib/centro'
+import InventoryCenterBadge from '@/modules/inventario/components/InventoryCenterBadge'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import type { CategoryApi, SubcategoryApi } from '@/shared/types/category'
 
@@ -184,26 +185,12 @@ export default function InventoryCategoriesPage() {
         icon={<InventoryIcon />}
         title="Gestionar categorías"
         description="Nombre, estado y subcategorías. La subcategoría se guarda aparte, colgada de la categoría."
-        context={
-          <div className="inline-flex items-center gap-3 rounded-full border border-glass-line bg-glass-strong px-4 py-2.5 text-[0.8125rem] text-sena-strong shadow-hairline backdrop-blur-glass-sm">
-            <span className="font-semibold text-sena-text">{centerLabel}</span>
-            {center?.isAdmin && center.centerId ? (
-              <button
-                type="button"
-                onClick={center.clear}
-                className="border-l border-sena-line pl-3 text-xs font-semibold text-sena-strong transition hover:text-sena-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sena"
-              >
-                Cambiar centro
-              </button>
-            ) : null}
-          </div>
-        }
+        context={<InventoryCenterBadge />}
         action={
           canCreate ? (
             <Button
               type="button"
               icon={<PlusIcon className="size-4" />}
-              className="category-create-button px-8"
               onClick={() => navigate('/inventario/categorias/crear')}
             >
               Nueva categoría
