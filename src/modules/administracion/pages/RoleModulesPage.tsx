@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
-import { PlusIcon } from '@/shared/components/icons/AppIcons'
+import { PlusIcon, SettingsIcon } from '@/shared/components/icons/AppIcons'
 import {
   ErrorBanner,
   PageHeader,
@@ -165,6 +165,7 @@ export default function RoleModulesPage() {
   return (
     <AppLayout title={title}>
       <PageHeader
+        icon={<SettingsIcon />}
         title={title}
         description={description}
         action={

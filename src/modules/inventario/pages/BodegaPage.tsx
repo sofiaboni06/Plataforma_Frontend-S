@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
   EyeIcon,
+  InventoryIcon,
   PencilIcon,
   PlusIcon,
   TrashIcon,
@@ -153,6 +154,7 @@ export default function BodegasPage() {
   return (
     <AppLayout title="Gestionar bodegas">
       <PageHeader
+        icon={<InventoryIcon />}
         title="Gestionar bodegas"
         description="Cada bodega pertenece a un centro y agrupa sub-bodegas. Un centro puede tener varias."
         action={

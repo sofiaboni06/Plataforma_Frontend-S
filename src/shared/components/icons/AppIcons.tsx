@@ -165,6 +165,15 @@ export function PlusIcon(props: IconProps) {
   )
 }
 
+/** Embudo de filtro: acompaña al botón "Limpiar filtros". */
+export function FilterBroomIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 5h16l-6.2 7.2V19l-3.6-2v-4.8Z" />
+    </BaseIcon>
+  )
+}
+
 export function SearchIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

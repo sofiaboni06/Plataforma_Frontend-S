@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
-import { EyeIcon, PencilIcon, PlusIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
+import {
+  EyeIcon,
+  InventoryIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+} from '@/shared/components/icons/AppIcons'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import Toast from '@/shared/components/ui/Toast'
@@ -737,6 +743,7 @@ export default function ElementosPage() {
   return (
     <AppLayout title="Gestionar elementos">
       <PageHeader
+        icon={<InventoryIcon />}
         title="Gestionar elementos"
         description="El elemento es el stock de un ítem. La cantidad mínima es 10."
         action={

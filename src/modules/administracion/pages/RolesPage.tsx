@@ -4,7 +4,7 @@ import AppLayout from '@/shared/components/layout/AppLayout'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import TextField from '@/shared/components/ui/TextField'
-import { PlusIcon } from '@/shared/components/icons/AppIcons'
+import { PlusIcon, SettingsIcon } from '@/shared/components/icons/AppIcons'
 import {
   ErrorBanner,
   FilterCard,
@@ -114,6 +114,7 @@ export default function RolesPage() {
   return (
     <AppLayout title="Perfiles">
       <PageHeader
+        icon={<SettingsIcon />}
         title="Perfiles"
         description="Tipos de usuario de la plataforma. Busque en la tabla, cree uno nuevo y asígnele módulos."
         action={

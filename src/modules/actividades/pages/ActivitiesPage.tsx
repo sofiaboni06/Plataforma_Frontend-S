@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import ResourceBoard, { StatusPill } from '@/shared/components/ResourceBoard'
+import { CalendarIcon } from '@/shared/components/icons/AppIcons'
 import { ACTIVITY_ROWS } from '@/modules/actividades/data/rows'
 
 const TABS = ['Todos', 'En curso', 'Realizados']
@@ -24,6 +25,7 @@ export default function ActivitiesPage() {
   return (
     <AppLayout title="Actividades">
       <ResourceBoard
+        icon={<CalendarIcon />}
         title="Actividades"
         subtitle="Consulta y gestiona las actividades del curso."
         tabs={TABS}

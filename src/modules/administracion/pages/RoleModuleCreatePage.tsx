@@ -4,6 +4,7 @@ import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
 import TextField from '@/shared/components/ui/TextField'
 import { ErrorBanner, PageHeader } from '@/shared/components/DataTable'
+import { SettingsIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError, api } from '@/shared/lib/api'
 import type { ModuleNode, RoleDetail } from '@/shared/types/profile'
 
@@ -78,6 +79,7 @@ export default function RoleModuleCreatePage() {
   return (
     <AppLayout title="Nuevo módulo">
       <PageHeader
+        icon={<SettingsIcon />}
         title="Nuevo módulo"
         description="Se crea en el catálogo. Después lo asignas desde la tabla de módulos."
         action={

@@ -1,28 +1,60 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/shared/lib/cn'
-import { SearchIcon } from '@/shared/components/icons/AppIcons'
+import { FilterBroomIcon, SearchIcon } from '@/shared/components/icons/AppIcons'
 
+/**
+ * Encabezado estándar de las vistas de gestión.
+ *
+ * Una sola tarjeta glassmorphism con la misma estructura en todas las pantallas:
+ * círculo verde con el icono del recurso, título y descripción agrupados a la
+ * izquierda, y la acción principal pegada al extremo derecho.
+ * `icon` es solo presentación: cada vista reutiliza el icono que ya usa en el menú.
+ */
 export function PageHeader({
   title,
   description,
+  context,
   action,
+  icon,
 }: {
   title: string
   description: string
+  context?: ReactNode
   action?: ReactNode
+  icon?: ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-4 pb-6 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-black tracking-wide text-sena-dark">
-          {title.toUpperCase()}
-        </h1>
+    <section className={cn(
+      'mb-4 flex flex-col gap-6 rounded-[28px] border border-glass-line bg-glass px-7 py-6 shadow-surface backdrop-blur-glass sm:flex-row sm:items-center sm:justify-between sm:px-9 sm:py-7',
+      context ? 'sm:gap-4' : 'sm:gap-9',
+    )}>
+      <div className="flex min-w-0 items-center gap-6">
+        {icon ? (
+          <span
+            aria-hidden="true"
+            className="grid size-[68px] shrink-0 place-items-center rounded-full bg-sena text-white shadow-[0_10px_26px_rgba(0,166,81,0.30)] [&>svg]:size-9"
+          >
+            {icon}
+          </span>
+        ) : null}
 
-        <p className="mt-1 text-sm text-sena-text/60">{description}</p>
+        <div className="min-w-0">
+          <h1 className="text-[2.125rem] leading-[1.12] font-bold tracking-[-0.02em] text-sena-text">
+            {title}
+          </h1>
+
+          {description ? (
+            <p className="mt-2 max-w-3xl text-[0.9375rem] leading-6 text-sena-text-soft">
+              {description}
+            </p>
+          ) : null}
+        </div>
       </div>
 
-      {action}
-    </div>
+      {context ? <div className="shrink-0">{context}</div> : null}
+
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </section>
   )
 }
 
@@ -34,14 +66,14 @@ export function ErrorBanner({
   onClose?: () => void
 }) {
   return (
-    <div className="mb-4 flex items-center justify-between gap-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+    <div className="mb-5 flex items-center justify-between gap-4 rounded-[18px] bg-sena-danger-soft px-5 py-3.5 text-sm text-sena-danger-text ring-1 ring-sena-danger-line">
       <span>{message}</span>
 
       {onClose ? (
         <button
           type="button"
           onClick={onClose}
-          className="font-semibold text-red-700 hover:text-red-900"
+          className="shrink-0 rounded-full bg-white/70 px-4 py-1.5 font-semibold transition hover:bg-white"
         >
           Cerrar
         </button>
@@ -52,8 +84,8 @@ export function ErrorBanner({
 
 export function FilterCard({ children }: { children: ReactNode }) {
   return (
-    <section className="mb-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-sena-dark/8">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end">{children}</div>
+    <section className="mb-4 rounded-[26px] border border-glass-line bg-glass px-6 py-2 shadow-surface backdrop-blur-glass sm:px-7">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end">{children}</div>
     </section>
   )
 }
@@ -66,8 +98,10 @@ export function FilterGroup({
   children: ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs text-sena-text/60">{label}</label>
+    <div className="relative flex flex-col">
+      <label className="absolute -top-[7px] left-3 z-10 bg-white/75 px-1.5 text-[0.625rem] font-bold tracking-[0.16em] text-sena-text-soft uppercase">
+        {label}
+      </label>
 
       {children}
     </div>
@@ -85,13 +119,13 @@ export function SearchInput({
 }) {
   return (
     <div className="relative min-w-0 flex-1">
-      <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-sena-text/40" />
+      <SearchIcon className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-sena" />
 
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-sena-dark/10 bg-white pl-10 pr-3 text-sm text-sena-text outline-none placeholder:text-sena-text/40 focus:border-sena focus:ring-2 focus:ring-sena/20"
+        className="h-[52px] w-full rounded-2xl border border-sena-line bg-glass-strong pr-5 pl-13 text-[0.9375rem] text-sena-text shadow-hairline backdrop-blur-glass-sm outline-none transition duration-150 placeholder:text-sena-text-soft/90 hover:border-sena-line hover:bg-white/90 focus:border-sena focus:bg-white focus:shadow-[0_0_0_4px_rgba(0,166,81,0.12)]"
       />
     </div>
   )
@@ -109,8 +143,9 @@ export function ClearFiltersButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-sena-dark/10 bg-white px-4 text-sm font-medium text-sena-text/70 hover:bg-sena-muted disabled:cursor-not-allowed disabled:opacity-45"
+      className="inline-flex h-[52px] shrink-0 items-center justify-center gap-2.5 rounded-2xl border border-sena-line bg-glass-strong px-6 text-sm font-semibold text-sena-strong shadow-hairline backdrop-blur-glass-sm transition duration-150 hover:border-sena/45 hover:bg-white/90 hover:text-sena-dark disabled:cursor-not-allowed disabled:opacity-45"
     >
+      <FilterBroomIcon className="size-[18px]" />
       Limpiar filtros
     </button>
   )
@@ -118,7 +153,7 @@ export function ClearFiltersButton({
 
 export function TableCard({ children }: { children: ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sena-dark/8">
+    <section className="overflow-hidden rounded-[26px] border border-glass-line bg-glass-strong shadow-surface backdrop-blur-glass">
       {children}
     </section>
   )
@@ -126,7 +161,7 @@ export function TableCard({ children }: { children: ReactNode }) {
 
 export function TableLoading({ label }: { label: string }) {
   return (
-    <div className="px-5 py-10 text-center text-sm text-sena-text/55">{label}</div>
+    <div className="px-6 py-16 text-center text-sm text-sena-text-soft">{label}</div>
   )
 }
 
@@ -142,7 +177,7 @@ export function TableHeader({
   return (
     <th
       className={cn(
-        'px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-sena-dark',
+        'border-b border-sena-hairline bg-sena-soft/85 text-[0.6875rem] font-bold tracking-[0.13em] text-sena-dark uppercase',
         align === 'center' && 'text-center',
         align === 'right' && 'text-right',
         align === 'left' && 'text-left',
@@ -167,11 +202,16 @@ export const tableColumns = {
   actions: 'w-[16%]',
 } as const
 
-export const tableClass = 'w-full min-w-[900px] table-fixed text-sm'
+export const tableClass = 'data-table w-full min-w-[900px] table-fixed text-sm'
 
 export function TableRow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <tr className={cn('border-b border-sena-dark/6 last:border-b-0 hover:bg-sena-muted/40', className)}>
+    <tr
+      className={cn(
+        'border-b border-sena-hairline/90 bg-white/55 transition-colors duration-150 last:border-b-0 hover:bg-sena-veil',
+        className,
+      )}
+    >
       {children}
     </tr>
   )
@@ -186,13 +226,16 @@ export function TableEmpty({
 }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="px-5 py-12 text-center text-sm text-sena-text/45">
+      <td colSpan={colSpan} className="px-6 py-16 text-center text-sm text-sena-text-soft">
         {children}
       </td>
     </tr>
   )
 }
 
+/**
+ * Acciones de fila: área de clic uniforme e iconos visibles sin recuadros.
+ */
 export function ActionButton({
   children,
   title,
@@ -214,9 +257,9 @@ export function ActionButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'rounded-md p-1 transition-colors',
-        danger ? 'text-sena-text/40 hover:text-red-600' : 'text-sena-text/40 hover:text-sena',
-        disabled && 'cursor-not-allowed opacity-30',
+        'grid size-11 place-items-center rounded-xl text-sena-dark/85 transition-colors duration-150 hover:text-sena',
+        danger && 'hover:text-sena-danger-text',
+        disabled && 'cursor-not-allowed opacity-35 hover:text-sena-dark/85',
       )}
     >
       {children}
@@ -225,7 +268,7 @@ export function ActionButton({
 }
 
 export function RowActions({ children }: { children: ReactNode }) {
-  return <div className="flex items-center justify-center gap-3">{children}</div>
+  return <div className="flex items-center justify-center gap-2.5">{children}</div>
 }
 
 function PageButton({
@@ -242,7 +285,7 @@ function PageButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="grid size-8 place-items-center rounded-lg text-sena-text/45 hover:bg-sena-muted disabled:cursor-not-allowed disabled:opacity-30"
+      className="grid size-11 place-items-center rounded-[14px] border border-sena-line bg-glass-strong text-sena-strong shadow-hairline backdrop-blur-glass-sm transition duration-150 hover:border-sena/45 hover:bg-white/90 hover:text-sena-dark disabled:cursor-not-allowed disabled:opacity-40"
     >
       {children}
     </button>
@@ -267,12 +310,12 @@ export function TablePagination({
   noun: string
 }) {
   return (
-    <div className="flex flex-col gap-3 border-t border-sena-dark/8 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-sm text-sena-text/55">
+    <div className="flex flex-col gap-3 border-t border-sena-hairline bg-white/45 px-7 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <span className="text-sm text-sena-text-soft">
         Mostrando {from} - {to} de {total} {noun}
       </span>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2.5">
         <PageButton disabled={page === 1} onClick={() => onPageChange(page - 1)}>
           ‹
         </PageButton>
@@ -283,8 +326,10 @@ export function TablePagination({
             type="button"
             onClick={() => onPageChange(item)}
             className={cn(
-              'grid size-8 place-items-center rounded-lg text-sm font-semibold',
-              item === page ? 'bg-sena text-white' : 'text-sena-text/55 hover:bg-sena-muted',
+              'grid size-11 place-items-center rounded-[14px] text-sm font-semibold transition duration-150',
+              item === page
+                ? 'bg-sena text-white shadow-brand'
+                : 'border border-sena-line bg-glass-strong text-sena-strong shadow-hairline backdrop-blur-glass-sm hover:border-sena/45 hover:bg-white/90 hover:text-sena-dark',
             )}
           >
             {item}
