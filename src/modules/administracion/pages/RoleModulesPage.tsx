@@ -13,7 +13,6 @@ import {
   TableLoading,
   TableRow,
   tableClass,
-  tableColumns,
 } from '@/shared/components/DataTable'
 import InventoryFunctions from '@/modules/administracion/InventoryFunctions'
 import { ApiError, api } from '@/shared/lib/api'
@@ -211,26 +210,25 @@ export default function RoleModulesPage() {
             {loading ? (
               <TableLoading label="Cargando módulos…" />
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-hidden">
                 <table className={tableClass}>
                   <thead>
                     <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
-                      <TableHeader width={tableColumns.name}>Módulo</TableHeader>
-                      <TableHeader width={tableColumns.relation}>Descripción</TableHeader>
-                      <TableHeader align="center" width={tableColumns.count}>
+                      <TableHeader width="w-[40%]">Módulo</TableHeader>
+                      <TableHeader align="center" width="w-[12%]">
                         Dentro
                       </TableHeader>
-                      <TableHeader align="center" width={tableColumns.status}>
+                      <TableHeader align="center" width="w-[24%]">
                         Asignado
                       </TableHeader>
-                      <TableHeader align="center" width={tableColumns.actions}>
+                      <TableHeader align="center" width="w-[24%]">
                         Acciones
                       </TableHeader>
                     </tr>
                   </thead>
                   <tbody>
                     {modules.length === 0 ? (
-                      <TableEmpty colSpan={5}>
+                      <TableEmpty colSpan={4}>
                         {moduleId ? 'Este módulo no tiene permisos.' : 'No hay módulos en este nivel.'}
                       </TableEmpty>
                     ) : (
@@ -238,9 +236,9 @@ export default function RoleModulesPage() {
                           <TableRow key={module.id}>
                             <td className="px-5 py-4">
                               <p className="truncate font-semibold text-sena-text">{module.label}</p>
-                            </td>
-                            <td className="truncate px-5 py-4 font-medium text-sena-dark">
-                              {module.description || '—'}
+                              <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                                {module.description || 'Sin descripción'}
+                              </p>
                             </td>
                             <td className="px-5 py-4 text-center text-sena-text/70">{module.children.length}</td>
                             <td className="px-5 py-4 text-center">

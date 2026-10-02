@@ -4,10 +4,23 @@ import { NavIcon } from '@/shared/components/icons/AppIcons'
 import SenaMark from '@/shared/components/icons/SenaMark'
 import { useAuth } from '@/modules/auth/context/auth'
 import { grantedModuleLinks, toNavIcon } from '@/shared/lib/access'
+import type { UserProfile } from '@/shared/types/profile'
+
+function regionalOf(user: UserProfile | null) {
+  const named = user?.regional?.trim()
+  if (named) return named
+  const location = user?.location ?? ''
+  const marker = ' — '
+  const index = location.indexOf(marker)
+  if (index < 0) return ''
+  return location.slice(index + marker.length).trim()
+}
 
 export default function HomePage() {
   const { user, modules, isAdmin } = useAuth()
   const firstName = user?.fullName.split(' ')[0] ?? 'usuario'
+  const center = user?.trainingCenter.trim() ?? ''
+  const regional = regionalOf(user)
   const cards = grantedModuleLinks(modules)
   const quickLinks = [
     { label: 'Mi perfil', to: '/perfil', icon: 'user' as const },
@@ -25,7 +38,27 @@ export default function HomePage() {
       <h1 className="mt-1 text-3xl font-semibold tracking-tight text-sena-text">
         ¡Bienvenido, {firstName}!
       </h1>
-      <p className="mt-2 text-sm text-sena-text/60">{user?.location}</p>
+      {center ? (
+        <>
+          <p className="mt-2 max-w-3xl text-base leading-7 text-sena-text/75">
+            Tu centro de formación es <span className="font-semibold text-sena-dark">{center}</span>
+            {regional ? (
+              <>
+                {' '}
+                y tu regional es <span className="font-semibold text-sena-dark">{regional}</span>.
+              </>
+            ) : (
+              '.'
+            )}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <PlaceFact label="Centro de formación" value={center} />
+            {regional ? <PlaceFact label="Regional" value={regional} /> : null}
+          </div>
+        </>
+      ) : (
+        <p className="mt-2 text-sm text-sena-text/60">{user?.roleLabel}</p>
+      )}
 
       {cards.length ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -77,5 +110,14 @@ export default function HomePage() {
         </div>
       </div>
     </AppLayout>
+  )
+}
+
+function PlaceFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-56 rounded-2xl bg-white px-4 py-3 ring-1 ring-sena-dark/8">
+      <p className="text-xs font-medium uppercase tracking-wide text-sena-text/45">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-sena-text">{value}</p>
+    </div>
   )
 }

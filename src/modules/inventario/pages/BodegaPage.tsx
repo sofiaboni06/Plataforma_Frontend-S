@@ -196,7 +196,7 @@ export default function BodegasPage() {
           <TableLoading label="Cargando bodegas…" />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-hidden">
               <table className={tableClass}>
                 <thead>
                   <tr className="border-b border-sena-dark/8 bg-sena-muted/45">

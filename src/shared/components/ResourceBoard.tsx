@@ -106,8 +106,8 @@ export default function ResourceBoard<T>({
         </button>
       </div>
 
-      <div className="mt-5 overflow-x-auto">
-        <table className="w-full min-w-[640px] text-left text-sm">
+      <div className="mt-5 overflow-hidden">
+        <table className="w-full table-fixed text-left text-sm">
           <thead>
             <tr className="border-b border-sena-dark/10 text-sena-text/55">
               {columns.map((column) => (
@@ -122,7 +122,7 @@ export default function ResourceBoard<T>({
             {rows.map((row) => (
               <tr key={rowKey(row)} className="border-b border-sena-dark/8 last:border-b-0">
                 {columns.map((column) => (
-                  <td key={column.key} className="px-3 py-3 text-sena-text">
+                  <td key={column.key} className="max-w-0 truncate px-3 py-3 text-sena-text">
                     {column.render(row)}
                   </td>
                 ))}

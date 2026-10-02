@@ -155,19 +155,35 @@ export function TableHeader({
 }
 
 /**
- * Anchos compartidos por todas las tablas del listado. Con `table-fixed` hacen
- * que Estado y Acciones caigan en el mismo punto en cada pantalla, sin importar
- * qué muestren las columnas de datos.
+ * Anchos compartidos por las tablas del listado. Con `table-fixed` y sin ancho
+ * mínimo, Estado y Acciones quedan alineados y la tabla no se desplaza a los lados.
  */
 export const tableColumns = {
-  name: 'w-[28%]',
-  relation: 'w-[26%]',
-  count: 'w-[15%]',
-  status: 'w-[15%]',
-  actions: 'w-[16%]',
+  name: 'w-[32%]',
+  relation: 'w-[22%]',
+  count: 'w-[12%]',
+  status: 'w-[16%]',
+  actions: 'w-[18%]',
 } as const
 
-export const tableClass = 'w-full min-w-[900px] table-fixed text-sm'
+export const tableClass = 'w-full table-fixed text-sm [&_td]:overflow-hidden [&_th]:overflow-hidden'
+
+export function DetailFields({
+  items,
+}: {
+  items: Array<{ label: string; value: ReactNode }>
+}) {
+  return (
+    <dl className="grid gap-4 sm:grid-cols-2">
+      {items.map((item) => (
+        <div key={item.label} className="min-w-0">
+          <dt className="text-xs font-medium uppercase tracking-wide text-sena-text/45">{item.label}</dt>
+          <dd className="mt-1 break-words text-sm font-semibold text-sena-text">{item.value}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
 
 export function TableRow({ children, className }: { children: ReactNode; className?: string }) {
   return (

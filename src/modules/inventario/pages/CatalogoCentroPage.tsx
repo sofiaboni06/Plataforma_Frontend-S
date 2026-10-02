@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
-import { PencilIcon, PlusIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
+import { EyeIcon, PencilIcon, PlusIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import ConfirmDialog from '@/shared/components/ui/ConfirmDialog'
@@ -9,6 +9,7 @@ import TextField from '@/shared/components/ui/TextField'
 import {
   ActionButton,
   ClearFiltersButton,
+  DetailFields,
   ErrorBanner,
   FilterCard,
   FilterGroup,
@@ -22,7 +23,6 @@ import {
   TablePagination,
   TableRow,
   tableClass,
-  tableColumns,
 } from '@/shared/components/DataTable'
 import { filterSelectClass, usePagination, useTableState } from '@/shared/lib/table'
 import { ApiError } from '@/shared/lib/api'
@@ -234,6 +234,7 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
   const [editing, setEditing] = useState<CatalogRow | null>(null)
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState<CatalogDraft>({ nombre: '', estado: true })
+  const [viewing, setViewing] = useState<CatalogRow | null>(null)
   const [toDisable, setToDisable] = useState<CatalogRow | null>(null)
   const [disabling, setDisabling] = useState(false)
 
@@ -278,7 +279,7 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
 
   const { pageRows, totalPages, currentPage, from, to, total } = usePagination(filtered, page)
   const modalOpen = creating || editing !== null
-  const columnCount = 2 + (config.fields.some((field) => field.key !== 'nombre') ? 1 : 0) + (config.hasEstado ? 1 : 0)
+  const columnCount = 2 + (config.hasEstado ? 1 : 0)
 
   function openCreate() {
     setCreating(true)
@@ -288,6 +289,7 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
   }
 
   function openEdit(row: CatalogRow) {
+    setViewing(null)
     setCreating(false)
     setEditing(row)
     setDraft({
@@ -422,23 +424,17 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
           <TableLoading label="Cargando catálogo…" />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-hidden">
               <table className={tableClass}>
                 <thead>
                   <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
-                    {config.fields.some((field) => field.key === 'codigo') ? (
-                      <TableHeader width={tableColumns.relation}>Código</TableHeader>
-                    ) : null}
-                    <TableHeader width={tableColumns.name}>Nombre</TableHeader>
-                    {config.fields.some((field) => field.key === 'abreviatura') ? (
-                      <TableHeader width={tableColumns.relation}>Abreviatura</TableHeader>
-                    ) : null}
+                    <TableHeader width={config.hasEstado ? 'w-[58%]' : 'w-[72%]'}>Nombre</TableHeader>
                     {config.hasEstado ? (
-                      <TableHeader align="center" width={tableColumns.status}>
+                      <TableHeader align="center" width="w-[18%]">
                         Estado
                       </TableHeader>
                     ) : null}
-                    <TableHeader align="center" width={tableColumns.actions}>
+                    <TableHeader align="center" width="w-[24%]">
                       Acciones
                     </TableHeader>
                   </tr>
@@ -453,16 +449,12 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
                   ) : (
                     pageRows.map((row) => (
                       <TableRow key={row.id}>
-                        {config.fields.some((field) => field.key === 'codigo') ? (
-                          <td className="px-5 py-4 font-semibold text-sena-text">{row.codigo}</td>
-                        ) : null}
                         <td className="px-5 py-4">
-                          <p className="font-semibold text-sena-text">{row.nombre}</p>
-                          <p className="mt-0.5 text-xs text-sena-text/45">ID {row.id}</p>
+                          <p className="truncate font-semibold text-sena-text">{row.nombre}</p>
+                          <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                            {row.codigo || row.abreviatura || `ID ${row.id}`}
+                          </p>
                         </td>
-                        {config.fields.some((field) => field.key === 'abreviatura') ? (
-                          <td className="px-5 py-4 text-sena-text">{row.abreviatura}</td>
-                        ) : null}
                         {config.hasEstado ? (
                           <td className="px-5 py-4 text-center">
                             <StatusPill tone={row.estado === false ? 'danger' : 'ok'}>
@@ -470,8 +462,11 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
                             </StatusPill>
                           </td>
                         ) : null}
-                        <td className="px-5 py-4">
+                        <td className="px-3 py-4">
                           <RowActions>
+                            <ActionButton title="Ver detalle" onClick={() => setViewing(row)}>
+                              <EyeIcon className="size-[18px]" />
+                            </ActionButton>
                             {canEdit ? (
                               <ActionButton title="Editar" onClick={() => openEdit(row)}>
                                 <PencilIcon className="size-[18px]" />
@@ -507,6 +502,40 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
           </>
         )}
       </TableCard>
+
+      {viewing ? (
+        <Modal
+          title={viewing.nombre}
+          description={`Detalle de ${config.singular}.`}
+          onClose={() => setViewing(null)}
+        >
+          <DetailFields
+            items={[
+              { label: 'ID', value: String(viewing.id) },
+              ...config.fields
+                .filter((field) => field.key !== 'nombre')
+                .map((field) => ({
+                  label: field.label.replace(' *', ''),
+                  value: viewing[field.key] || '—',
+                })),
+              { label: 'Nombre', value: viewing.nombre },
+              ...(config.hasEstado
+                ? [{ label: 'Estado', value: viewing.estado === false ? 'Inactiva' : 'Activa' }]
+                : []),
+            ]}
+          />
+          <div className="mt-6 flex justify-end gap-2 border-t border-sena-dark/8 pt-5">
+            <Button type="button" variant="secondary" onClick={() => setViewing(null)}>
+              Cerrar
+            </Button>
+            {canEdit ? (
+              <Button type="button" onClick={() => openEdit(viewing)}>
+                Editar
+              </Button>
+            ) : null}
+          </div>
+        </Modal>
+      ) : null}
 
       {modalOpen ? (
         <Modal

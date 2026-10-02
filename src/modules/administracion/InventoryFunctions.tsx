@@ -9,7 +9,6 @@ import {
   TableLoading,
   TableRow,
   tableClass,
-  tableColumns,
 } from '@/shared/components/DataTable'
 import { ApiError, api } from '@/shared/lib/api'
 import type { RoleDetail } from '@/shared/types/profile'
@@ -191,29 +190,28 @@ export default function InventoryFunctions({
         {loading ? (
           <TableLoading label="Cargando permisos…" />
         ) : !matched ? null : (
-          <div className="overflow-x-auto">
+          <div className="overflow-hidden">
             <table className={tableClass}>
               <thead>
                 <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
-                  <TableHeader width={tableColumns.name}>{active ? 'Función' : 'Recurso'}</TableHeader>
-                  <TableHeader width={tableColumns.relation}>Descripción</TableHeader>
-                  <TableHeader align="center" width={tableColumns.count}>
+                  <TableHeader width="w-[40%]">{active ? 'Función' : 'Recurso'}</TableHeader>
+                  <TableHeader align="center" width="w-[14%]">
                     Funciones
                   </TableHeader>
-                  <TableHeader align="center" width={tableColumns.status}>
+                  <TableHeader align="center" width="w-[24%]">
                     Estado
                   </TableHeader>
-                  <TableHeader align="center" width={tableColumns.actions}>
+                  <TableHeader align="center" width="w-[22%]">
                     Acciones
                   </TableHeader>
                 </tr>
               </thead>
               <tbody>
                 {resources.length === 0 ? (
-                  <TableEmpty colSpan={5}>Este módulo no tiene permisos.</TableEmpty>
+                  <TableEmpty colSpan={4}>Este módulo no tiene permisos.</TableEmpty>
                 ) : active ? (
                   active.permissions.length === 0 ? (
-                    <TableEmpty colSpan={5}>Este recurso no tiene permisos.</TableEmpty>
+                    <TableEmpty colSpan={4}>Este recurso no tiene permisos.</TableEmpty>
                   ) : (
                     active.permissions.map((item) => {
                       const assigned = selected.has(item.code)
@@ -221,9 +219,9 @@ export default function InventoryFunctions({
                         <TableRow key={item.code}>
                           <td className="px-5 py-4">
                             <p className="truncate font-semibold text-sena-text">{item.actionLabel}</p>
-                          </td>
-                          <td className="truncate px-5 py-4 font-medium text-sena-dark">
-                            {describeAction(item.code, active.label)}
+                            <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                              {describeAction(item.code, active.label)}
+                            </p>
                           </td>
                           <td className="px-5 py-4 text-center text-sena-text/70">—</td>
                           <td className="px-5 py-4 text-center">
@@ -252,9 +250,9 @@ export default function InventoryFunctions({
                       <TableRow key={resource.resource}>
                         <td className="px-5 py-4">
                           <p className="truncate font-semibold text-sena-text">{resource.label}</p>
-                        </td>
-                        <td className="truncate px-5 py-4 font-medium text-sena-dark">
-                          {marked.length > 0 ? marked.map((item) => item.actionLabel).join(', ') : 'Ninguna'}
+                          <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                            {marked.length > 0 ? marked.map((item) => item.actionLabel).join(', ') : 'Ninguna'}
+                          </p>
                         </td>
                         <td className="px-5 py-4 text-center text-sena-text/70">
                           {marked.length} / {resource.permissions.length}

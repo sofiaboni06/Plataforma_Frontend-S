@@ -4,8 +4,11 @@ import AppLayout from '@/shared/components/layout/AppLayout'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import TextField from '@/shared/components/ui/TextField'
-import { PlusIcon } from '@/shared/components/icons/AppIcons'
+import { EyeIcon, PlusIcon } from '@/shared/components/icons/AppIcons'
+import Modal from '@/shared/components/ui/Modal'
 import {
+  ActionButton,
+  DetailFields,
   ErrorBanner,
   FilterCard,
   PageHeader,
@@ -14,10 +17,10 @@ import {
   TableEmpty,
   TableHeader,
   TableLoading,
+  RowActions,
   TablePagination,
   TableRow,
   tableClass,
-  tableColumns,
 } from '@/shared/components/DataTable'
 import { ApiError, api } from '@/shared/lib/api'
 import type { Role } from '@/shared/types/profile'
@@ -35,6 +38,7 @@ export default function RolesPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [viewing, setViewing] = useState<Role | null>(null)
 
   const loadRoles = async () => {
     const list = await api<Role[]>('/roles')
@@ -166,49 +170,46 @@ export default function RolesPage() {
           <TableLoading label="Cargando perfiles…" />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-hidden">
               <table className={tableClass}>
                 <thead>
                   <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
-                    <TableHeader width={tableColumns.name}>Perfil</TableHeader>
-                    <TableHeader width={tableColumns.relation}>Descripción</TableHeader>
-                    <TableHeader align="center" width={tableColumns.count}>
-                      ID
-                    </TableHeader>
-                    <TableHeader align="center" width={tableColumns.status}>
+                    <TableHeader width="w-[52%]">Perfil</TableHeader>
+                    <TableHeader align="center" width="w-[18%]">
                       Estado
                     </TableHeader>
-                    <TableHeader align="center" width={tableColumns.actions}>
+                    <TableHeader align="center" width="w-[30%]">
                       Acciones
                     </TableHeader>
                   </tr>
                 </thead>
                 <tbody>
                   {pageRows.length === 0 ? (
-                    <TableEmpty colSpan={5}>No hay perfiles que coincidan con la búsqueda.</TableEmpty>
+                    <TableEmpty colSpan={3}>No hay perfiles que coincidan con la búsqueda.</TableEmpty>
                   ) : (
                     pageRows.map((role) => (
                       <TableRow key={role.id}>
                         <td className="px-5 py-4">
                           <p className="truncate font-semibold text-sena-text">{role.name}</p>
                         </td>
-                        <td className="truncate px-5 py-4 font-medium text-sena-dark">
-                          {role.description || '—'}
-                        </td>
-                        <td className="px-5 py-4 text-center text-sena-text/70">{role.id}</td>
                         <td className="px-5 py-4 text-center">
                           <StatusPill tone={role.active ? 'ok' : 'danger'}>
                             {role.active ? 'Activo' : 'Inactivo'}
                           </StatusPill>
                         </td>
-                        <td className="px-5 py-4 text-center">
-                          <button
-                            type="button"
-                            className="text-sm font-semibold text-sena hover:underline"
-                            onClick={() => navigate(`/perfiles/${role.id}/modulos`)}
-                          >
-                            Asignar módulos
-                          </button>
+                        <td className="px-3 py-4">
+                          <RowActions>
+                            <ActionButton title="Ver perfil" onClick={() => setViewing(role)}>
+                              <EyeIcon className="size-[18px]" />
+                            </ActionButton>
+                            <button
+                              type="button"
+                              className="text-sm font-semibold text-sena hover:underline"
+                              onClick={() => navigate(`/perfiles/${role.id}/modulos`)}
+                            >
+                              Módulos
+                            </button>
+                          </RowActions>
                         </td>
                       </TableRow>
                     ))
@@ -229,6 +230,26 @@ export default function RolesPage() {
           </>
         )}
       </TableCard>
+
+      {viewing ? (
+        <Modal title={viewing.name} description="Descripción e identificador del perfil." onClose={() => setViewing(null)}>
+          <DetailFields
+            items={[
+              { label: 'ID', value: String(viewing.id) },
+              { label: 'Descripción', value: viewing.description || '—' },
+              { label: 'Estado', value: viewing.active ? 'Activo' : 'Inactivo' },
+            ]}
+          />
+          <div className="mt-6 flex justify-end gap-2 border-t border-sena-dark/8 pt-5">
+            <Button type="button" variant="secondary" onClick={() => setViewing(null)}>
+              Cerrar
+            </Button>
+            <Button type="button" onClick={() => navigate(`/perfiles/${viewing.id}/modulos`)}>
+              Asignar módulos
+            </Button>
+          </div>
+        </Modal>
+      ) : null}
     </AppLayout>
   )
 }

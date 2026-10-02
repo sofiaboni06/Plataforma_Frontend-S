@@ -11,6 +11,7 @@ export type UserProfile = {
   address: string
   trainingCenter: string
   trainingCenterId?: number
+  regional?: string
   groupCode: string
   role: string
   initials: string

@@ -12,6 +12,7 @@ export const mockProfile: UserProfile = {
   phone: '',
   address: '',
   trainingCenter: 'Centro de Comercio y Servicios',
+  regional: 'Regional Cauca',
   groupCode: '',
   role: 'Administrador',
   initials: 'CP',

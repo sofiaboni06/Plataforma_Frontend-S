@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
-import { PencilIcon } from '@/shared/components/icons/AppIcons'
+import { EyeIcon, PencilIcon } from '@/shared/components/icons/AppIcons'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import { ApiError } from '@/shared/lib/api'
@@ -153,71 +153,67 @@ export default function ViewItemPage() {
                 Este ítem todavía no tiene elementos registrados.
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-sena-dark/8">
-                <table className="w-full min-w-[640px] text-sm">
+              <div className="overflow-hidden rounded-xl border border-sena-dark/8">
+                <table className="w-full table-fixed text-sm [&_td]:overflow-hidden [&_th]:overflow-hidden">
                   <thead>
                     <tr className="bg-sena-muted/50 text-left text-xs font-bold uppercase tracking-wider text-sena-dark">
-                      <th className="px-4 py-3">Foto</th>
-                      <th className="px-4 py-3">Elemento</th>
-                      <th className="px-4 py-3">Ubicación</th>
-                      <th className="px-4 py-3 text-center">Cantidad</th>
-                      <th className="px-4 py-3 text-center">Estado</th>
-                      <th className="px-4 py-3 text-right"> </th>
+                      <th className="w-[46%] px-4 py-3">Elemento</th>
+                      <th className="w-[18%] px-4 py-3 text-center">Cantidad</th>
+                      <th className="w-[18%] px-4 py-3 text-center">Estado</th>
+                      <th className="w-[18%] px-4 py-3 text-center"> </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {elementos.map((elemento) => (
+                    {elementos.map((elemento) => {
+                      const lugar = lugarDelElemento(elemento, bodegas)
+                      return (
                       <tr key={elemento.id} className="border-t border-sena-dark/6">
                         <td className="px-4 py-3">
-                          {elemento.urlFotografia ? (
-                            <ElementoFoto
-                              src={fotoUrlDelElemento(elemento.id, elemento.urlFotografia)}
-                              alt={elemento.nombre}
-                              className="size-12 rounded-lg object-cover ring-1 ring-sena-dark/8"
-                            />
-                          ) : (
-                            <span className="grid size-12 place-items-center rounded-lg bg-sena-muted text-[10px] uppercase tracking-wide text-sena-text/40">
-                              —
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="font-semibold text-sena-text">{elemento.codigo}</p>
-                          <p className="mt-0.5 text-xs text-sena-text/45">
-                            {[elemento.marca, elemento.color].filter(Boolean).join(' · ') ||
-                              elemento.nombre}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-sena-dark">
-                            {lugarDelElemento(elemento, bodegas).subBodega}
-                          </p>
-                          <p className="mt-0.5 text-xs text-sena-text/45">
-                            {lugarDelElemento(elemento, bodegas).bodega} ·{' '}
-                            {lugarDelElemento(elemento, bodegas).stand}
-                          </p>
+                          <div className="flex items-center gap-3">
+                            {elemento.urlFotografia ? (
+                              <ElementoFoto
+                                src={fotoUrlDelElemento(elemento.id, elemento.urlFotografia)}
+                                alt=""
+                                className="size-10 shrink-0 rounded-lg object-cover ring-1 ring-sena-dark/8"
+                              />
+                            ) : (
+                              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-sena-muted text-[10px] uppercase tracking-wide text-sena-text/40">
+                                —
+                              </span>
+                            )}
+                            <div className="min-w-0">
+                              <p className="truncate font-semibold text-sena-text">{elemento.codigo}</p>
+                              <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                                {lugar.subBodega} · {lugar.stand}
+                              </p>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-center text-sena-text/70">
-                          {elemento.cantidad} {elemento.unidadMedida?.abreviatura ?? ''}
-                          {elemento.gramaje == null ? '' : ` · ${elemento.gramaje}`}
+                          <p className="truncate">
+                            {elemento.cantidad} {elemento.unidadMedida?.abreviatura ?? ''}
+                          </p>
                         </td>
                         <td className="px-4 py-3 text-center">
                           <StatusPill tone={elemento.estado ? 'ok' : 'danger'}>
                             {elemento.estado ? 'Activo' : 'Inactivo'}
                           </StatusPill>
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-center">
                           {canViewElemento ? (
                             <Link
                               to={`/inventario/elementos/${elemento.id}`}
-                              className="text-sm font-semibold text-sena-dark underline-offset-2 hover:underline"
+                              title="Ver elemento"
+                              aria-label="Ver elemento"
+                              className="inline-flex rounded-md p-1 text-sena-text/40 hover:text-sena"
                             >
-                              Ver elemento
+                              <EyeIcon className="size-[18px]" />
                             </Link>
                           ) : null}
                         </td>
                       </tr>
-                    ))}
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>

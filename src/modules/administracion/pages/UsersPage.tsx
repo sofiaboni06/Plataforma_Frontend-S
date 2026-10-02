@@ -4,7 +4,16 @@ import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import Modal from '@/shared/components/ui/Modal'
 import TextField from '@/shared/components/ui/TextField'
-import { PlusIcon, SearchIcon } from '@/shared/components/icons/AppIcons'
+import { EyeIcon, PencilIcon, PlusIcon, SearchIcon } from '@/shared/components/icons/AppIcons'
+import {
+  ActionButton,
+  DetailFields,
+  RowActions,
+  TableEmpty,
+  TableHeader,
+  TableRow,
+  tableClass,
+} from '@/shared/components/DataTable'
 import { cn } from '@/shared/lib/cn'
 import { ApiError, api } from '@/shared/lib/api'
 import type { ManagedUser, UserFormOptions } from '@/shared/types/profile'
@@ -35,6 +44,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [modal, setModal] = useState<ModalMode | null>(null)
+  const [viewing, setViewing] = useState<ManagedUser | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [listError, setListError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -109,7 +119,7 @@ export default function UsersPage() {
     const query = search.trim().toLowerCase()
     if (!query) return users
     return users.filter((user) =>
-      `${user.fullName} ${user.email} ${user.documentId} ${user.role}`.toLowerCase().includes(query),
+      `${user.fullName} ${user.email} ${user.documentId} ${user.role} ${user.trainingCenter}`.toLowerCase().includes(query),
     )
   }, [users, search])
 
@@ -265,57 +275,52 @@ export default function UsersPage() {
           <p className="mt-6 text-sm text-sena-text/60">Cargando usuarios…</p>
         ) : (
           <>
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full min-w-[920px] text-left text-sm">
+            <div className="mt-5 overflow-hidden">
+              <table className={tableClass}>
                 <thead>
-                  <tr className="border-b border-sena-dark/10 text-sena-text/55">
-                    <th className="px-3 py-3 font-medium">Nombre</th>
-                    <th className="px-3 py-3 font-medium">Documento</th>
-                    <th className="px-3 py-3 font-medium">Correo</th>
-                    <th className="px-3 py-3 font-medium">Perfil</th>
-                    <th className="px-3 py-3 font-medium">Centro</th>
-                    <th className="px-3 py-3 font-medium">Estado</th>
-                    <th className="px-3 py-3 font-medium"> </th>
+                  <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
+                    <TableHeader width="w-[40%]">Usuario</TableHeader>
+                    <TableHeader width="w-[26%]">Centro</TableHeader>
+                    <TableHeader align="center" width="w-[16%]">
+                      Estado
+                    </TableHeader>
+                    <TableHeader align="center" width="w-[18%]">
+                      Acciones
+                    </TableHeader>
                   </tr>
                 </thead>
                 <tbody>
                   {pageRows.length ? (
                     pageRows.map((user) => (
-                      <tr
-                        key={user.id}
-                        className="border-b border-sena-dark/8 last:border-b-0 hover:bg-sena-muted/80"
-                      >
-                        <td className="px-3 py-3 font-medium text-sena-text">{user.fullName}</td>
-                        <td className="px-3 py-3 text-sena-text/70">
-                          {user.documentType} {user.documentId}
+                      <TableRow key={user.id}>
+                        <td className="px-5 py-4">
+                          <p className="truncate font-semibold text-sena-text">{user.fullName}</p>
+                          <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                            {user.role} · {user.documentType} {user.documentId}
+                          </p>
                         </td>
-                        <td className="px-3 py-3 text-sena-text/70">{user.email}</td>
-                        <td className="px-3 py-3 text-sena-text">{user.role}</td>
-                        <td className="max-w-[220px] truncate px-3 py-3 text-sena-text/70">
-                          {user.trainingCenter || '—'}
+                        <td className="px-5 py-4">
+                          <p className="truncate font-medium text-sena-dark">{user.trainingCenter || '—'}</p>
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-5 py-4 text-center">
                           <StatusPill tone={user.active ? 'ok' : 'danger'}>
                             {user.active ? 'Activo' : 'Inactivo'}
                           </StatusPill>
                         </td>
-                        <td className="px-3 py-3 text-right">
-                          <button
-                            type="button"
-                            className="text-sm font-semibold text-sena hover:underline"
-                            onClick={() => openEdit(user)}
-                          >
-                            Editar
-                          </button>
+                        <td className="px-3 py-4">
+                          <RowActions>
+                            <ActionButton title="Ver usuario" onClick={() => setViewing(user)}>
+                              <EyeIcon className="size-[18px]" />
+                            </ActionButton>
+                            <ActionButton title="Editar usuario" onClick={() => openEdit(user)}>
+                              <PencilIcon className="size-[18px]" />
+                            </ActionButton>
+                          </RowActions>
                         </td>
-                      </tr>
+                      </TableRow>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan={7} className="px-3 py-8 text-center text-sena-text/50">
-                        No hay usuarios que coincidan con la búsqueda.
-                      </td>
-                    </tr>
+                    <TableEmpty colSpan={4}>No hay usuarios que coincidan con la búsqueda.</TableEmpty>
                   )}
                 </tbody>
               </table>
@@ -344,6 +349,49 @@ export default function UsersPage() {
           </>
         )}
       </div>
+
+      {viewing ? (
+        <Modal
+          title={viewing.fullName}
+          description="El correo y el resto de datos de la cuenta."
+          onClose={() => setViewing(null)}
+        >
+          <DetailFields
+            items={[
+              { label: 'Documento', value: `${viewing.documentType} ${viewing.documentId}` },
+              { label: 'Correo', value: viewing.email },
+              { label: 'Perfil', value: viewing.role },
+              { label: 'Centro de formación', value: viewing.trainingCenter || '—' },
+              { label: 'Estado', value: viewing.active ? 'Activo' : 'Inactivo' },
+              ...(viewing.bodegas
+                ? [
+                    {
+                      label: 'Bodegas',
+                      value: viewing.bodegas.length
+                        ? viewing.bodegas.map((bodega) => bodega.name).join(', ')
+                        : 'Sin bodegas',
+                    },
+                  ]
+                : []),
+            ]}
+          />
+          <div className="mt-6 flex justify-end gap-2 border-t border-sena-dark/8 pt-5">
+            <Button type="button" variant="secondary" onClick={() => setViewing(null)}>
+              Cerrar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                const user = viewing
+                setViewing(null)
+                openEdit(user)
+              }}
+            >
+              Editar
+            </Button>
+          </div>
+        </Modal>
+      ) : null}
 
       {modal ? (
         <Modal

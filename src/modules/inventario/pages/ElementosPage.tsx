@@ -807,11 +807,10 @@ export default function ElementosPage() {
           <TableLoading label="Cargando elementos…" />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-hidden">
               <table className={tableClass}>
                 <thead>
                   <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
-                    <TableHeader width="w-[12%]">Foto</TableHeader>
                     <TableHeader width={tableColumns.name}>Elemento</TableHeader>
                     <TableHeader width={tableColumns.relation}>Ubicación</TableHeader>
                     <TableHeader align="center" width={tableColumns.count}>
@@ -828,7 +827,7 @@ export default function ElementosPage() {
 
                 <tbody>
                   {pageRows.length === 0 ? (
-                    <TableEmpty colSpan={6}>No se encontraron elementos.</TableEmpty>
+                    <TableEmpty colSpan={5}>No se encontraron elementos.</TableEmpty>
                   ) : (
                     pageRows.map((item) => {
                       const lugar = lugarDelElemento(item, bodegas)
@@ -836,30 +835,28 @@ export default function ElementosPage() {
                       return (
                       <TableRow key={item.id}>
                         <td className="px-5 py-4">
-                          {item.urlFotografia ? (
-                            <ElementoFoto
-                              src={fotoUrlDelElemento(item.id, item.urlFotografia)}
-                              alt={item.nombre}
-                              className="size-14 rounded-xl object-cover ring-1 ring-sena-dark/8"
-                            />
-                          ) : (
-                            <span className="grid size-14 place-items-center rounded-xl bg-sena-muted text-[10px] font-medium uppercase tracking-wide text-sena-text/40">
-                              Sin foto
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-5 py-4">
-                          <p className="truncate font-semibold text-sena-text">
-                            {item.nombre}
-                          </p>
-                          <p className="mt-0.5 truncate text-xs text-sena-text/45">
-                            {item.codigo}
-                            {subcategoria ? ` · ${subcategoria}` : ''}
-                            {' · '}
-                            {item.item
-                              ? `Ítem ${item.item.id} · ${item.item.nombre}`
-                              : 'Sin ítem'}
-                          </p>
+                          <div className="flex items-center gap-3">
+                            {item.urlFotografia ? (
+                              <ElementoFoto
+                                src={fotoUrlDelElemento(item.id, item.urlFotografia)}
+                                alt=""
+                                className="size-10 shrink-0 rounded-lg object-cover ring-1 ring-sena-dark/8"
+                              />
+                            ) : (
+                              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-sena-muted text-[10px] font-medium uppercase tracking-wide text-sena-text/40">
+                                —
+                              </span>
+                            )}
+                            <div className="min-w-0">
+                              <p className="truncate font-semibold text-sena-text">
+                                {item.nombre}
+                              </p>
+                              <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                                {item.codigo}
+                                {subcategoria ? ` · ${subcategoria}` : ''}
+                              </p>
+                            </div>
+                          </div>
                         </td>
 
                         <td className="px-5 py-4">
