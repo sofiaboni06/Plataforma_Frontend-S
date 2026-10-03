@@ -1,10 +1,12 @@
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/modules/auth/context/auth'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import BodegaForm from '@/modules/inventario/components/BodegaForm'
 import { createBodega } from '@/modules/inventario/data/bodega'
 
 export default function CreateBodegaPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   async function handleCreate(data: {
     nombre: string
@@ -12,6 +14,12 @@ export default function CreateBodegaPage() {
     idCformacion?: number
   }) {
     const created = await createBodega(data)
+    const otherCenter =
+      data.idCformacion != null && data.idCformacion !== user?.trainingCenterId
+    if (otherCenter) {
+      navigate('/usuarios', { replace: true })
+      return
+    }
     navigate(`/inventario/bodegas/${created.id}`, { replace: true })
   }
 
@@ -24,7 +32,7 @@ export default function CreateBodegaPage() {
             Crear bodega
           </h1>
           <p className="mt-1 text-sm text-sena-text/55">
-            Un centro puede tener varias bodegas. El stand se crea sobre una sub-bodega que ya exista.
+            Elige el centro. La bodega de otro centro no se abre aquí: se asigna después en Usuarios.
           </p>
         </div>
         <BodegaForm mode="create" onSubmit={handleCreate} />

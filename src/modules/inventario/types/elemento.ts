@@ -1,20 +1,20 @@
+export type CaracterElemento = 'consumo' | 'devolutivo'
+
 export type ClasificacionElementoApi = {
   id: number
-  idCformacion?: number
   nombre: string
+  caracter: CaracterElemento
   estado: boolean
 }
 
 export type UsoPresupuestalApi = {
   id: number
-  idCformacion?: number
   nombre: string
   estado: boolean
 }
 
 export type CodigoEstandarApi = {
   id: number
-  idCformacion?: number
   codigo: string
   nombre: string
 }
@@ -41,6 +41,7 @@ export type ElementoApi = {
   idCodigoEstandar: number | null
   codigoEstandar: CodigoEstandarApi | null
   idUsoPresupuestal?: number | null
+  cantidadMinima?: number
   usoPresupuestal?: {
     id: number
     nombre: string
@@ -92,13 +93,13 @@ export type CreateElementoPayload = {
   porcentajeAumento?: number | null
   idCodigoEstandar?: number | null
   idUsoPresupuestal?: number | null
+  cantidadMinima?: number
 }
 
 export type UpdateElementoPayload = Partial<CreateElementoPayload>
 
 export type UnidadMedidaApi = {
   id: number
-  idCformacion?: number
   nombre: string
   abreviatura: string
   estado: boolean

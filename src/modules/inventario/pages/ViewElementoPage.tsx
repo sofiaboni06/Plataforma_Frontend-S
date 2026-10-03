@@ -13,7 +13,6 @@ import { formatCantidad, lugarDelElemento } from '@/modules/inventario/lib/lugar
 import type { BodegaApi } from '@/modules/inventario/types/bodega'
 import type { ElementoApi } from '@/modules/inventario/types/elemento'
 import type { ItemApi } from '@/modules/inventario/types/item'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
 export default function ViewElementoPage() {
@@ -22,7 +21,6 @@ export default function ViewElementoPage() {
   const { permit } = useInventoryAccess()
   const canEdit = permit('elemento.editar', 'elementos', 'edit')
   const canViewItem = permit('item.ver', 'items', 'view')
-  const centerId = useInventoryCenterOptional()?.centerId ?? null
 
   const [elemento, setElemento] = useState<ElementoApi | null>(null)
   const [relatedItem, setRelatedItem] = useState<ItemApi | null>(null)
@@ -39,7 +37,7 @@ export default function ViewElementoPage() {
       try {
         const [elementoData, bodegas] = await Promise.all([
           getElemento(id),
-          getBodegas(centerId ? { idCformacion: centerId } : undefined),
+          getBodegas(),
         ])
 
         if (cancelled) return
@@ -68,7 +66,7 @@ export default function ViewElementoPage() {
     return () => {
       cancelled = true
     }
-  }, [centerId, id])
+  }, [id])
 
   if (loading) {
     return (

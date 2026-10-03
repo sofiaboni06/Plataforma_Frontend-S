@@ -39,7 +39,6 @@ import {
 } from '@/modules/inventario/data/bodega'
 import { getElementos } from '@/modules/inventario/data/elemento'
 import type { BodegaApi } from '@/modules/inventario/types/bodega'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { useAuth } from '@/modules/auth/context/auth'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
@@ -73,7 +72,6 @@ function LayersIcon() {
 export default function StandsPage() {
   const navigate = useNavigate()
   const { isAdmin } = useAuth()
-  const centerId = useInventoryCenterOptional()?.centerId ?? null
   const { permit } = useInventoryAccess()
   const canCreate = permit('stand.crear', 'stands', 'create')
   const canEdit = permit('stand.editar', 'stands', 'edit')
@@ -104,7 +102,7 @@ export default function StandsPage() {
       // El conteo de elementos es informativo: si el perfil no alcanza a
       // leerlos, la pantalla de stands igual tiene que cargar.
       const [bodegaList, elementoList] = await Promise.all([
-        getBodegas(centerId ? { idCformacion: centerId } : undefined),
+        getBodegas(),
         getElementos().catch(() => []),
       ])
 
@@ -155,7 +153,7 @@ export default function StandsPage() {
 
   useEffect(() => {
     void loadStands()
-  }, [centerId])
+  }, [])
 
   const filteredStands = useMemo(() => {
     const query = search.trim().toLowerCase()

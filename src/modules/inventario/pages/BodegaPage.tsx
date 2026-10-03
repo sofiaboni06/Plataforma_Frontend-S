@@ -36,7 +36,6 @@ import {
   getBodegas,
 } from '@/modules/inventario/data/bodega'
 import type { BodegaApi } from '@/modules/inventario/types/bodega'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
 type StatusFilter = 'Todos' | 'Activa' | 'Inactiva'
@@ -60,7 +59,6 @@ function WarehouseIcon() {
 export default function BodegasPage() {
   const navigate = useNavigate()
   const { permit } = useInventoryAccess()
-  const centerId = useInventoryCenterOptional()?.centerId ?? null
   const canCreate = permit('bodega.crear', 'bodegas', 'create')
   const canEdit = permit('bodega.editar', 'bodegas', 'edit')
   const canDelete = permit('bodega.eliminar', 'bodegas', 'edit')
@@ -84,7 +82,7 @@ export default function BodegasPage() {
       setLoading(true)
       setError('')
 
-      const result = await getBodegas(centerId ? { idCformacion: centerId } : undefined)
+      const result = await getBodegas()
       setBodegas([...result].sort((a, b) => b.id - a.id))
     } catch (loadError) {
       setError(
@@ -99,7 +97,7 @@ export default function BodegasPage() {
 
   useEffect(() => {
     void loadBodegas()
-  }, [centerId])
+  }, [])
 
   const filteredBodegas = useMemo(() => {
     const query = search.trim().toLowerCase()

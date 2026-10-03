@@ -34,10 +34,8 @@ import {
 } from '@/shared/components/DataTable'
 import { filterSelectClass, usePagination, useTableState } from '@/shared/lib/table'
 import { ApiError } from '@/shared/lib/api'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { getAllCategorias, getSubcategorias } from '@/modules/inventario/data/categoria'
 import { createItem, disableItem, getAllItems, updateItem } from '@/modules/inventario/data/item'
-import { categoriesOfCenter, itemsOfCenter, subcategoriesOfCenter } from '@/modules/inventario/lib/centro'
 import type { CreateItemPayload, ItemApi } from '@/modules/inventario/types/item'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import type { CategoryApi, SubcategoryApi } from '@/shared/types/category'
@@ -62,7 +60,6 @@ export default function ItemsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { permit } = useInventoryAccess()
-  const centerId = useInventoryCenterOptional()?.centerId ?? null
   const canCreate = permit('item.crear', 'items', 'create')
   const canView = permit('item.ver', 'items', 'view')
   const canEdit = permit('item.editar', 'items', 'edit')
@@ -86,23 +83,10 @@ export default function ItemsPage() {
   const [itemToDisable, setItemToDisable] = useState<ItemApi | null>(null)
   const [disabling, setDisabling] = useState(false)
 
-  const visibleCategories = useMemo(
-    () => categoriesOfCenter(categories, centerId),
-    [categories, centerId],
-  )
-  const visibleSubcategories = useMemo(
-    () => subcategoriesOfCenter(subcategories, categories, centerId),
-    [categories, centerId, subcategories],
-  )
-  const visibleItems = useMemo(
-    () => itemsOfCenter(items, categories, centerId),
-    [categories, centerId, items],
-  )
-
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
 
-    return visibleItems.filter((item) => {
+    return items.filter((item) => {
       const categoryName = item.subcategoria?.categoria?.nombre ?? ''
       const subcategoryName = item.subcategoria?.nombre ?? ''
       const matchesSearch =
@@ -123,7 +107,7 @@ export default function ItemsPage() {
 
       return matchesSearch && matchesCategory && matchesStatus
     })
-  }, [categoryFilter, search, statusFilter, visibleItems])
+  }, [categoryFilter, items, search, statusFilter])
 
   const { pageRows, totalPages, currentPage, from, to, total } = usePagination(filtered, page)
   const hasActiveFilters =
@@ -251,7 +235,7 @@ export default function ItemsPage() {
     }
   }
 
-  const subcategoryOptions = visibleSubcategories.filter(
+  const subcategoryOptions = subcategories.filter(
     (item) =>
       item.idCategoria === categoryId && (item.estado || item.id === form.idSubcategoria),
   )
@@ -297,7 +281,7 @@ export default function ItemsPage() {
             className={`${filterSelectClass} lg:w-64`}
           >
             <option value="Todos">Todas</option>
-            {visibleCategories.map((category) => (
+            {categories.map((category) => (
               <option key={category.id} value={String(category.id)}>
                 {category.nombre}
               </option>
@@ -450,7 +434,7 @@ export default function ItemsPage() {
                 setCategoryId(Number(value))
                 setForm((current) => ({ ...current, idSubcategoria: 0 }))
               }}
-              options={visibleCategories
+              options={categories
                 .filter((item) => item.estado || item.id === categoryId)
                 .map((item) => ({ value: item.id, label: item.nombre }))}
               required

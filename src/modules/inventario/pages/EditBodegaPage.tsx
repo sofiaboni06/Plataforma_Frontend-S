@@ -66,7 +66,7 @@ export default function EditBodegaPage() {
             Editar bodega
           </h1>
           <p className="mt-1 text-sm text-sena-text/55">
-            Actualiza el nombre, el centro y el estado.
+            Actualiza el nombre y el estado. El centro no se cambia.
           </p>
         </div>
         <BodegaForm mode="edit" initialData={bodega} onSubmit={handleUpdate} />

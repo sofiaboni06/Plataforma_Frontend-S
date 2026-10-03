@@ -1,6 +1,5 @@
 export type CategoryApi = {
   id: number
-  idCformacion: number
   nombre: string
   estado: boolean
 }

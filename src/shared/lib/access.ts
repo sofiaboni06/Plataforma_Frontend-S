@@ -33,7 +33,7 @@ const INVENTORY_ENTRY: AppModule = {
   order: 1,
 }
 
-export function grantedModuleLinks(modules: AppModule[]) {
+export function grantedModuleLinks(modules: AppModule[], isAdmin = false) {
   const seen = new Set<string>()
 
   const links = modules
@@ -50,7 +50,7 @@ export function grantedModuleLinks(modules: AppModule[]) {
       return true
     })
 
-  if (hasInventoryAccess(modules) && !links.some((item) => item.to === '/inventario')) {
+  if ((isAdmin || hasInventoryAccess(modules)) && !links.some((item) => item.to === '/inventario')) {
     links.push(INVENTORY_ENTRY)
   }
 

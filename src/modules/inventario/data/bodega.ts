@@ -28,10 +28,8 @@ async function listActiveAndInactive<T extends { id: number }>(
   return mergeById([active, inactive])
 }
 
-export async function getBodegas(filters?: { idCformacion?: number }): Promise<BodegaApi[]> {
-  const extra: Record<string, string> = {}
-  if (filters?.idCformacion) extra.idCformacion = String(filters.idCformacion)
-  return listActiveAndInactive<BodegaApi>('/bodegas', extra)
+export async function getBodegas(): Promise<BodegaApi[]> {
+  return listActiveAndInactive<BodegaApi>('/bodegas')
 }
 
 export async function getBodega(id: string | number): Promise<BodegaApi | null> {

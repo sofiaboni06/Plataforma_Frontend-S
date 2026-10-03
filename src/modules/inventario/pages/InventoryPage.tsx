@@ -2,23 +2,17 @@ import { Link } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import { PageHeader } from '@/shared/components/DataTable'
 import { InventoryIcon } from '@/shared/components/icons/AppIcons'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
 export default function InventoryPage() {
   const { screens } = useInventoryAccess()
-  const center = useInventoryCenterOptional()
 
   return (
     <AppLayout title="Inventario">
       <PageHeader
         icon={<InventoryIcon />}
         title="Inventario"
-        description={
-          center?.centerId
-            ? `Esto es el inventario de ${center.centerName}. Crear, ver y editar se hacen dentro de cada lista.`
-            : 'Entra a la sección que te corresponde. Crear, ver y editar se hacen dentro de cada lista.'
-        }
+        description="Entra a la sección que te corresponde. Crear, ver y editar se hacen dentro de cada lista."
       />
 
       {screens.length ? (

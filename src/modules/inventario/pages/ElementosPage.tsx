@@ -35,20 +35,10 @@ import {
 } from '@/shared/components/DataTable'
 import { filterSelectClass, usePagination, useTableState } from '@/shared/lib/table'
 import { ApiError } from '@/shared/lib/api'
-import CrearCatalogoModal, {
-  type CatalogoCreado,
-} from '@/modules/inventario/components/CrearCatalogoModal'
 import ElementoFoto, { fotoUrlDelElemento } from '@/modules/inventario/components/ElementoFoto'
 import { getBodegas, getStandsBySubBodega } from '@/modules/inventario/data/bodega'
 import { getAllCategorias } from '@/modules/inventario/data/categoria'
 import { getAllItems } from '@/modules/inventario/data/item'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
-import {
-  categoriesOfCenter,
-  centerIdFromBodega,
-  elementosOfBodegas,
-  itemsOfCenter,
-} from '@/modules/inventario/lib/centro'
 import {
   createElemento,
   getClasificacionesActivas,
@@ -63,7 +53,6 @@ import { formatCantidad, lugarDelElemento } from '@/modules/inventario/lib/lugar
 import type { BodegaApi, StandResumen } from '@/modules/inventario/types/bodega'
 import type { ItemApi } from '@/modules/inventario/types/item'
 import type {
-  CatalogoElementoKind,
   ClasificacionElementoApi,
   CodigoEstandarApi,
   CreateElementoPayload,
@@ -81,6 +70,7 @@ type ElementoForm = {
   idItem: number
   idStand: number
   cantidad: number
+  cantidadMinima: string
   gramaje: string
   estado: boolean
   idUnidadMedida: number
@@ -116,7 +106,7 @@ const emptyCatalogAccess: CatalogAccess = {
 const ELEMENTO_STEPS = [
   { label: 'Producto', hint: 'Elige el ítem. El nombre del elemento se copia de ahí.' },
   { label: 'Ubicación', hint: 'Bodega, sub-bodega y stand donde queda el stock.' },
-  { label: 'Catálogo', hint: 'Unidad del centro, código interno y clasificaciones.' },
+  { label: 'Catálogo', hint: 'Unidad, código interno y listas globales. No dependen del centro.' },
   { label: 'Existencia', hint: 'Cantidad, valor, foto y datos opcionales.' },
 ] as const
 
@@ -126,6 +116,7 @@ const emptyForm: ElementoForm = {
   idItem: 0,
   idStand: 0,
   cantidad: 10,
+  cantidadMinima: '10',
   gramaje: '',
   estado: true,
   idUnidadMedida: 0,
@@ -143,8 +134,7 @@ const emptyForm: ElementoForm = {
 export default function ElementosPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { isAdmin, user } = useAuth()
-  const centerId = useInventoryCenterOptional()?.centerId ?? null
+  const { isAdmin } = useAuth()
   const { permit } = useInventoryAccess()
   const canCreate = permit('elemento.crear', 'elementos', 'create')
   const canEdit = permit('elemento.editar', 'elementos', 'edit')
@@ -162,7 +152,6 @@ export default function ElementosPage() {
   const [usos, setUsos] = useState<UsoPresupuestalApi[]>([])
   const [catalogLoading, setCatalogLoading] = useState(false)
   const [catalogAccess, setCatalogAccess] = useState<CatalogAccess>(emptyCatalogAccess)
-  const [quickKind, setQuickKind] = useState<CatalogoElementoKind | null>(null)
   const [standsDeSub, setStandsDeSub] = useState<StandResumen[]>([])
   const [categoryFilter, setCategoryFilter] = useState('Todos')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('Todos')
@@ -245,12 +234,11 @@ export default function ElementosPage() {
         getElementos(),
         getAllItems(),
         getAllCategorias(),
-        getBodegas(centerId ? { idCformacion: centerId } : undefined),
+        getBodegas(),
       ])
-      const categoriasDelCentro = categoriesOfCenter(categoryData, centerId)
-      setElementos(elementosOfBodegas(elementoData, bodegaData, centerId))
-      setItems(itemsOfCenter(itemData, categoryData, centerId))
-      setCategories(categoriasDelCentro)
+      setElementos(elementoData)
+      setItems(itemData)
+      setCategories(categoryData)
       setBodegas(bodegaData)
     } catch (caught) {
       setError(
@@ -266,7 +254,7 @@ export default function ElementosPage() {
   useEffect(() => {
     document.title = 'Gestionar elementos | SENA'
     void loadData()
-  }, [centerId])
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -279,38 +267,17 @@ export default function ElementosPage() {
     setBodegaId(lockedBodega.id)
   }, [bodegaLocked, lockedBodega, editingId])
 
-  const selectedBodega = bodegas.find((item) => item.id === bodegaId)
-  const bodegaCenterId = centerIdFromBodega(selectedBodega, {
-    isAdmin,
-    trainingCenterId: user?.trainingCenterId,
-  })
-
   useEffect(() => {
     if (!modalOpen) return
 
-    if (!bodegaCenterId) {
-      setUnidades([])
-      setClasificaciones([])
-      setCodigos([])
-      setUsos([])
-      setCatalogAccess(emptyCatalogAccess)
-      setCatalogLoading(false)
-      return
-    }
-
     let cancelled = false
     setCatalogLoading(true)
-    setUnidades([])
-    setClasificaciones([])
-    setCodigos([])
-    setUsos([])
-    setCatalogAccess(emptyCatalogAccess)
 
     Promise.all([
-      readCatalog(() => getUnidadesMedida(bodegaCenterId)),
-      readCatalog(() => getClasificacionesActivas(bodegaCenterId)),
-      readCatalog(() => getCodigosEstandar(bodegaCenterId)),
-      readCatalog(() => getUsosPresupuestales(bodegaCenterId)),
+      readCatalog(() => getUnidadesMedida()),
+      readCatalog(() => getClasificacionesActivas()),
+      readCatalog(() => getCodigosEstandar()),
+      readCatalog(() => getUsosPresupuestales()),
     ])
       .then(([unidadData, clasificacionData, codigoData, usoData]) => {
         if (cancelled) return
@@ -332,7 +299,7 @@ export default function ElementosPage() {
     return () => {
       cancelled = true
     }
-  }, [bodegaCenterId, modalOpen])
+  }, [modalOpen])
 
   useEffect(() => {
     if (!subBodegaId) {
@@ -401,6 +368,7 @@ export default function ElementosPage() {
       idItem: item.idItem ?? 0,
       idStand: item.idStand,
       cantidad: item.cantidad,
+      cantidadMinima: item.cantidadMinima == null ? '10' : String(item.cantidadMinima),
       gramaje: item.gramaje == null ? '' : String(item.gramaje),
       estado: item.estado,
       idUnidadMedida: item.idUnidadMedida,
@@ -468,13 +436,10 @@ export default function ElementosPage() {
     }
 
     if (current === 2) {
-      if (!bodegaCenterId) {
-        return 'Esta bodega no trae el centro de formación. No se pueden cargar sus catálogos.'
-      }
       if (!form.idUnidadMedida) {
         return unidades.length === 0
-          ? 'Este centro no tiene unidades de medida. Crea una antes de guardar el elemento.'
-          : 'Selecciona la unidad de medida de este centro.'
+          ? 'No hay unidades de medida activas. El administrador debe crear una.'
+          : 'Selecciona la unidad de medida.'
       }
       if (!form.codigo.trim()) return 'Escribe el código interno del inventario.'
       const taken = elementos.some(
@@ -489,7 +454,12 @@ export default function ElementosPage() {
 
     if (current === 3) {
       const cantidad = Number(form.cantidad)
-      if (!Number.isFinite(cantidad) || cantidad < 10) return 'La cantidad mínima de un elemento es 10.'
+      if (!Number.isFinite(cantidad) || cantidad < 10) return 'La cantidad, lo que hay en el stand, es mínimo 10.'
+      const minimaText = form.cantidadMinima.trim()
+      if (minimaText !== '') {
+        const minima = Number(minimaText)
+        if (!Number.isFinite(minima) || minima < 0) return 'La cantidad mínima de alerta debe ser 0 o más.'
+      }
       const gramajeText = form.gramaje.trim()
       const gramaje = gramajeText === '' ? null : Number(gramajeText)
       if (gramaje !== null && (!Number.isFinite(gramaje) || gramaje < 0)) {
@@ -531,58 +501,16 @@ export default function ElementosPage() {
   }
 
   function closeForm() {
-    if (saving || quickKind) return
+    if (saving) return
     setModalOpen(false)
     setStep(0)
     setReached(0)
   }
 
   function changeBodega(nextId: number) {
-    const nextBodega = bodegas.find((item) => item.id === nextId)
-    const nextCenter = centerIdFromBodega(nextBodega, {
-      isAdmin,
-      trainingCenterId: user?.trainingCenterId,
-    })
-    const sameCenter = Boolean(nextCenter && nextCenter === bodegaCenterId)
     setBodegaId(nextId)
     setSubBodegaId(0)
-    setQuickKind(null)
-    if (sameCenter) {
-      updateForm('idStand', 0)
-      return
-    }
-    setUnidades([])
-    setClasificaciones([])
-    setCodigos([])
-    setUsos([])
-    setCatalogAccess(emptyCatalogAccess)
-    setForm((current) => ({
-      ...current,
-      idStand: 0,
-      idUnidadMedida: 0,
-      idClasificacion: 0,
-      idCodigoEstandar: 0,
-      idUsoPresupuestal: 0,
-    }))
-  }
-
-  function acceptCatalog(kind: CatalogoElementoKind, row: CatalogoCreado) {
-    if (kind === 'unidad' && 'abreviatura' in row) {
-      setUnidades((current) => sortByNombre([...current.filter((item) => item.id !== row.id), row]))
-      updateForm('idUnidadMedida', row.id)
-    } else if (kind === 'clasificacion' && !('codigo' in row) && !('abreviatura' in row)) {
-      setClasificaciones((current) =>
-        sortByNombre([...current.filter((item) => item.id !== row.id), row]),
-      )
-      updateForm('idClasificacion', row.id)
-    } else if (kind === 'uso' && !('codigo' in row) && !('abreviatura' in row)) {
-      setUsos((current) => sortByNombre([...current.filter((item) => item.id !== row.id), row]))
-      updateForm('idUsoPresupuestal', row.id)
-    } else if (kind === 'codigo' && 'codigo' in row) {
-      setCodigos((current) => sortByNombre([...current.filter((item) => item.id !== row.id), row]))
-      updateForm('idCodigoEstandar', row.id)
-    }
-    setQuickKind(null)
+    updateForm('idStand', 0)
   }
 
   async function confirmDisable() {
@@ -634,6 +562,8 @@ export default function ElementosPage() {
     setNotice(null)
 
     const cantidad = Number(form.cantidad)
+    const minimaText = form.cantidadMinima.trim()
+    const cantidadMinima = minimaText === '' ? undefined : Number(minimaText)
 
     const gramajeText = form.gramaje.trim()
     const gramaje = gramajeText === '' ? null : Number(gramajeText)
@@ -655,6 +585,7 @@ export default function ElementosPage() {
       idItem: Number(form.idItem),
       idStand: Number(form.idStand),
       cantidad,
+      ...(typeof cantidadMinima === 'number' ? { cantidadMinima } : {}),
       estado: form.estado,
       idUnidadMedida: Number(form.idUnidadMedida),
       codigo: form.codigo.trim(),
@@ -746,7 +677,7 @@ export default function ElementosPage() {
       <PageHeader
         icon={<InventoryIcon />}
         title="Gestionar elementos"
-        description="El elemento es el stock de un ítem. La cantidad mínima es 10."
+        description="El elemento es el stock de un ítem. La cantidad en el stand es mínimo 10. La cantidad mínima es solo la alerta."
         context={<InventoryCenterBadge />}
         action={
           canCreate ? (
@@ -1067,18 +998,14 @@ export default function ElementosPage() {
                   value={form.idUnidadMedida}
                   onChange={(value) => updateForm('idUnidadMedida', value)}
                   loading={catalogLoading}
-                  hasBodega={bodegaId > 0}
-                  centerId={bodegaCenterId}
                   access={catalogAccess.unidad}
-                  emptyText="Este centro no tiene unidades de medida."
+                  emptyText="No hay unidades de medida."
                   options={withCurrentUnidad(unidades, elementos, editingId, form.idUnidadMedida).map(
                     (item) => ({
                       value: item.id,
                       label: `${item.nombre} (${item.abreviatura})`,
                     }),
                   )}
-                  canCreate={canCatalog(user?.permissions, isAdmin, 'unidad_medida.crear')}
-                  onCreate={() => setQuickKind('unidad')}
                 />
                 <div className="flex flex-col gap-1.5">
                   <TextField
@@ -1098,17 +1025,13 @@ export default function ElementosPage() {
                   value={form.idClasificacion}
                   onChange={(value) => updateForm('idClasificacion', value)}
                   loading={catalogLoading}
-                  hasBodega={bodegaId > 0}
-                  centerId={bodegaCenterId}
                   access={catalogAccess.clasificacion}
-                  emptyText="Este centro no tiene clasificaciones."
+                  emptyText="No hay clasificaciones."
                   options={withCurrentNombre(
                     clasificaciones,
                     form.idClasificacion,
                     elementos.find((item) => item.id === editingId)?.clasificacion?.nombre,
-                  ).map((item) => ({ value: item.id, label: item.nombre }))}
-                  canCreate={canCatalog(user?.permissions, isAdmin, 'clasificacion_elemento.crear')}
-                  onCreate={() => setQuickKind('clasificacion')}
+                  ).map((item) => ({ value: item.id, label: item.nombre })                  )}
                 />
                 <CatalogSelect
                   id="elemento-unspsc"
@@ -1116,18 +1039,14 @@ export default function ElementosPage() {
                   value={form.idCodigoEstandar}
                   onChange={(value) => updateForm('idCodigoEstandar', value)}
                   loading={catalogLoading}
-                  hasBodega={bodegaId > 0}
-                  centerId={bodegaCenterId}
                   access={catalogAccess.codigo}
-                  emptyText="Este centro no tiene códigos UNSPSC."
+                  emptyText="No hay códigos UNSPSC."
                   options={withCurrentCodigo(codigos, elementos, editingId, form.idCodigoEstandar).map(
                     (item) => ({
                       value: item.id,
                       label: `${item.codigo} · ${item.nombre}`,
                     }),
                   )}
-                  canCreate={canCatalog(user?.permissions, isAdmin, 'codigo_estandar.crear')}
-                  onCreate={() => setQuickKind('codigo')}
                 />
                 <CatalogSelect
                   id="elemento-uso"
@@ -1135,17 +1054,13 @@ export default function ElementosPage() {
                   value={form.idUsoPresupuestal}
                   onChange={(value) => updateForm('idUsoPresupuestal', value)}
                   loading={catalogLoading}
-                  hasBodega={bodegaId > 0}
-                  centerId={bodegaCenterId}
                   access={catalogAccess.uso}
-                  emptyText="Este centro no tiene usos presupuestales."
+                  emptyText="No hay usos presupuestales."
                   options={withCurrentNombre(
                     usos,
                     form.idUsoPresupuestal,
                     elementos.find((item) => item.id === editingId)?.usoPresupuestal?.nombre,
-                  ).map((item) => ({ value: item.id, label: item.nombre }))}
-                  canCreate={canCatalog(user?.permissions, isAdmin, 'uso_presupuestal.crear')}
-                  onCreate={() => setQuickKind('uso')}
+                  ).map((item) => ({ value: item.id, label: item.nombre })                  )}
                 />
               </div>
             ) : null}
@@ -1154,8 +1069,17 @@ export default function ElementosPage() {
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <TextField
+                    id="elemento-cantidad-minima"
+                    label="Cantidad mínima de alerta"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.cantidadMinima}
+                    onChange={(event) => updateForm('cantidadMinima', event.target.value)}
+                  />
+                  <TextField
                     id="elemento-cantidad"
-                    label="Cantidad * (mínimo 10)"
+                    label="Cantidad en el stand * (mínimo 10)"
                     type="number"
                     min="10"
                     step="1"
@@ -1275,16 +1199,6 @@ export default function ElementosPage() {
         </Modal>
       ) : null}
 
-      {quickKind && modalOpen ? (
-        <CrearCatalogoModal
-          kind={quickKind}
-          idCformacion={bodegaCenterId}
-          isAdmin={isAdmin}
-          onClose={() => setQuickKind(null)}
-          onCreated={acceptCatalog}
-        />
-      ) : null}
-
       {elementoToDisable ? (
         <ConfirmDialog
           title="Inhabilitar elemento"
@@ -1334,14 +1248,6 @@ async function readCatalog<T>(request: () => Promise<T[]>) {
 
 function flagOf(result: { forbidden: boolean; failed: boolean }): CatalogFlag {
   return { forbidden: result.forbidden, failed: result.failed }
-}
-
-function canCatalog(permissions: string[] | undefined, isAdmin: boolean, code: string) {
-  return isAdmin || permissions?.includes(code) === true
-}
-
-function sortByNombre<T extends { nombre: string }>(rows: T[]) {
-  return [...rows].sort((left, right) => left.nombre.localeCompare(right.nombre, 'es'))
 }
 
 function withCurrentNombre<T extends { id: number; nombre: string }>(
@@ -1433,12 +1339,8 @@ function CatalogSelect({
   options,
   required = false,
   loading,
-  hasBodega,
-  centerId,
   access,
   emptyText,
-  canCreate,
-  onCreate,
 }: {
   id: string
   label: string
@@ -1447,28 +1349,18 @@ function CatalogSelect({
   options: Array<{ value: number; label: string }>
   required?: boolean
   loading: boolean
-  hasBodega: boolean
-  centerId: number | null
   access: CatalogFlag
   emptyText: string
-  canCreate: boolean
-  onCreate: () => void
 }) {
-  const placeholder = !hasBodega
-    ? 'Elige la bodega'
-    : !centerId
-      ? 'Esta bodega no trae el centro de formación'
-      : loading
-        ? 'Cargando…'
-        : access.forbidden
-          ? 'Sin permiso para ver este catálogo'
-          : access.failed
-            ? 'No se pudo cargar'
-            : options.length === 0
-              ? emptyText
-              : 'Selecciona...'
-  const showCreate =
-    Boolean(centerId) && !loading && !access.forbidden && !access.failed && options.length === 0 && canCreate
+  const placeholder = loading
+    ? 'Cargando…'
+    : access.forbidden
+      ? 'Sin permiso para ver este catálogo'
+      : access.failed
+        ? 'No se pudo cargar'
+        : options.length === 0
+          ? emptyText
+          : 'Selecciona...'
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -1479,7 +1371,7 @@ function CatalogSelect({
         id={id}
         value={value || ''}
         onChange={(event) => onChange(Number(event.target.value))}
-        disabled={!centerId || loading || access.forbidden}
+        disabled={loading || access.forbidden}
         required={required}
         className="h-11 w-full rounded-lg bg-sena-muted px-3.5 text-sm text-sena-text outline-none focus:bg-white focus:ring-2 focus:ring-sena/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
@@ -1490,13 +1382,6 @@ function CatalogSelect({
           </option>
         ))}
       </select>
-      {showCreate ? (
-        <p className="text-xs text-sena-text/60">
-          <button type="button" className="font-semibold text-sena" onClick={onCreate}>
-            Crear en este centro
-          </button>
-        </p>
-      ) : null}
     </div>
   )
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/context/auth'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import Button from '@/shared/components/ui/Button'
 import { api } from '@/shared/lib/api'
 import type { BodegaApi } from '@/modules/inventario/types/bodega'
@@ -75,8 +74,6 @@ function StatusSwitch({ checked, onChange }: { checked: boolean; onChange: () =>
 export default function BodegaForm({ mode, initialData, loading = false, onSubmit }: BodegaFormProps) {
   const navigate = useNavigate()
   const { isAdmin, user } = useAuth()
-  const lockedCenter = useInventoryCenterOptional()
-  const lockedCenterId = lockedCenter?.centerId ?? null
   const [nombre, setNombre] = useState('')
   const [estado, setEstado] = useState(true)
   const [error, setError] = useState('')
@@ -88,18 +85,8 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
     if (!initialData) return
     setNombre(initialData.nombre)
     setEstado(initialData.estado)
-    setTrainingCenterId(
-      lockedCenterId && mode === 'create'
-        ? String(lockedCenterId)
-        : initialData.idCformacion
-          ? String(initialData.idCformacion)
-          : '',
-    )
-  }, [initialData, lockedCenterId, mode])
-
-  useEffect(() => {
-    if (mode === 'create' && lockedCenterId) setTrainingCenterId(String(lockedCenterId))
-  }, [lockedCenterId, mode])
+    setTrainingCenterId(initialData.idCformacion ? String(initialData.idCformacion) : '')
+  }, [initialData])
 
   useEffect(() => {
     let cancelled = false
@@ -132,6 +119,8 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
     }
   }, [isAdmin])
 
+  const isCreate = mode === 'create'
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
@@ -151,14 +140,12 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
       await onSubmit({
         nombre: cleanName,
         estado,
-        ...(isAdmin && trainingCenterId ? { idCformacion: Number(trainingCenterId) } : {}),
+        ...(isCreate && isAdmin && trainingCenterId ? { idCformacion: Number(trainingCenterId) } : {}),
       })
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'No se pudo guardar la bodega.')
     }
   }
-
-  const isCreate = mode === 'create'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-sena-forest/45 px-4 py-6 backdrop-blur-[6px]">
@@ -177,7 +164,7 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
               </h2>
               <p className="mt-1 text-sm text-sena-strong">
                 {isCreate
-                  ? 'La bodega queda en un centro. Los stands se agregan sobre una sub-bodega que ya exista.'
+                  ? 'Elige el centro. Si es de otro centro, no se abre aquí: se asigna en Usuarios.'
                   : `Modificando ${initialData?.nombre ?? 'bodega'}`}
               </p>
             </div>
@@ -211,21 +198,7 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
                 disabled={loading}
               />
 
-              {isAdmin && lockedCenterId ? (
-                <div className="flex flex-col gap-1.5">
-                  <span className="form-label">Centro de formación</span>
-                  <div className="form-static">
-                    {mode === 'edit'
-                      ? (centers.find((center) => String(center.id) === trainingCenterId)?.name ||
-                        lockedCenter?.centerName ||
-                        'Centro seleccionado')
-                      : (lockedCenter?.centerName || 'Centro seleccionado')}
-                  </div>
-                  <p className="form-hint">
-                    Queda en el centro que elegiste al entrar a inventario.
-                  </p>
-                </div>
-              ) : isAdmin ? (
+              {isAdmin && isCreate ? (
                 <label className="flex flex-col gap-1.5">
                   <span className="form-label">Centro de formación *</span>
                   <select
@@ -244,6 +217,16 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
                     ))}
                   </select>
                 </label>
+              ) : isAdmin ? (
+                <div className="flex flex-col gap-1.5">
+                  <span className="form-label">Centro de formación</span>
+                  <div className="form-static">
+                    {initialData?.centroFormacion?.nombre ||
+                      centers.find((center) => String(center.id) === trainingCenterId)?.name ||
+                      'Centro de la bodega'}
+                  </div>
+                  <p className="form-hint">El centro no se cambia al editar.</p>
+                </div>
               ) : (
                 <div className="flex flex-col gap-1.5">
                   <span className="form-label">Centro de formación</span>

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { BellIcon, MenuIcon } from '@/shared/components/icons/AppIcons'
 import SenaMark from '@/shared/components/icons/SenaMark'
 import { useAuth } from '@/modules/auth/context/auth'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import Sidebar from './Sidebar'
 
 type AppLayoutProps = {
@@ -57,10 +56,8 @@ const notifications = [
 export default function AppLayout({
   title,
   children,
-  showCenterBanner = true,
 }: AppLayoutProps) {
   const { user } = useAuth()
-  const inventoryCenter = useInventoryCenterOptional()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
@@ -282,22 +279,6 @@ export default function AppLayout({
           id="contenido"
           className="w-full flex-1 px-5 py-3 sm:px-7 sm:py-4"
         >
-          {showCenterBanner && inventoryCenter?.isAdmin && inventoryCenter.centerId ? (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-glass-line bg-glass px-5 py-2 shadow-hairline backdrop-blur-glass">
-              <p className="text-[0.8125rem] text-sena-text">
-                <span className="text-sena-text-soft">Inventario de</span>{' '}
-                <span className="font-semibold">{inventoryCenter.centerName}</span>
-                <span className="text-sena-text-soft"> · {inventoryCenter.regional}</span>
-              </p>
-              <button
-                type="button"
-                onClick={inventoryCenter.clear}
-                className="rounded-full border border-sena-line bg-glass-strong px-5 py-1 text-[0.8125rem] font-semibold text-sena-strong shadow-hairline backdrop-blur-glass-sm transition duration-150 hover:border-sena/45 hover:bg-white/90 hover:text-sena-dark"
-              >
-                Cambiar centro
-              </button>
-            </div>
-          ) : null}
           {children}
         </main>
       </div>
