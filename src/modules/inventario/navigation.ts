@@ -36,55 +36,55 @@ export const INVENTORY_SCREENS: InventoryScreen[] = [
   {
     code: 'categorias',
     label: 'Categorías',
-    description: 'Clasificación del producto. La subcategoría cuelga de la categoría.',
+    description: 'Catálogo estándar, el mismo para todos los centros. La subcategoría cuelga de la categoría.',
     to: '/inventario/categorias',
   },
   {
     code: 'items',
     label: 'Ítems',
-    description: 'Ficha del producto: nombre, categoría y descripción.',
+    description: 'Ficha del producto de tu centro. La subcategoría sale del catálogo global.',
     to: '/inventario/items',
   },
   {
     code: 'elementos',
     label: 'Elementos',
-    description: 'Stock de un ítem: cantidad, ubicación y valor.',
+    description: 'Stock de un ítem de tu centro: cantidad, stand y valor.',
     to: '/inventario/elementos',
   },
   {
     code: 'clasificaciones',
     label: 'Clasificaciones',
-    description: 'Catálogo del centro. El elemento guarda el id, no el nombre.',
+    description: 'Catálogo estándar. La misma lista para todos los centros.',
     to: '/inventario/clasificaciones',
   },
   {
     code: 'unidades',
     label: 'Unidades de medida',
-    description: 'Catálogo del centro. Sin una unidad activa no se puede crear el elemento.',
+    description: 'Catálogo estándar. La misma lista para todos los centros.',
     to: '/inventario/unidades',
   },
   {
     code: 'usos',
     label: 'Usos presupuestales',
-    description: 'Partida del centro. No es el código UNSPSC.',
+    description: 'Partida de la ficha. No es el código UNSPSC. La misma lista para todos los centros.',
     to: '/inventario/usos-presupuestales',
   },
   {
     code: 'codigos',
     label: 'Códigos UNSPSC',
-    description: 'Catálogo del centro. El elemento guarda el id, no el código escrito.',
+    description: 'Catálogo estándar. El elemento guarda el id, no el código escrito.',
     to: '/inventario/codigos-estandar',
   },
   {
     code: 'bodegas',
     label: 'Bodegas',
-    description: 'Espacios del centro. Cada una agrupa sub-bodegas.',
+    description: 'Bodegas de tu centro. El alta elige el centro; la de otro centro se asigna en Usuarios.',
     to: '/inventario/bodegas',
   },
   {
     code: 'stands',
     label: 'Stands',
-    description: 'Ubicaciones dentro de cada sub-bodega.',
+    description: 'Ubicaciones dentro de una sub-bodega de tu bodega.',
     to: '/inventario/stands',
   },
 ]
@@ -180,123 +180,111 @@ export function classifyInventoryModule(mod: AppModule): InventoryGrant | null {
   return { screen, kind }
 }
 
-function inventoryGrants(modules: AppModule[]) {
-  return modules.flatMap((mod) => {
-    const grant = classifyInventoryModule(mod)
-    return grant ? [grant] : []
-  })
-}
-
 export function hasInventoryAccess(modules: AppModule[]) {
   return modules.some((mod) => isInventoryParent(mod) || classifyInventoryModule(mod) !== null)
 }
 
-const CATALOG_SCREENS = new Set<InventoryScreenCode>([
+const CENTER_OPERATION = new Set<InventoryScreenCode>(['items', 'elementos', 'stands'])
+
+const ADMIN_MENU = new Set<InventoryScreenCode>([
+  'categorias',
   'clasificaciones',
   'unidades',
   'usos',
   'codigos',
+  'bodegas',
 ])
 
-export function canSeeClasificaciones(access: InventoryCaller = {}) {
-  return canSeeCatalog('clasificaciones', access)
+const VIEW_CODE: Record<InventoryScreenCode, string> = {
+  categorias: 'categoria.ver',
+  items: 'item.ver',
+  elementos: 'elemento.ver',
+  clasificaciones: 'clasificacion_elemento.ver',
+  unidades: 'unidad_medida.ver',
+  usos: 'uso_presupuestal.ver',
+  codigos: 'elemento.ver',
+  bodegas: 'bodega.ver',
+  stands: 'stand.ver',
 }
 
-export function canSeeCatalog(code: InventoryScreenCode, access: InventoryCaller = {}) {
-  if (!CATALOG_SCREENS.has(code)) return true
-  if (access.isAdmin) return true
-  const permission =
-    code === 'clasificaciones'
-      ? 'clasificacion_elemento.ver'
-      : code === 'unidades'
-        ? 'unidad_medida.ver'
-        : code === 'usos'
-          ? 'uso_presupuestal.ver'
-          : 'elemento.ver'
-  return access.permissions?.includes(permission) ?? false
+const WRITE_CODE: Partial<Record<InventoryScreenCode, Partial<Record<InventoryAction, string>>>> = {
+  categorias: { create: 'categoria.crear', edit: 'categoria.editar' },
+  items: { create: 'item.crear', edit: 'item.editar' },
+  elementos: { create: 'elemento.crear', edit: 'elemento.editar' },
+  clasificaciones: { create: 'clasificacion_elemento.crear', edit: 'clasificacion_elemento.editar' },
+  unidades: { create: 'unidad_medida.crear', edit: 'unidad_medida.editar' },
+  usos: { create: 'uso_presupuestal.crear', edit: 'uso_presupuestal.editar' },
+  codigos: { create: 'codigo_estandar.crear', edit: 'codigo_estandar.editar' },
+  bodegas: { create: 'bodega.crear', edit: 'bodega.editar' },
+  stands: { create: 'stand.crear', edit: 'stand.editar' },
 }
 
-export function visibleInventoryScreens(modules: AppModule[], access: InventoryCaller = {}) {
-  const grants = inventoryGrants(modules)
-  const base =
-    grants.length === 0
-      ? modules.some(isInventoryParent)
-        ? INVENTORY_SCREENS
-        : []
-      : INVENTORY_SCREENS.filter((screen) =>
-          grants.some((grant) => grant.screen === screen.code),
-        )
+const CATALOG_WRITE = new Set([
+  'categoria.crear',
+  'categoria.editar',
+  'categoria.eliminar',
+  'subcategoria.crear',
+  'subcategoria.editar',
+  'clasificacion_elemento.crear',
+  'clasificacion_elemento.editar',
+  'clasificacion_elemento.eliminar',
+  'unidad_medida.crear',
+  'unidad_medida.editar',
+  'unidad_medida.eliminar',
+  'uso_presupuestal.crear',
+  'uso_presupuestal.editar',
+  'uso_presupuestal.eliminar',
+  'codigo_estandar.crear',
+  'codigo_estandar.editar',
+  'codigo_estandar.eliminar',
+])
 
-  const allowed = withItemsBesideElementos(base).filter(
-    (screen) => !CATALOG_SCREENS.has(screen.code) || canSeeCatalog(screen.code, access),
-  )
-
-  return placeCatalogs(injectCatalogs(allowed, modules, access))
-}
-
-function injectCatalogs(
-  screens: InventoryScreen[],
-  modules: AppModule[],
-  access: InventoryCaller,
+export function allowsPermission(
+  isAdmin: boolean,
+  permissions: string[] | undefined,
+  code: string,
 ) {
-  if (!hasInventoryAccess(modules)) return screens
-
-  const missing = INVENTORY_SCREENS.filter(
-    (screen) =>
-      CATALOG_SCREENS.has(screen.code) &&
-      canSeeCatalog(screen.code, access) &&
-      !screens.some((item) => item.code === screen.code),
-  )
-  if (!missing.length) return screens
-
-  const index = screens.findIndex((screen) => screen.code === 'elementos')
-  if (index === -1) return [...screens, ...missing]
-  return [...screens.slice(0, index + 1), ...missing, ...screens.slice(index + 1)]
+  if (isAdmin && /^(item|elemento|stand)\./.test(code)) return false
+  if (!isAdmin && CATALOG_WRITE.has(code)) return false
+  return permissions?.includes(code) === true
 }
 
-function placeCatalogs(screens: InventoryScreen[]) {
-  const catalogs = INVENTORY_SCREENS.filter(
-    (screen) => CATALOG_SCREENS.has(screen.code) && screens.some((item) => item.code === screen.code),
-  )
-  const rest = screens.filter((screen) => !CATALOG_SCREENS.has(screen.code))
-  const index = rest.findIndex((screen) => screen.code === 'elementos')
-  if (index === -1) return [...rest, ...catalogs]
-  return [...rest.slice(0, index + 1), ...catalogs, ...rest.slice(index + 1)]
+function actionCode(screen: InventoryScreenCode, action: InventoryAction) {
+  if (action === 'list' || action === 'view') return VIEW_CODE[screen]
+  return WRITE_CODE[screen]?.[action] ?? VIEW_CODE[screen]
 }
 
-function withItemsBesideElementos(screens: InventoryScreen[]) {
-  if (
-    !screens.some((screen) => screen.code === 'elementos') ||
-    screens.some((screen) => screen.code === 'items')
-  ) {
-    return screens
+function canUseAction(screen: InventoryScreenCode, action: InventoryAction, access: InventoryCaller) {
+  if (access.isAdmin && screen === 'codigos' && (action === 'list' || action === 'view')) {
+    return true
+  }
+  return allowsPermission(access.isAdmin === true, access.permissions, actionCode(screen, action))
+}
+
+export function visibleInventoryScreens(access: InventoryCaller = {}) {
+  if (access.isAdmin) {
+    return INVENTORY_SCREENS.filter((screen) => ADMIN_MENU.has(screen.code))
   }
 
-  const items = INVENTORY_SCREENS.find((screen) => screen.code === 'items')
-  if (!items) return screens
-
-  const index = screens.findIndex((screen) => screen.code === 'elementos')
-  return [...screens.slice(0, index), items, ...screens.slice(index)]
+  const permissions = access.permissions ?? []
+  return INVENTORY_SCREENS.filter((screen) => permissions.includes(VIEW_CODE[screen.code]))
 }
 
 export function canSeeInventoryScreen(
-  modules: AppModule[],
   code: InventoryScreenCode,
   access: InventoryCaller = {},
 ) {
-  return visibleInventoryScreens(modules, access).some((screen) => screen.code === code)
+  return visibleInventoryScreens(access).some((screen) => screen.code === code)
 }
 
-export function canInventoryAction(modules: AppModule[], code: InventoryScreenCode, action: InventoryAction) {
-  if (!canSeeInventoryScreen(modules, code)) return false
-
-  const grants = inventoryGrants(modules).filter((grant) => grant.screen === code)
-  if (code === 'items' && grants.length === 0) {
-    return canInventoryAction(modules, 'elementos', action)
-  }
-  if (grants.length === 0 || grants.some((grant) => grant.kind === 'screen')) return true
-  if (action === 'list') return true
-  return grants.some((grant) => grant.kind === action)
+export function canInventoryAction(
+  code: InventoryScreenCode,
+  action: InventoryAction,
+  access: InventoryCaller = {},
+) {
+  if (!canSeeInventoryScreen(code, access)) return false
+  if (access.isAdmin && CENTER_OPERATION.has(code)) return false
+  return canUseAction(code, action, access)
 }
 
 export function canOpenInventoryPath(
@@ -304,15 +292,14 @@ export function canOpenInventoryPath(
   modules: AppModule[],
   access: InventoryCaller = {},
 ) {
-  if (path === '/inventario') return hasInventoryAccess(modules)
+  if (path === '/inventario') {
+    return access.isAdmin === true || visibleInventoryScreens(access).length > 0 || hasInventoryAccess(modules)
+  }
 
   const located = locateInventoryPath(path)
   if (!located) return false
-  if (CATALOG_SCREENS.has(located.screen)) {
-    return canSeeCatalog(located.screen, access) && hasInventoryAccess(modules)
-  }
-  if (located.action === 'list') return canSeeInventoryScreen(modules, located.screen, access)
-  return canInventoryAction(modules, located.screen, located.action)
+  if (access.isAdmin && CENTER_OPERATION.has(located.screen)) return false
+  return canUseAction(located.screen, located.action, access)
 }
 
 export function isInventoryDescendantPath(path: string) {

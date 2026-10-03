@@ -3,8 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
 import TextField from '@/shared/components/ui/TextField'
-import { useAuth } from '@/modules/auth/context/auth'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { ApiError, api } from '@/shared/lib/api'
 import {
   createSubcategoria,
@@ -13,7 +11,6 @@ import {
 } from '@/modules/inventario/data/categoria'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import type { CategoryApi, SubcategoryApi } from '@/shared/types/category'
-import type { UserFormOptions } from '@/shared/types/profile'
 
 type SubcategoryDraft = {
   id: number
@@ -22,21 +19,16 @@ type SubcategoryDraft = {
 
 export default function CreateInventoryCategoryPage() {
   const navigate = useNavigate()
-  const { isAdmin, user } = useAuth()
-  const lockedCenter = useInventoryCenterOptional()
-  const lockedCenterId = lockedCenter?.centerId ?? null
   const { permit } = useInventoryAccess()
   const canCreateSub = permit('subcategoria.crear', 'categorias', 'create')
 
   const [name, setName] = useState('')
-  const [trainingCenterId, setTrainingCenterId] = useState('')
   const [active, setActive] = useState(true)
-  const [centers, setCenters] = useState<UserFormOptions['centers']>([])
   const [existingCategories, setExistingCategories] = useState<CategoryApi[]>([])
   const [existingSubcategories, setExistingSubcategories] = useState<SubcategoryApi[]>([])
   const [subcategories, setSubcategories] = useState<SubcategoryDraft[]>([])
   const [subcategoryName, setSubcategoryName] = useState('')
-  const [loadingCenters, setLoadingCenters] = useState(true)
+  const [loadingLists, setLoadingLists] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [warningMessage, setWarningMessage] = useState<string | null>(null)
@@ -46,16 +38,11 @@ export default function CreateInventoryCategoryPage() {
   }, [])
 
   useEffect(() => {
-    if (lockedCenterId) setTrainingCenterId(String(lockedCenterId))
-  }, [lockedCenterId])
-
-  useEffect(() => {
     let cancelled = false
 
-    async function loadCenters() {
+    async function loadLists() {
       try {
-        const [options, categoryList, subcategoryList] = await Promise.all([
-          isAdmin ? api<UserFormOptions>('/users/options') : Promise.resolve(null),
+        const [categoryList, subcategoryList] = await Promise.all([
           getAllCategorias(),
           canCreateSub
             ? getSubcategorias().catch((caught: unknown) => {
@@ -67,18 +54,6 @@ export default function CreateInventoryCategoryPage() {
 
         if (cancelled) return
 
-        if (isAdmin) {
-          setCenters(options?.centers ?? [])
-        } else if (user?.trainingCenterId) {
-          setTrainingCenterId(String(user.trainingCenterId))
-          setCenters([
-            {
-              id: user.trainingCenterId,
-              name: user.trainingCenter,
-              regional: '',
-            },
-          ])
-        }
         setExistingCategories(categoryList)
         setExistingSubcategories(subcategoryList)
       } catch (caught) {
@@ -86,20 +61,20 @@ export default function CreateInventoryCategoryPage() {
           setError(
             caught instanceof ApiError
               ? caught.message
-              : 'No se pudieron cargar los centros de formación.',
+              : 'No se pudieron cargar las categorías.',
           )
         }
       } finally {
-        if (!cancelled) setLoadingCenters(false)
+        if (!cancelled) setLoadingLists(false)
       }
     }
 
-    void loadCenters()
+    void loadLists()
 
     return () => {
       cancelled = true
     }
-  }, [canCreateSub, isAdmin, user])
+  }, [canCreateSub])
 
   const normalizeName = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ')
 
@@ -141,26 +116,18 @@ export default function CreateInventoryCategoryPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (!name.trim() || (isAdmin && !trainingCenterId)) {
+    if (!name.trim()) {
       setError('Completa el nombre de la categoría.')
       return
     }
 
     const normalizedName = name.trim().toLowerCase()
     const duplicatedCategory = existingCategories.some(
-      (category) =>
-        category.nombre.trim().toLowerCase() === normalizedName &&
-        (!lockedCenterId || category.idCformacion === lockedCenterId),
+      (category) => category.nombre.trim().toLowerCase() === normalizedName,
     )
 
     if (duplicatedCategory) {
       setWarningMessage(`La categoría "${name.trim()}" ya está creada.`)
-      return
-    }
-
-    const centerId = Number(trainingCenterId)
-    if (isAdmin && (!Number.isInteger(centerId) || centerId <= 0)) {
-      setError('Selecciona un centro de formación válido.')
       return
     }
 
@@ -190,7 +157,6 @@ export default function CreateInventoryCategoryPage() {
         body: JSON.stringify({
           nombre: name.trim(),
           estado: active,
-          ...(isAdmin ? { idCformacion: centerId } : {}),
         }),
       })
 
@@ -258,7 +224,7 @@ export default function CreateInventoryCategoryPage() {
                 Información de la categoría
               </h1>
               <p className="mt-1 text-sm text-sena-text/55">
-                La categoría guarda nombre, estado y centro. Cada subcategoría se crea aparte.
+                La categoría guarda nombre y estado. No lleva centro. Cada subcategoría se crea aparte.
               </p>
             </div>
           </div>
@@ -268,46 +234,6 @@ export default function CreateInventoryCategoryPage() {
           ) : null}
 
           <div className="mt-7 grid gap-5">
-            {isAdmin && lockedCenterId ? (
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-sena-text/75">Centro de formación</span>
-                <div className="flex h-11 items-center rounded-lg bg-sena-muted px-3.5 text-sm font-medium text-sena-text">
-                  {lockedCenter?.centerName}
-                </div>
-                <p className="text-xs text-sena-text/55">
-                  La categoría queda en el centro que elegiste al entrar a inventario.
-                </p>
-              </div>
-            ) : isAdmin ? (
-              <SelectField
-                id="trainingCenterId"
-                label="Centro de formación"
-                required
-                value={trainingCenterId}
-                onChange={setTrainingCenterId}
-                disabled={loadingCenters || saving}
-                placeholder={
-                  loadingCenters
-                    ? 'Cargando centros de formación...'
-                    : 'Selecciona un centro de formación'
-                }
-                options={centers.map((center) => ({
-                  value: String(center.id),
-                  label: center.regional ? `${center.name} — ${center.regional}` : center.name,
-                }))}
-              />
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-sena-text/75">Centro de formación</span>
-                <div className="flex h-11 items-center rounded-lg bg-sena-muted px-3.5 text-sm font-medium text-sena-text">
-                  {user?.trainingCenter || 'Tu centro de formación'}
-                </div>
-                <p className="text-xs text-sena-text/55">
-                  La categoría queda en el centro de tu usuario.
-                </p>
-              </div>
-            )}
-
             <TextField
               id="categoryName"
               label="Nombre de la categoría"
@@ -397,7 +323,7 @@ export default function CreateInventoryCategoryPage() {
             </Link>
             <Button
               type="submit"
-              disabled={saving || loadingCenters || (isAdmin && !trainingCenterId) || !name.trim()}
+              disabled={saving || loadingLists || !name.trim()}
             >
               {saving ? 'Guardando…' : 'Guardar categoría'}
             </Button>

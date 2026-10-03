@@ -9,36 +9,15 @@ import type {
   UsoPresupuestalApi,
 } from '@/modules/inventario/types/elemento'
 
-function withCenter(path: string, idCformacion?: number | null, extra?: Record<string, string>) {
-  const params = new URLSearchParams()
-  if (idCformacion) params.set('idCformacion', String(idCformacion))
-  if (extra) {
-    for (const [key, value] of Object.entries(extra)) params.set(key, value)
-  }
-  const query = params.toString()
-  return query ? `${path}?${query}` : path
-}
-
-function ofThisCenter<T extends { idCformacion?: number }>(rows: T[], idCformacion?: number | null) {
-  if (!idCformacion) return rows
-  return rows.filter((row) => row.idCformacion == null || row.idCformacion === idCformacion)
-}
-
 function byNombre<T extends { nombre: string }>(rows: T[]) {
   return [...rows].sort((left, right) => left.nombre.localeCompare(right.nombre, 'es'))
 }
 
-async function listActiveAndOff<T extends { id: number; nombre: string; idCformacion?: number }>(
-  path: string,
-  idCformacion?: number | null,
-) {
-  const active = ofThisCenter(await api<T[]>(withCenter(path, idCformacion)), idCformacion)
+async function listActiveAndOff<T extends { id: number; nombre: string }>(path: string) {
+  const active = await api<T[]>(path)
   let inactive: T[] = []
   try {
-    inactive = ofThisCenter(
-      await api<T[]>(withCenter(path, idCformacion, { estado: 'false' })),
-      idCformacion,
-    )
+    inactive = await api<T[]>(`${path}?estado=false`)
   } catch {
     inactive = []
   }
@@ -81,20 +60,19 @@ export function uploadElementoFotografia(id: string | number, file: File): Promi
   })
 }
 
-export async function getUnidadesMedida(idCformacion?: number | null): Promise<UnidadMedidaApi[]> {
-  const rows = await api<UnidadMedidaApi[]>(withCenter('/unidades-medida', idCformacion))
-  return byNombre(ofThisCenter(rows, idCformacion))
+export async function getUnidadesMedida(): Promise<UnidadMedidaApi[]> {
+  const rows = await api<UnidadMedidaApi[]>('/unidades-medida')
+  return byNombre(rows)
 }
 
-export function getUnidadesMedidaTodas(idCformacion?: number | null) {
-  return listActiveAndOff<UnidadMedidaApi>('/unidades-medida', idCformacion)
+export function getUnidadesMedidaTodas() {
+  return listActiveAndOff<UnidadMedidaApi>('/unidades-medida')
 }
 
 export function createUnidadMedida(payload: {
   nombre: string
   abreviatura: string
   estado?: boolean
-  idCformacion?: number
 }) {
   return api<UnidadMedidaApi>('/unidades-medida', {
     method: 'POST',
@@ -116,18 +94,20 @@ export function disableUnidadMedida(id: string | number) {
   return api<UnidadMedidaApi>(`/unidades-medida/${id}`, { method: 'DELETE' })
 }
 
-export async function getClasificacionesActivas(
-  idCformacion?: number | null,
-): Promise<ClasificacionElementoApi[]> {
-  const rows = await api<ClasificacionElementoApi[]>(withCenter('/clasificaciones-elemento', idCformacion))
-  return byNombre(ofThisCenter(rows, idCformacion))
+export async function getClasificacionesActivas(): Promise<ClasificacionElementoApi[]> {
+  const rows = await api<ClasificacionElementoApi[]>('/clasificaciones-elemento')
+  return byNombre(rows)
 }
 
-export function getClasificaciones(idCformacion?: number | null) {
-  return listActiveAndOff<ClasificacionElementoApi>('/clasificaciones-elemento', idCformacion)
+export function getClasificaciones() {
+  return listActiveAndOff<ClasificacionElementoApi>('/clasificaciones-elemento')
 }
 
-export function createClasificacion(payload: { nombre: string; estado?: boolean; idCformacion?: number }) {
+export function createClasificacion(payload: {
+  nombre: string
+  caracter: 'consumo' | 'devolutivo'
+  estado?: boolean
+}) {
   return api<ClasificacionElementoApi>('/clasificaciones-elemento', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -136,7 +116,7 @@ export function createClasificacion(payload: { nombre: string; estado?: boolean;
 
 export function updateClasificacion(
   id: string | number,
-  payload: { nombre?: string; estado?: boolean },
+  payload: { nombre?: string; caracter?: 'consumo' | 'devolutivo'; estado?: boolean },
 ) {
   return api<ClasificacionElementoApi>(`/clasificaciones-elemento/${id}`, {
     method: 'PATCH',
@@ -150,16 +130,12 @@ export function disableClasificacion(id: string | number) {
   })
 }
 
-export async function getCodigosEstandar(idCformacion?: number | null): Promise<CodigoEstandarApi[]> {
-  const rows = await api<CodigoEstandarApi[]>(withCenter('/codigos-estandar', idCformacion))
-  return byNombre(ofThisCenter(rows, idCformacion))
+export async function getCodigosEstandar(): Promise<CodigoEstandarApi[]> {
+  const rows = await api<CodigoEstandarApi[]>('/codigos-estandar')
+  return byNombre(rows)
 }
 
-export function createCodigoEstandar(payload: {
-  codigo: string
-  nombre: string
-  idCformacion?: number
-}) {
+export function createCodigoEstandar(payload: { codigo: string; nombre: string }) {
   return api<CodigoEstandarApi>('/codigos-estandar', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -180,22 +156,16 @@ export function deleteCodigoEstandar(id: string | number) {
   return api<unknown>(`/codigos-estandar/${id}`, { method: 'DELETE' })
 }
 
-export async function getUsosPresupuestales(
-  idCformacion?: number | null,
-): Promise<UsoPresupuestalApi[]> {
-  const rows = await api<UsoPresupuestalApi[]>(withCenter('/usos-presupuestales', idCformacion))
-  return byNombre(ofThisCenter(rows, idCformacion))
+export async function getUsosPresupuestales(): Promise<UsoPresupuestalApi[]> {
+  const rows = await api<UsoPresupuestalApi[]>('/usos-presupuestales')
+  return byNombre(rows)
 }
 
-export function getUsosPresupuestalesTodos(idCformacion?: number | null) {
-  return listActiveAndOff<UsoPresupuestalApi>('/usos-presupuestales', idCformacion)
+export function getUsosPresupuestalesTodos() {
+  return listActiveAndOff<UsoPresupuestalApi>('/usos-presupuestales')
 }
 
-export function createUsoPresupuestal(payload: {
-  nombre: string
-  estado?: boolean
-  idCformacion?: number
-}) {
+export function createUsoPresupuestal(payload: { nombre: string; estado?: boolean }) {
   return api<UsoPresupuestalApi>('/usos-presupuestales', {
     method: 'POST',
     body: JSON.stringify(payload),

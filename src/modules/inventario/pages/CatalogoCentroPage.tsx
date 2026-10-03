@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
-import InventoryCenterBadge from '@/modules/inventario/components/InventoryCenterBadge'
 import {
   InventoryIcon,
   PencilIcon,
@@ -33,7 +32,6 @@ import {
 import { filterSelectClass, usePagination, useTableState } from '@/shared/lib/table'
 import { ApiError } from '@/shared/lib/api'
 import { useAuth } from '@/modules/auth/context/auth'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import {
   createClasificacion,
   createCodigoEstandar,
@@ -62,6 +60,7 @@ type CatalogRow = {
   estado?: boolean
   abreviatura?: string
   codigo?: string
+  caracter?: 'consumo' | 'devolutivo'
 }
 
 type CatalogDraft = {
@@ -69,7 +68,7 @@ type CatalogDraft = {
   abreviatura?: string
   codigo?: string
   estado?: boolean
-  idCformacion?: number
+  caracter?: 'consumo' | 'devolutivo'
 }
 
 type CatalogConfig = {
@@ -84,7 +83,8 @@ type CatalogConfig = {
   removesRow: boolean
   permissions: { create: string; edit: string; remove: string }
   fields: Array<{ key: 'nombre' | 'abreviatura' | 'codigo'; label: string; max: number }>
-  load: (centerId: number | null) => Promise<CatalogRow[]>
+  asksCaracter?: boolean
+  load: () => Promise<CatalogRow[]>
   create: (draft: CatalogDraft) => Promise<CatalogRow>
   update: (id: number, draft: CatalogDraft) => Promise<CatalogRow>
   remove: (id: number) => Promise<unknown>
@@ -100,7 +100,7 @@ const CONFIGS: Record<CatalogoElementoKind, CatalogConfig> = {
     singular: 'clasificación',
     nuevo: 'Nueva clasificación',
     noun: 'clasificaciones',
-    empty: 'Este centro no tiene clasificaciones.',
+    empty: 'No hay clasificaciones.',
     searchPlaceholder: 'Buscar clasificación...',
     hasEstado: true,
     removesRow: false,
@@ -110,9 +110,20 @@ const CONFIGS: Record<CatalogoElementoKind, CatalogConfig> = {
       remove: 'clasificacion_elemento.eliminar',
     },
     fields: [{ key: 'nombre', label: 'Nombre *', max: 150 }],
-    load: (centerId) => getClasificaciones(centerId),
-    create: (draft) => createClasificacion(draft),
-    update: (id, draft) => updateClasificacion(id, { nombre: draft.nombre, estado: draft.estado }),
+    asksCaracter: true,
+    load: () => getClasificaciones(),
+    create: (draft) =>
+      createClasificacion({
+        nombre: draft.nombre,
+        caracter: draft.caracter === 'devolutivo' ? 'devolutivo' : 'consumo',
+        estado: draft.estado,
+      }),
+    update: (id, draft) =>
+      updateClasificacion(id, {
+        nombre: draft.nombre,
+        caracter: draft.caracter === 'devolutivo' ? 'devolutivo' : 'consumo',
+        estado: draft.estado,
+      }),
     remove: (id) => disableClasificacion(id),
     disableTitle: 'Inhabilitar clasificación',
     disableBody: (nombre) => `¿Deseas inhabilitar ${nombre}? Deja de aparecer en el elemento.`,
@@ -124,7 +135,7 @@ const CONFIGS: Record<CatalogoElementoKind, CatalogConfig> = {
     singular: 'unidad de medida',
     nuevo: 'Nueva unidad',
     noun: 'unidades',
-    empty: 'Este centro no tiene unidades de medida.',
+    empty: 'No hay unidades de medida.',
     searchPlaceholder: 'Buscar unidad...',
     hasEstado: true,
     removesRow: false,
@@ -137,13 +148,12 @@ const CONFIGS: Record<CatalogoElementoKind, CatalogConfig> = {
       { key: 'nombre', label: 'Nombre *', max: 80 },
       { key: 'abreviatura', label: 'Abreviatura *', max: 20 },
     ],
-    load: (centerId) => getUnidadesMedidaTodas(centerId),
+    load: () => getUnidadesMedidaTodas(),
     create: (draft) =>
       createUnidadMedida({
         nombre: draft.nombre,
         abreviatura: draft.abreviatura ?? '',
         estado: draft.estado,
-        idCformacion: draft.idCformacion,
       }),
     update: (id, draft) =>
       updateUnidadMedida(id, {
@@ -162,7 +172,7 @@ const CONFIGS: Record<CatalogoElementoKind, CatalogConfig> = {
     singular: 'uso presupuestal',
     nuevo: 'Nuevo uso presupuestal',
     noun: 'usos presupuestales',
-    empty: 'Este centro no tiene usos presupuestales.',
+    empty: 'No hay usos presupuestales.',
     searchPlaceholder: 'Buscar uso presupuestal...',
     hasEstado: true,
     removesRow: false,
@@ -172,8 +182,8 @@ const CONFIGS: Record<CatalogoElementoKind, CatalogConfig> = {
       remove: 'uso_presupuestal.eliminar',
     },
     fields: [{ key: 'nombre', label: 'Nombre *', max: 200 }],
-    load: (centerId) => getUsosPresupuestalesTodos(centerId),
-    create: (draft) => createUsoPresupuestal(draft),
+    load: () => getUsosPresupuestalesTodos(),
+    create: (draft) => createUsoPresupuestal({ nombre: draft.nombre, estado: draft.estado }),
     update: (id, draft) => updateUsoPresupuestal(id, { nombre: draft.nombre, estado: draft.estado }),
     remove: (id) => disableUsoPresupuestal(id),
     disableTitle: 'Inhabilitar uso presupuestal',
@@ -186,7 +196,7 @@ const CONFIGS: Record<CatalogoElementoKind, CatalogConfig> = {
     singular: 'código UNSPSC',
     nuevo: 'Nuevo código UNSPSC',
     noun: 'códigos',
-    empty: 'Este centro no tiene códigos UNSPSC.',
+    empty: 'No hay códigos UNSPSC.',
     searchPlaceholder: 'Buscar código o nombre...',
     hasEstado: false,
     removesRow: true,
@@ -199,12 +209,11 @@ const CONFIGS: Record<CatalogoElementoKind, CatalogConfig> = {
       { key: 'codigo', label: 'Código UNSPSC *', max: 20 },
       { key: 'nombre', label: 'Nombre *', max: 200 },
     ],
-    load: (centerId) => getCodigosEstandar(centerId),
+    load: () => getCodigosEstandar(),
     create: (draft) =>
       createCodigoEstandar({
         codigo: draft.codigo ?? '',
         nombre: draft.nombre,
-        idCformacion: draft.idCformacion,
       }),
     update: (id, draft) => updateCodigoEstandar(id, { codigo: draft.codigo, nombre: draft.nombre }),
     remove: (id) => deleteCodigoEstandar(id),
@@ -216,15 +225,12 @@ const CONFIGS: Record<CatalogoElementoKind, CatalogConfig> = {
 }
 
 function allowed(isAdmin: boolean, permissions: string[] | undefined, code: string) {
-  return isAdmin || permissions?.includes(code) === true
+  return isAdmin && permissions?.includes(code) === true
 }
 
 export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKind }) {
   const config = CONFIGS[kind]
   const { isAdmin, user } = useAuth()
-  const center = useInventoryCenterOptional()
-  const centerId = isAdmin ? (center?.centerId ?? null) : (user?.trainingCenterId ?? null)
-  const centerName = isAdmin ? center?.centerName : user?.trainingCenter
 
   const canCreate = allowed(isAdmin, user?.permissions, config.permissions.create)
   const canEdit = allowed(isAdmin, user?.permissions, config.permissions.edit)
@@ -247,7 +253,7 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
     setLoading(true)
     setError(null)
     try {
-      setRows(await config.load(centerId))
+      setRows(await config.load())
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'No se pudo cargar el catálogo.')
     } finally {
@@ -257,13 +263,8 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
 
   useEffect(() => {
     document.title = `${config.title} | SENA`
-    if (isAdmin && !centerId) {
-      setRows([])
-      setLoading(false)
-      return
-    }
     void load()
-  }, [centerId, isAdmin, kind])
+  }, [kind])
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -284,12 +285,16 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
 
   const { pageRows, totalPages, currentPage, from, to, total } = usePagination(filtered, page)
   const modalOpen = creating || editing !== null
-  const columnCount = 2 + (config.fields.some((field) => field.key !== 'nombre') ? 1 : 0) + (config.hasEstado ? 1 : 0)
+  const columnCount =
+    2 +
+    (config.fields.some((field) => field.key !== 'nombre') ? 1 : 0) +
+    (config.asksCaracter ? 1 : 0) +
+    (config.hasEstado ? 1 : 0)
 
   function openCreate() {
     setCreating(true)
     setEditing(null)
-    setDraft({ nombre: '', abreviatura: '', codigo: '', estado: true })
+    setDraft({ nombre: '', abreviatura: '', codigo: '', estado: true, caracter: 'consumo' })
     setError(null)
   }
 
@@ -301,6 +306,7 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
       abreviatura: row.abreviatura ?? '',
       codigo: row.codigo ?? '',
       estado: row.estado !== false,
+      caracter: row.caracter === 'devolutivo' ? 'devolutivo' : 'consumo',
     })
     setError(null)
   }
@@ -335,7 +341,9 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
       ...(config.fields.some((field) => field.key === 'abreviatura') ? { abreviatura } : {}),
       ...(config.fields.some((field) => field.key === 'codigo') ? { codigo } : {}),
       ...(config.hasEstado ? { estado: draft.estado !== false } : {}),
-      ...(creating && isAdmin && centerId ? { idCformacion: centerId } : {}),
+      ...(config.asksCaracter
+        ? { caracter: draft.caracter === 'devolutivo' ? 'devolutivo' as const : 'consumo' as const }
+        : {}),
     }
 
     try {
@@ -343,7 +351,7 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
       setError(null)
       if (editing) await config.update(editing.id, payload)
       else await config.create(payload)
-      setNotice(editing ? 'Cambios guardados.' : 'Registro creado en este centro.')
+      setNotice(editing ? 'Cambios guardados.' : 'Registro creado. Lo ven todos los centros.')
       setCreating(false)
       setEditing(null)
       await load()
@@ -371,9 +379,7 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
     }
   }
 
-  const description = centerName
-    ? `${config.heading} de ${centerName}. Cada centro tiene las suyas. Un centro nuevo llega vacío.`
-    : `${config.heading}. Cada centro tiene las suyas.`
+  const description = `${config.heading}. Es la misma lista para todos los centros.`
 
   return (
     <AppLayout title={config.title} showCenterBanner={false}>
@@ -381,7 +387,6 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
         icon={<InventoryIcon />}
         title={config.heading}
         description={description}
-        context={<InventoryCenterBadge />}
         action={
           canCreate ? (
             <Button type="button" icon={<PlusIcon className="size-4" />} onClick={openCreate}>
@@ -438,6 +443,9 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
                       <TableHeader width={tableColumns.relation}>Código</TableHeader>
                     ) : null}
                     <TableHeader width={tableColumns.name}>Nombre</TableHeader>
+                    {config.asksCaracter ? (
+                      <TableHeader width={tableColumns.relation}>Carácter</TableHeader>
+                    ) : null}
                     {config.fields.some((field) => field.key === 'abreviatura') ? (
                       <TableHeader width={tableColumns.relation}>Abreviatura</TableHeader>
                     ) : null}
@@ -468,6 +476,9 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
                           <p className="font-semibold text-sena-text">{row.nombre}</p>
                           <p className="mt-0.5 text-xs text-sena-text/45">ID {row.id}</p>
                         </td>
+                        {config.asksCaracter ? (
+                          <td className="px-5 py-4 capitalize text-sena-text">{row.caracter ?? '—'}</td>
+                        ) : null}
                         {config.fields.some((field) => field.key === 'abreviatura') ? (
                           <td className="px-5 py-4 text-sena-text">{row.abreviatura}</td>
                         ) : null}
@@ -521,10 +532,8 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
           title={editing ? `Editar ${config.singular}` : config.nuevo}
           description={
             editing
-              ? 'El centro no se puede cambiar.'
-              : centerName
-                ? `Queda en ${centerName}.`
-                : 'Queda en el centro de tu cuenta.'
+              ? 'El cambio queda en la lista de todos los centros.'
+              : 'Queda en la lista de todos los centros. No lleva centro.'
           }
           onClose={closeModal}
         >
@@ -545,6 +554,25 @@ export default function CatalogoCentroPage({ kind }: { kind: CatalogoElementoKin
                 required
               />
             ))}
+            {config.asksCaracter ? (
+              <label className="flex flex-col gap-1.5" htmlFor="catalogo-caracter">
+                <span className="text-sm font-medium text-sena-text/75">Carácter *</span>
+                <select
+                  id="catalogo-caracter"
+                  value={draft.caracter === 'devolutivo' ? 'devolutivo' : 'consumo'}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      caracter: event.target.value === 'devolutivo' ? 'devolutivo' : 'consumo',
+                    }))
+                  }
+                  className="h-11 w-full rounded-xl border border-sena-dark/10 bg-white px-3 text-sm text-sena-text outline-none focus:border-sena focus:ring-2 focus:ring-sena/20"
+                >
+                  <option value="consumo">Consumo</option>
+                  <option value="devolutivo">Devolutivo</option>
+                </select>
+              </label>
+            ) : null}
             {config.hasEstado ? (
               <label className="flex items-center gap-3 rounded-lg bg-sena-muted px-3.5 py-3 text-sm text-sena-text">
                 <input

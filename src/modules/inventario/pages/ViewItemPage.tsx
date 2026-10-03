@@ -13,8 +13,6 @@ import type { BodegaApi } from '@/modules/inventario/types/bodega'
 import type { ElementoApi } from '@/modules/inventario/types/elemento'
 import type { ItemApi } from '@/modules/inventario/types/item'
 import { lugarDelElemento } from '@/modules/inventario/lib/lugar'
-import { elementosOfBodegas } from '@/modules/inventario/lib/centro'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 
 export default function ViewItemPage() {
@@ -23,7 +21,6 @@ export default function ViewItemPage() {
   const { permit } = useInventoryAccess()
   const canEdit = permit('item.editar', 'items', 'edit')
   const canViewElemento = permit('elemento.ver', 'elementos', 'view')
-  const centerId = useInventoryCenterOptional()?.centerId ?? null
 
   const [item, setItem] = useState<ItemApi | null>(null)
   const [elementos, setElementos] = useState<ElementoApi[]>([])
@@ -46,16 +43,12 @@ export default function ViewItemPage() {
 
         const [elementoData, bodegaData] = await Promise.all([
           getElementos().catch(() => [] as ElementoApi[]),
-          getBodegas(centerId ? { idCformacion: centerId } : undefined).catch(() => [] as BodegaApi[]),
+          getBodegas().catch(() => [] as BodegaApi[]),
         ])
 
         if (cancelled) return
 
-        setElementos(
-          elementosOfBodegas(elementoData, bodegaData, centerId).filter(
-            (elemento) => elemento.idItem === itemData.id,
-          ),
-        )
+        setElementos(elementoData.filter((elemento) => elemento.idItem === itemData.id))
         setBodegas(bodegaData)
       } catch (caught) {
         if (!cancelled) {
@@ -71,7 +64,7 @@ export default function ViewItemPage() {
     return () => {
       cancelled = true
     }
-  }, [centerId, id])
+  }, [id])
 
   if (loading) {
     return (

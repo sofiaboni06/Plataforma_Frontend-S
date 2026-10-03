@@ -8,19 +8,14 @@ import AppLayout from '@/shared/components/layout/AppLayout'
 import { PencilIcon } from '@/shared/components/icons/AppIcons'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
-import { useAuth } from '@/modules/auth/context/auth'
 import { getSubcategorias } from '@/modules/inventario/data/categoria'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import { ApiError, api } from '@/shared/lib/api'
 import type { CategoryApi, SubcategoryApi } from '@/shared/types/category'
-import type {
-  UserFormOptions,
-} from '@/shared/types/profile'
 
 export default function ViewInventoryCategoryPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { isAdmin, user } = useAuth()
   const { permit } = useInventoryAccess()
   const canEdit = permit('categoria.editar', 'categorias', 'edit')
   const canSeeSub = permit('subcategoria.ver', 'categorias', 'view')
@@ -30,9 +25,6 @@ export default function ViewInventoryCategoryPage() {
 
   const [subcategories, setSubcategories] =
     useState<SubcategoryApi[]>([])
-
-  const [centers, setCenters] =
-    useState<UserFormOptions['centers']>([])
 
   const [loading, setLoading] =
     useState(true)
@@ -47,10 +39,9 @@ export default function ViewInventoryCategoryPage() {
       if (!id) return
 
       try {
-        const [categoryData, subcategoryData, options] = await Promise.all([
+        const [categoryData, subcategoryData] = await Promise.all([
           api<CategoryApi>(`/categorias/${id}`),
           canSeeSub ? getSubcategorias() : Promise.resolve([]),
-          isAdmin ? api<UserFormOptions>('/users/options') : Promise.resolve(null),
         ])
 
         if (cancelled) return
@@ -58,10 +49,6 @@ export default function ViewInventoryCategoryPage() {
         setCategory(categoryData)
         setSubcategories(
           subcategoryData.filter((item) => item.idCategoria === categoryData.id),
-        )
-
-        setCenters(
-          options?.centers ?? [],
         )
       } catch (caught) {
         if (!cancelled) {
@@ -83,15 +70,7 @@ export default function ViewInventoryCategoryPage() {
     return () => {
       cancelled = true
     }
-  }, [canSeeSub, id, isAdmin])
-
-  const centerName = isAdmin
-    ? (centers.find(
-        (center) =>
-          center.id ===
-          category?.idCformacion,
-      )?.name ?? '—')
-    : (user?.trainingCenter || '—')
+  }, [canSeeSub, id])
 
   if (loading) {
     return (
@@ -146,11 +125,6 @@ export default function ViewInventoryCategoryPage() {
           </div>
 
           <div className="mt-7 grid gap-x-10 gap-y-6 sm:grid-cols-2">
-            <InfoItem
-              label="Centro de formación"
-              value={centerName}
-            />
-
             <InfoItem
               label="Nombre de la categoría"
               value={category.nombre}

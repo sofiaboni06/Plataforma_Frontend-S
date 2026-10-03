@@ -31,11 +31,7 @@ import {
 } from '@/shared/components/DataTable'
 import { filterSelectClass, usePagination, useTableState } from '@/shared/lib/table'
 import { ApiError } from '@/shared/lib/api'
-import { useAuth } from '@/modules/auth/context/auth'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { disableCategoria, getAllCategorias, getSubcategorias } from '@/modules/inventario/data/categoria'
-import { categoriesOfCenter } from '@/modules/inventario/lib/centro'
-import InventoryCenterBadge from '@/modules/inventario/components/InventoryCenterBadge'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import type { CategoryApi, SubcategoryApi } from '@/shared/types/category'
 
@@ -43,8 +39,6 @@ type StatusFilter = 'Todos' | 'Activa' | 'Inactiva'
 
 export default function InventoryCategoriesPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const center = useInventoryCenterOptional()
   const { permit } = useInventoryAccess()
   const canCreate = permit('categoria.crear', 'categorias', 'create')
   const canEdit = permit('categoria.editar', 'categorias', 'edit')
@@ -100,13 +94,6 @@ export default function InventoryCategoriesPage() {
     }
   }, [canSeeSub])
 
-  const visibleCategories = useMemo(
-    () => categoriesOfCenter(categories, center?.centerId ?? null),
-    [categories, center?.centerId],
-  )
-
-  const centerLabel = center?.centerId ? center.centerName : (user?.trainingCenter ?? '')
-
   const subcategoriesByCategory = useMemo(() => {
     const map = new Map<number, SubcategoryApi[]>()
 
@@ -122,14 +109,13 @@ export default function InventoryCategoriesPage() {
   const filteredCategories = useMemo(() => {
     const query = search.trim().toLowerCase()
 
-    return visibleCategories.filter((category) => {
+    return categories.filter((category) => {
       const subcategoryText = (subcategoriesByCategory.get(category.id) ?? [])
         .map((item) => item.nombre)
         .join(' ')
 
       const matchesSearch =
-        !query ||
-        `${category.nombre} ${centerLabel} ${subcategoryText}`.toLowerCase().includes(query)
+        !query || `${category.nombre} ${subcategoryText}`.toLowerCase().includes(query)
 
       const matchesStatus =
         statusFilter === 'Todos' ||
@@ -138,7 +124,7 @@ export default function InventoryCategoriesPage() {
 
       return matchesSearch && matchesStatus
     })
-  }, [centerLabel, search, statusFilter, subcategoriesByCategory, visibleCategories])
+  }, [categories, search, statusFilter, subcategoriesByCategory])
 
   const { pageRows, totalPages, currentPage, from, to, total } = usePagination(
     filteredCategories,
@@ -184,8 +170,7 @@ export default function InventoryCategoriesPage() {
       <PageHeader
         icon={<InventoryIcon />}
         title="Gestionar categorías"
-        description="Nombre, estado y subcategorías. La subcategoría se guarda aparte, colgada de la categoría."
-        context={<InventoryCenterBadge />}
+        description="La misma lista para todos los centros. Nombre, estado y subcategorías. La subcategoría se guarda aparte."
         action={
           canCreate ? (
             <Button
@@ -236,9 +221,6 @@ export default function InventoryCategoriesPage() {
                 <thead>
                   <tr className="border-b border-sena-hairline bg-sena-soft/85">
                     <TableHeader width={tableColumns.name}>Categoría</TableHeader>
-                    <TableHeader width={tableColumns.relation}>
-                      Centro de formación
-                    </TableHeader>
                     <TableHeader align="center" width={tableColumns.count}>
                       Subcategorías
                     </TableHeader>
@@ -253,16 +235,12 @@ export default function InventoryCategoriesPage() {
 
                 <tbody>
                   {pageRows.length === 0 ? (
-                    <TableEmpty colSpan={5}>No se encontraron categorías.</TableEmpty>
+                    <TableEmpty colSpan={4}>No se encontraron categorías.</TableEmpty>
                   ) : (
                     pageRows.map((category) => (
                       <TableRow key={category.id}>
                         <td className="truncate px-6 py-5 font-semibold text-sena-text">
                           {category.nombre}
-                        </td>
-
-                        <td className="truncate px-6 py-5 font-medium text-sena-dark/90">
-                          {centerLabel || '—'}
                         </td>
 
                         <td className="px-6 py-5 text-center text-sena-text-soft">

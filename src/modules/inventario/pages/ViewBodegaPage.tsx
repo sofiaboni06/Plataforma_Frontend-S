@@ -22,6 +22,7 @@ export default function ViewBodegaPage() {
   const navigate = useNavigate()
   const { permit } = useInventoryAccess()
   const canEdit = permit('bodega.editar', 'bodegas', 'edit')
+  const canCreateSub = permit('bodega.crear', 'bodegas', 'create')
 
   const { id } = useParams<{ id: string }>()
   const [bodega, setBodega] = useState<BodegaApi | null>(null)
@@ -198,13 +199,15 @@ export default function ViewBodegaPage() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                className="rounded-lg bg-sena px-4 py-2 text-xs font-semibold text-white hover:bg-sena-dark"
-                onClick={() => setSubBodegaModal(true)}
-              >
-                Nueva sub-bodega
-              </button>
+              {canCreateSub ? (
+                <button
+                  type="button"
+                  className="rounded-lg bg-sena px-4 py-2 text-xs font-semibold text-white hover:bg-sena-dark"
+                  onClick={() => setSubBodegaModal(true)}
+                >
+                  Nueva sub-bodega
+                </button>
+              ) : null}
             </div>
 
             {subBodegas.length === 0 ? (

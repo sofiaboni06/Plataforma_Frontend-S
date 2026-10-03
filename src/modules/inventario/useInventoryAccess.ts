@@ -1,5 +1,6 @@
 import { useAuth } from '@/modules/auth/context/auth'
 import {
+  allowsPermission,
   canInventoryAction,
   visibleInventoryScreens,
   type InventoryAction,
@@ -7,17 +8,16 @@ import {
 } from '@/modules/inventario/navigation'
 
 export function useInventoryAccess() {
-  const { modules, isAdmin, user } = useAuth()
+  const { isAdmin, user } = useAuth()
   const access = { isAdmin, permissions: user?.permissions }
 
   return {
-    screens: visibleInventoryScreens(modules, access),
+    screens: visibleInventoryScreens(access),
     can: (screen: InventoryScreenCode, action: InventoryAction) =>
-      canInventoryAction(modules, screen, action),
-    permit: (code: string, screen: InventoryScreenCode, action: InventoryAction) => {
-      if (isAdmin) return true
-      if (user?.permissions) return user.permissions.includes(code)
-      return canInventoryAction(modules, screen, action)
+      canInventoryAction(screen, action, access),
+    permit: (code: string, ..._ignored: Array<InventoryScreenCode | InventoryAction>) => {
+      void _ignored
+      return allowsPermission(isAdmin, user?.permissions, code)
     },
   }
 }

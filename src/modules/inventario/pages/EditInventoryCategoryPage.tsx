@@ -3,8 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
 import TextField from '@/shared/components/ui/TextField'
-import { useAuth } from '@/modules/auth/context/auth'
-import { useInventoryCenterOptional } from '@/modules/inventario/centerScope'
 import { ApiError, api } from '@/shared/lib/api'
 import {
   createSubcategoria,
@@ -14,14 +12,10 @@ import {
 } from '@/modules/inventario/data/categoria'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import type { CategoryApi, SubcategoryApi } from '@/shared/types/category'
-import type { UserFormOptions } from '@/shared/types/profile'
 
 export default function EditInventoryCategoryPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { isAdmin, user } = useAuth()
-  const lockedCenter = useInventoryCenterOptional()
-  const lockedCenterId = lockedCenter?.centerId ?? null
   const { permit } = useInventoryAccess()
   const canChangeEstado = permit('categoria.eliminar', 'categorias', 'edit')
   const canSeeSub = permit('subcategoria.ver', 'categorias', 'view')
@@ -29,14 +23,12 @@ export default function EditInventoryCategoryPage() {
   const canEditSub = permit('subcategoria.editar', 'categorias', 'edit')
 
   const [category, setCategory] = useState<CategoryApi | null>(null)
-  const [centers, setCenters] = useState<UserFormOptions['centers']>([])
   const [subcategories, setSubcategories] = useState<SubcategoryApi[]>([])
   const [allSubcategories, setAllSubcategories] = useState<SubcategoryApi[]>([])
   const [allCategories, setAllCategories] = useState<CategoryApi[]>([])
   const [removedSubcategoryIds, setRemovedSubcategoryIds] = useState<number[]>([])
   const [newSubcategoryName, setNewSubcategoryName] = useState('')
   const [name, setName] = useState('')
-  const [trainingCenterId, setTrainingCenterId] = useState('')
   const [active, setActive] = useState(true)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -105,9 +97,8 @@ export default function EditInventoryCategoryPage() {
       if (!id) return
 
       try {
-        const [categoryData, options, subcategoryData, categoryList] = await Promise.all([
+        const [categoryData, subcategoryData, categoryList] = await Promise.all([
           api<CategoryApi>(`/categorias/${id}`),
-          isAdmin ? api<UserFormOptions>('/users/options') : Promise.resolve(null),
           canSeeSub ? getSubcategorias() : Promise.resolve([]),
           getAllCategorias(),
         ])
@@ -120,20 +111,7 @@ export default function EditInventoryCategoryPage() {
         setSubcategories(
           subcategoryData.filter((item) => item.idCategoria === categoryData.id && item.estado),
         )
-        setCenters(
-          options?.centers ??
-            (user?.trainingCenterId
-              ? [
-                  {
-                    id: user.trainingCenterId,
-                    name: user.trainingCenter,
-                    regional: '',
-                  },
-                ]
-              : []),
-        )
         setName(categoryData.nombre)
-        setTrainingCenterId(String(categoryData.idCformacion))
         setActive(categoryData.estado)
       } catch (caught) {
         if (!cancelled) {
@@ -149,12 +127,12 @@ export default function EditInventoryCategoryPage() {
     return () => {
       cancelled = true
     }
-  }, [canSeeSub, id, isAdmin, user])
+  }, [canSeeSub, id])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (!id || !name.trim() || (isAdmin && !trainingCenterId)) {
+    if (!id || !name.trim()) {
       setError('Completa todos los campos obligatorios.')
       return
     }
@@ -186,7 +164,6 @@ export default function EditInventoryCategoryPage() {
         method: 'PATCH',
         body: JSON.stringify({
           nombre: name.trim(),
-          ...(isAdmin ? { idCformacion: Number(trainingCenterId) } : {}),
           ...(canChangeEstado ? { estado: active } : {}),
         }),
       })
@@ -273,7 +250,7 @@ export default function EditInventoryCategoryPage() {
             <div>
               <h1 className="text-xl font-semibold text-sena-dark">Editar categoría</h1>
               <p className="mt-1 text-sm text-sena-text/55">
-                El nombre y el centro son de la categoría. La subcategoría se guarda aparte.
+                El nombre es de la categoría. No lleva centro. La subcategoría se guarda aparte.
               </p>
             </div>
           </div>
@@ -283,36 +260,6 @@ export default function EditInventoryCategoryPage() {
           ) : null}
 
           <div className="mt-7 grid gap-5">
-            {isAdmin && lockedCenterId ? (
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-sena-text/75">Centro de formación</span>
-                <div className="flex h-11 items-center rounded-lg bg-sena-muted px-3.5 text-sm font-medium text-sena-text">
-                  {centers.find((center) => String(center.id) === trainingCenterId)?.name ||
-                    lockedCenter?.centerName}
-                </div>
-              </div>
-            ) : isAdmin ? (
-              <SelectField
-                id="trainingCenterId"
-                label="Centro de formación"
-                required
-                value={trainingCenterId}
-                onChange={setTrainingCenterId}
-                disabled={saving}
-                options={centers.map((center) => ({
-                  value: String(center.id),
-                  label: center.regional ? `${center.name} — ${center.regional}` : center.name,
-                }))}
-              />
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-sena-text/75">Centro de formación</span>
-                <div className="flex h-11 items-center rounded-lg bg-sena-muted px-3.5 text-sm font-medium text-sena-text">
-                  {user?.trainingCenter || 'Tu centro de formación'}
-                </div>
-              </div>
-            )}
-
             <TextField
               id="categoryName"
               label="Nombre de la categoría"
@@ -410,7 +357,7 @@ export default function EditInventoryCategoryPage() {
                 Cancelar
               </Button>
             </Link>
-            <Button type="submit" disabled={saving || !name.trim() || (isAdmin && !trainingCenterId)}>
+            <Button type="submit" disabled={saving || !name.trim()}>
               {saving ? 'Guardando…' : 'Guardar cambios'}
             </Button>
           </div>

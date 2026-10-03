@@ -24,6 +24,7 @@ import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 export default function ViewSubBodegaPage() {
   const navigate = useNavigate()
   const { permit } = useInventoryAccess()
+  const canEditSub = permit('bodega.editar', 'bodegas', 'edit')
   const canCreateStand = permit('stand.crear', 'stands', 'create')
   const canViewStand = permit('stand.ver', 'stands', 'view')
   const canEditStand = permit('stand.editar', 'stands', 'edit')
@@ -193,13 +194,15 @@ export default function ViewSubBodegaPage() {
               <h1 className="mt-1 text-2xl font-bold text-sena-dark">{subBodega.nombre}</h1>
               <p className="mt-1 text-sm text-sena-text/55">Pertenece a {bodega.nombre}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setEditModal(true)}
-              className="rounded-lg border border-sena/25 px-4 py-2 text-sm font-semibold text-sena-dark hover:bg-sena/5"
-            >
-              Editar sub-bodega
-            </button>
+            {canEditSub ? (
+              <button
+                type="button"
+                onClick={() => setEditModal(true)}
+                className="rounded-lg border border-sena/25 px-4 py-2 text-sm font-semibold text-sena-dark hover:bg-sena/5"
+              >
+                Editar sub-bodega
+              </button>
+            ) : null}
           </div>
 
           <div className="grid gap-6 border-b border-sena-dark/10 py-6 sm:grid-cols-2">
