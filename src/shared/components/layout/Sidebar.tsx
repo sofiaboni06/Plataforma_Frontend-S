@@ -54,8 +54,8 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
     <aside
       id="navegacion-principal"
       className={cn(
-        'fixed inset-y-0 left-0 z-40 flex w-[250px] flex-col overflow-y-auto overflow-x-clip',
-        'bg-gradient-to-b from-sena-dark to-sena-forest',
+        'fixed inset-y-0 left-0 z-40 flex w-62.5 flex-col overflow-y-auto overflow-x-clip',
+        'bg-linear-to-b from-sena-dark to-sena-forest',
         'shadow-[0_0_70px_rgba(0,77,50,0.28)]',
         'transition-transform duration-200 ease-out',
         isOpen ? 'translate-x-0' : '-translate-x-full',

@@ -46,7 +46,7 @@ import CatalogoCentroPage from '@/modules/inventario/pages/CatalogoCentroPage'
 
 import Dashboard from '@/modules/landing/pages/Dashboard'
 import LoginPage from '@/modules/auth/pages/LoginPage'
-import MaterialsPage from '@/modules/materiales/pages/MaterialsPage'
+import MaterialsPage from '@/modules/solicitudes/pages/SolicitudesPage'
 import ProfilePage from '@/modules/perfil/pages/ProfilePage'
 import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'

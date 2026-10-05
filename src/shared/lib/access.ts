@@ -3,6 +3,7 @@ import {
   canOpenInventoryPath,
   isInventoryDescendantPath,
 } from '@/modules/inventario/navigation'
+
 import type { AppModule } from '@/shared/types/profile'
 import type { NavIconName } from '@/shared/constants/navigation'
 
@@ -33,7 +34,21 @@ const INVENTORY_ENTRY: AppModule = {
   order: 1,
 }
 
-export function grantedModuleLinks(modules: AppModule[], isAdmin = false) {
+const MATERIALS_ENTRY: AppModule = {
+  id: 999,
+  code: 'materiales',
+  label: 'Materiales',
+  description: 'Solicitudes de equipos y materiales.',
+  to: '/materiales',
+  icon: 'inventory',
+  parentId: null,
+  order: 2,
+}
+
+export function grantedModuleLinks(
+  modules: AppModule[],
+  isAdmin = false,
+) {
   const seen = new Set<string>()
 
   const links = modules
@@ -50,8 +65,15 @@ export function grantedModuleLinks(modules: AppModule[], isAdmin = false) {
       return true
     })
 
-  if ((isAdmin || hasInventoryAccess(modules)) && !links.some((item) => item.to === '/inventario')) {
+  if (
+    (isAdmin || hasInventoryAccess(modules)) &&
+    !links.some((item) => item.to === '/inventario')
+  ) {
     links.push(INVENTORY_ENTRY)
+  }
+
+  if (!links.some((item) => item.to === '/materiales')) {
+    links.push(MATERIALS_ENTRY)
   }
 
   return links.sort((left, right) => left.order - right.order)
@@ -74,8 +96,22 @@ export function canOpenPath(
     return true
   }
 
-  if (path === '/inventario' || path.startsWith('/inventario/')) {
-    return canOpenInventoryPath(path, modules, { isAdmin, permissions })
+  if (
+    path === '/inventario' ||
+    path.startsWith('/inventario/')
+  ) {
+    return canOpenInventoryPath(
+      path,
+      modules,
+      {
+        isAdmin,
+        permissions,
+      },
+    )
+  }
+
+  if (path === '/materiales') {
+    return true
   }
 
   return modules.some((item) => item.to === path)
