@@ -177,14 +177,6 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
         })}
 
         <SideLink
-          to="/alertas"
-          icon="alert"
-          onClose={onClose}
-        >
-          Alertas
-        </SideLink>
-
-        <SideLink
           to="/perfil"
           icon="user"
           onClose={onClose}

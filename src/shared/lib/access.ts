@@ -1,6 +1,7 @@
 import {
   hasInventoryAccess,
   canOpenInventoryPath,
+  canOpenSolicitudes,
   isInventoryDescendantPath,
 } from '@/modules/inventario/navigation'
 
@@ -34,32 +35,6 @@ const INVENTORY_ENTRY: AppModule = {
   order: 1,
 }
 
-const MATERIALS_ENTRY: AppModule = {
-  id: 999,
-  code: 'materiales',
-  label: 'Materiales',
-  description: 'Solicitudes de equipos y materiales.',
-  to: '/materiales',
-  icon: 'inventory',
-  parentId: null,
-  order: 2,
-}
-
-const MATERIAL_CODES = [
-  'solicitud_equipo.ver',
-  'solicitud_equipo.crear',
-  'solicitud_equipo.entregar',
-  'solicitud_equipo.devolver',
-  'solicitud_material.ver',
-  'solicitud_material.crear',
-  'solicitud_material.entregar',
-]
-
-export function canOpenMateriales(isAdmin: boolean, permissions?: string[]) {
-  if (isAdmin) return false
-  return MATERIAL_CODES.some((code) => permissions?.includes(code) === true)
-}
-
 export function grantedModuleLinks(
   modules: AppModule[],
   isAdmin = false,
@@ -70,7 +45,7 @@ export function grantedModuleLinks(
   const links = modules
     .filter((item) => item.to && item.parentId == null)
     .filter((item) => !isInventoryDescendantPath(item.to as string))
-    .filter((item) => item.to !== '/materiales' || canOpenMateriales(isAdmin, permissions))
+    .filter((item) => item.to !== '/materiales')
     .filter((item) => {
       const path = item.to as string
 
@@ -83,14 +58,10 @@ export function grantedModuleLinks(
     })
 
   if (
-    (isAdmin || hasInventoryAccess(modules)) &&
+    (isAdmin || hasInventoryAccess(modules) || canOpenSolicitudes(isAdmin, permissions)) &&
     !links.some((item) => item.to === '/inventario')
   ) {
     links.push(INVENTORY_ENTRY)
-  }
-
-  if (canOpenMateriales(isAdmin, permissions) && !links.some((item) => item.to === '/materiales')) {
-    links.push(MATERIALS_ENTRY)
   }
 
   return links.sort((left, right) => left.order - right.order)
@@ -128,7 +99,7 @@ export function canOpenPath(
   }
 
   if (path === '/materiales') {
-    return canOpenMateriales(isAdmin, permissions)
+    return canOpenSolicitudes(isAdmin, permissions)
   }
 
   return modules.some((item) => item.to === path)

@@ -46,7 +46,8 @@ import CatalogoCentroPage from '@/modules/inventario/pages/CatalogoCentroPage'
 
 import Dashboard from '@/modules/landing/pages/Dashboard'
 import LoginPage from '@/modules/auth/pages/LoginPage'
-import MaterialsPage from '@/modules/solicitudes/pages/SolicitudesPage'
+import SolicitudesHomePage from '@/modules/solicitudes/pages/SolicitudesHomePage'
+import SolicitudesPage from '@/modules/solicitudes/pages/SolicitudesPage'
 import ProfilePage from '@/modules/perfil/pages/ProfilePage'
 import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
@@ -123,14 +124,7 @@ function App() {
             }
           />
 
-          <Route
-            path="/alertas"
-            element={
-              <Private>
-                <AlertsPage />
-              </Private>
-            }
-          />
+          <Route path="/alertas" element={<Navigate to="/inventario/alertas" replace />} />
 
           <Route
             path="/inventario"
@@ -164,6 +158,9 @@ function App() {
             <Route path="stands" element={<StandsPage />} />
             <Route path="stands/:id/editar" element={<EditStandPage />} />
             <Route path="stands/:id" element={<ViewStandPage />} />
+            <Route path="solicitudes" element={<SolicitudesHomePage />} />
+            <Route path="solicitudes/:tipo" element={<SolicitudesPage />} />
+            <Route path="alertas" element={<AlertsPage />} />
           </Route>
 
           {/* =========================
@@ -172,11 +169,7 @@ function App() {
 
           <Route
             path="/materiales"
-            element={
-              <ModuleRoute>
-                <MaterialsPage />
-              </ModuleRoute>
-            }
+            element={<Navigate to="/inventario/solicitudes" replace />}
           />
 
           {/* =========================
