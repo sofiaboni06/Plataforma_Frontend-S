@@ -8,7 +8,7 @@ import { grantedModuleLinks, toNavIcon } from '@/shared/lib/access'
 export default function HomePage() {
   const { user, modules, isAdmin } = useAuth()
   const firstName = user?.fullName.split(' ')[0] ?? 'usuario'
-  const cards = grantedModuleLinks(modules, isAdmin)
+  const cards = grantedModuleLinks(modules, isAdmin, user?.permissions)
   const quickLinks = [
     { label: 'Mi perfil', to: '/perfil', icon: 'user' as const },
     ...(isAdmin

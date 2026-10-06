@@ -60,40 +60,32 @@ const KIND_DESCRIPTION: Record<SolicitudKind, string> = {
     'Materiales de consumo que se descuentan cuando bodega los entrega.',
 }
 
-/**
- * Control de permisos de la pantalla.
- *
- * Administrador:
- * - Puede crear.
- * - Puede entregar.
- *
- * Instructor:
- * - Puede crear solicitudes.
- * - No puede entregar.
- *
- * Otros roles:
- * - Dependen de los permisos recibidos desde backend.
- */
-function permission(
+function allows(
   userPermissions: string[] | undefined,
   code: string,
   isAdmin: boolean,
-  role?: string,
 ) {
-  if (isAdmin) {
-    return true
-  }
-
-  const normalizedRole = role?.trim().toLowerCase()
-
-  if (normalizedRole === 'instructor') {
-    return (
-      code === 'solicitud_equipo.crear' ||
-      code === 'solicitud_material.crear'
-    )
-  }
-
+  if (isAdmin) return false
   return userPermissions?.includes(code) === true
+}
+
+function personName(
+  person?: { nombres: string; apellidos: string } | null,
+) {
+  const name = `${person?.nombres ?? ''} ${person?.apellidos ?? ''}`.trim()
+  return name || '—'
+}
+
+function requestTone(estado: SolicitudItemApi['estado']) {
+  if (estado === 'entregado') return 'ok' as const
+  if (estado === 'devuelto') return 'danger' as const
+  return 'warn' as const
+}
+
+function requestLabel(estado: SolicitudItemApi['estado']) {
+  if (estado === 'entregado') return 'Entregado'
+  if (estado === 'devuelto') return 'Devuelto'
+  return 'Pendiente'
 }
 
 function availableOf(elemento: ElementoApi) {
@@ -132,56 +124,15 @@ export default function SolicitudesPage() {
   const { user, isAdmin } = useAuth()
 
   const permissions = user?.permissions
-  const role = user?.role
 
-  /*
-   * Permisos para solicitar equipo.
-   */
-  const canCreateEquipo = permission(
-    permissions,
-    'solicitud_equipo.crear',
-    isAdmin,
-    role,
-  )
-
-  /*
-   * Permiso para entregar equipo.
-   */
-  const canDeliverEquipo = permission(
-    permissions,
-    'solicitud_equipo.entregar',
-    isAdmin,
-    role,
-  )
-
-  /*
-   * Permisos para solicitar material.
-   */
-  const canCreateMaterial = permission(
-    permissions,
-    'solicitud_material.crear',
-    isAdmin,
-    role,
-  )
-
-  /*
-   * Permiso para entregar material.
-   */
-  const canDeliverMaterial = permission(
-    permissions,
-    'solicitud_material.entregar',
-    isAdmin,
-    role,
-  )
+  const canCreateEquipo = allows(permissions, 'solicitud_equipo.crear', isAdmin)
+  const canDeliverEquipo = allows(permissions, 'solicitud_equipo.entregar', isAdmin)
+  const canCreateMaterial = allows(permissions, 'solicitud_material.crear', isAdmin)
+  const canDeliverMaterial = allows(permissions, 'solicitud_material.entregar', isAdmin)
 
   const canCreate = canCreateEquipo || canCreateMaterial
   const canDeliver = canDeliverEquipo || canDeliverMaterial
 
-  /*
-   * Instructor entra directamente a "Solicitar".
-   * Administrador entra a "Solicitar" si también tiene permisos
-   * de creación; de lo contrario entra a "Entregar".
-   */
   const [view, setView] = useState<'solicitar' | 'entregar'>(
     canCreate ? 'solicitar' : 'entregar',
   )
@@ -191,7 +142,7 @@ export default function SolicitudesPage() {
    * Si no, muestra Material.
    */
   const [kind, setKind] = useState<SolicitudKind>(
-    canCreateEquipo ? 'equipo' : 'material',
+    canCreateEquipo || canDeliverEquipo ? 'equipo' : 'material',
   )
 
   const [obras, setObras] = useState<ObraApi[]>([])
@@ -219,9 +170,11 @@ export default function SolicitudesPage() {
     setError('')
 
     try {
-      const [obraRows, elementoRows] = await Promise.all([
+      const canCreateCurrent = kind === 'equipo' ? canCreateEquipo : canCreateMaterial
+      const [obraRows, elementoRows, solicitudRows] = await Promise.all([
         getObras(),
         getElementos(),
+        canCreateCurrent ? getSolicitudes(kind) : Promise.resolve([]),
       ])
 
       setObras(
@@ -231,16 +184,18 @@ export default function SolicitudesPage() {
       setElementos(
         elementoRows.filter((elemento) => elemento.estado),
       )
+
+      setSolicitudes(solicitudRows)
     } catch (cause) {
       setError(
         cause instanceof ApiError
           ? cause.message
-          : 'No se pudieron cargar obras y elementos.',
+          : 'No se pudieron cargar obras, elementos y solicitudes.',
       )
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [canCreateEquipo, canCreateMaterial, kind])
 
   /*
    * Carga las solicitudes pendientes para bodega.
@@ -417,6 +372,7 @@ export default function SolicitudesPage() {
         ${row.elemento?.codigo ?? ''}
         ${row.obra?.nombre ?? ''}
         ${row.ficha ?? ''}
+        ${personName(row.usuario)}
       `
         .toLowerCase()
         .includes(needle),
@@ -617,57 +573,109 @@ export default function SolicitudesPage() {
           })}
         </div>
 
-        {view === 'entregar' ? (
+        {view === 'solicitar' ? (
+          <p className="px-1 pb-1 text-sm text-sena-strong">
+            {KIND_DESCRIPTION[kind]}
+          </p>
+        ) : null}
+
+        {view === 'entregar' || canCreateCurrent ? (
           <SearchInput
             value={search}
             onChange={setSearch}
             placeholder="Buscar solicitud..."
           />
-        ) : (
-          <p className="px-1 pb-1 text-sm text-sena-strong">
-            {KIND_DESCRIPTION[kind]}
-          </p>
-        )}
+        ) : null}
       </FilterCard>
 
       {/*
        * VISTA PARA SOLICITAR
        */}
       {view === 'solicitar' ? (
-        <section className="rounded-[26px] border border-glass-line bg-glass-strong p-7 shadow-surface backdrop-blur-glass">
-          {loading ? (
-            <TableLoading label="Cargando obras y elementos disponibles..." />
-          ) : canCreateCurrent ? (
-            <div className="grid gap-5 md:grid-cols-3">
-              <InfoCard
-                title="Obras activas"
-                value={String(obras.length)}
-              />
+        <>
+          <section className="rounded-[26px] border border-glass-line bg-glass-strong p-7 shadow-surface backdrop-blur-glass">
+            {loading ? (
+              <TableLoading label="Cargando obras y elementos disponibles..." />
+            ) : canCreateCurrent ? (
+              <div className="grid gap-5 md:grid-cols-3">
+                <InfoCard
+                  title="Obras activas"
+                  value={String(obras.length)}
+                />
 
-              <InfoCard
-                title={
-                  kind === 'equipo'
-                    ? 'Equipos disponibles'
-                    : 'Materiales disponibles'
-                }
-                value={String(
-                  visibleElements.length,
-                )}
-              />
+                <InfoCard
+                  title={
+                    kind === 'equipo'
+                      ? 'Equipos disponibles'
+                      : 'Materiales disponibles'
+                  }
+                  value={String(
+                    visibleElements.length,
+                  )}
+                />
 
-              <InfoCard
-                title="Regla de stock"
-                value="Solo baja al entregar"
-                compact
-              />
-            </div>
-          ) : (
-            <TableEmpty colSpan={1}>
-              No tienes permiso para crear este tipo de
-              solicitud.
-            </TableEmpty>
-          )}
-        </section>
+                <InfoCard
+                  title="Regla de stock"
+                  value="Solo baja al entregar"
+                  compact
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-sena-text-soft">
+                No tienes permiso para crear este tipo de solicitud.
+              </p>
+            )}
+          </section>
+
+          {canCreateCurrent && !loading ? (
+            <TableCard>
+              <div className="overflow-x-auto">
+                  <table className="data-table w-full min-w-262.5 text-sm">
+                    <thead>
+                      <tr className="border-b border-sena-hairline bg-sena-soft/85">
+                        <TableHeader>Solicitud</TableHeader>
+                        <TableHeader>Elemento</TableHeader>
+                        <TableHeader>Obra</TableHeader>
+                        <TableHeader>Cantidad</TableHeader>
+                        <TableHeader>Ficha</TableHeader>
+                        <TableHeader>Estado</TableHeader>
+                        <TableHeader>Fecha</TableHeader>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRequests.length === 0 ? (
+                        <TableEmpty colSpan={7}>
+                          Todavía no has pedido {KIND_LABEL[kind].toLowerCase()}.
+                        </TableEmpty>
+                      ) : (
+                        filteredRequests.map((row) => (
+                          <TableRow key={row.id}>
+                            <td className="font-semibold">{row.codigoSolicitud}</td>
+                            <td>
+                              <div className="font-medium">{row.elemento?.nombre ?? '—'}</div>
+                              <div className="text-xs text-sena-text-soft">{row.elemento?.codigo ?? '—'}</div>
+                            </td>
+                            <td>{row.obra?.nombre ?? '—'}</td>
+                            <td>{row.cantidad}</td>
+                            <td>{row.ficha || '—'}</td>
+                            <td>
+                              <StatusPill tone={requestTone(row.estado)}>
+                                {requestLabel(row.estado)}
+                              </StatusPill>
+                            </td>
+                            <td>{formatDate(row.fecha)}</td>
+                          </TableRow>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              <div className="border-t border-sena-hairline px-6 py-4 text-sm text-sena-strong">
+                Mostrando {filteredRequests.length} solicitudes
+              </div>
+            </TableCard>
+          ) : null}
+        </>
       ) : (
         /*
          * VISTA PARA ENTREGAR
@@ -701,6 +709,10 @@ export default function SolicitudesPage() {
                     </TableHeader>
 
                     <TableHeader>
+                      Solicitante
+                    </TableHeader>
+
+                    <TableHeader>
                       Estado
                     </TableHeader>
 
@@ -716,7 +728,7 @@ export default function SolicitudesPage() {
 
                 <tbody>
                   {filteredRequests.length === 0 ? (
-                    <TableEmpty colSpan={8}>
+                    <TableEmpty colSpan={9}>
                       No hay solicitudes pendientes para
                       entregar.
                     </TableEmpty>
@@ -750,8 +762,12 @@ export default function SolicitudesPage() {
                         </td>
 
                         <td>
-                          <StatusPill tone="warn">
-                            Pendiente
+                          {personName(row.usuario)}
+                        </td>
+
+                        <td>
+                          <StatusPill tone={requestTone(row.estado)}>
+                            {requestLabel(row.estado)}
                           </StatusPill>
                         </td>
 
