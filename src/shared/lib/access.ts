@@ -45,15 +45,32 @@ const MATERIALS_ENTRY: AppModule = {
   order: 2,
 }
 
+const MATERIAL_CODES = [
+  'solicitud_equipo.ver',
+  'solicitud_equipo.crear',
+  'solicitud_equipo.entregar',
+  'solicitud_equipo.devolver',
+  'solicitud_material.ver',
+  'solicitud_material.crear',
+  'solicitud_material.entregar',
+]
+
+export function canOpenMateriales(isAdmin: boolean, permissions?: string[]) {
+  if (isAdmin) return false
+  return MATERIAL_CODES.some((code) => permissions?.includes(code) === true)
+}
+
 export function grantedModuleLinks(
   modules: AppModule[],
   isAdmin = false,
+  permissions?: string[],
 ) {
   const seen = new Set<string>()
 
   const links = modules
     .filter((item) => item.to && item.parentId == null)
     .filter((item) => !isInventoryDescendantPath(item.to as string))
+    .filter((item) => item.to !== '/materiales' || canOpenMateriales(isAdmin, permissions))
     .filter((item) => {
       const path = item.to as string
 
@@ -72,7 +89,7 @@ export function grantedModuleLinks(
     links.push(INVENTORY_ENTRY)
   }
 
-  if (!links.some((item) => item.to === '/materiales')) {
+  if (canOpenMateriales(isAdmin, permissions) && !links.some((item) => item.to === '/materiales')) {
     links.push(MATERIALS_ENTRY)
   }
 
@@ -111,7 +128,7 @@ export function canOpenPath(
   }
 
   if (path === '/materiales') {
-    return true
+    return canOpenMateriales(isAdmin, permissions)
   }
 
   return modules.some((item) => item.to === path)
