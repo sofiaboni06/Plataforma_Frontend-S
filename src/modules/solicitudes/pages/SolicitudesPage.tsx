@@ -6,6 +6,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react'
+import { Link, Navigate, useParams } from 'react-router-dom'
 
 import { ApiError } from '@/shared/lib/api'
 
@@ -49,8 +50,8 @@ import type {
 import type { ElementoApi } from '@/modules/inventario/types/elemento'
 
 const KIND_LABEL: Record<SolicitudKind, string> = {
-  equipo: 'Equipo',
-  material: 'Material',
+  equipo: 'Equipo devolutivo',
+  material: 'Material de consumo',
 }
 
 const KIND_DESCRIPTION: Record<SolicitudKind, string> = {
@@ -121,6 +122,16 @@ function formatDate(value: string | null) {
 }
 
 export default function SolicitudesPage() {
+  const { tipo } = useParams()
+
+  if (tipo !== 'equipo' && tipo !== 'material') {
+    return <Navigate to="/inventario/solicitudes" replace />
+  }
+
+  return <SolicitudKindPage kind={tipo} />
+}
+
+function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   const { user, isAdmin } = useAuth()
 
   const permissions = user?.permissions
@@ -130,19 +141,14 @@ export default function SolicitudesPage() {
   const canCreateMaterial = allows(permissions, 'solicitud_material.crear', isAdmin)
   const canDeliverMaterial = allows(permissions, 'solicitud_material.entregar', isAdmin)
 
-  const canCreate = canCreateEquipo || canCreateMaterial
-  const canDeliver = canDeliverEquipo || canDeliverMaterial
+  const canCreateCurrent = kind === 'equipo' ? canCreateEquipo : canCreateMaterial
+  const canDeliverCurrent = kind === 'equipo' ? canDeliverEquipo : canDeliverMaterial
+
+  const canCreate = canCreateCurrent
+  const canDeliver = canDeliverCurrent
 
   const [view, setView] = useState<'solicitar' | 'entregar'>(
     canCreate ? 'solicitar' : 'entregar',
-  )
-
-  /*
-   * Si puede crear equipo comienza mostrando Equipo.
-   * Si no, muestra Material.
-   */
-  const [kind, setKind] = useState<SolicitudKind>(
-    canCreateEquipo || canDeliverEquipo ? 'equipo' : 'material',
   )
 
   const [obras, setObras] = useState<ObraApi[]>([])
@@ -273,53 +279,6 @@ export default function SolicitudesPage() {
     canDeliverMaterial,
     loadCreateData,
     loadPending,
-  ])
-
-  /*
-   * Evita que el usuario quede en un tipo de solicitud
-   * que no tiene permitido.
-   */
-  useEffect(() => {
-    if (view === 'solicitar') {
-      if (
-        kind === 'equipo' &&
-        !canCreateEquipo &&
-        canCreateMaterial
-      ) {
-        setKind('material')
-      }
-
-      if (
-        kind === 'material' &&
-        !canCreateMaterial &&
-        canCreateEquipo
-      ) {
-        setKind('equipo')
-      }
-    } else {
-      if (
-        kind === 'equipo' &&
-        !canDeliverEquipo &&
-        canDeliverMaterial
-      ) {
-        setKind('material')
-      }
-
-      if (
-        kind === 'material' &&
-        !canDeliverMaterial &&
-        canDeliverEquipo
-      ) {
-        setKind('equipo')
-      }
-    }
-  }, [
-    view,
-    kind,
-    canCreateEquipo,
-    canCreateMaterial,
-    canDeliverEquipo,
-    canDeliverMaterial,
   ])
 
   /*
@@ -467,20 +426,15 @@ export default function SolicitudesPage() {
     }
   }
 
-  const canCreateCurrent =
-    kind === 'equipo'
-      ? canCreateEquipo
-      : canCreateMaterial
-
   return (
-    <AppLayout title="Solicitudes de equipo y materiales">
+    <AppLayout title={KIND_LABEL[kind]}>
       <PageHeader
         icon={<InventoryIcon />}
-        title="Solicitudes de equipo y materiales"
+        title={KIND_LABEL[kind]}
         description={
           view === 'solicitar'
-            ? 'Solicita herramientas, equipos o materiales para una obra. La cantidad no baja hasta que bodega entregue.'
-            : 'Administra las solicitudes pendientes y entrega los elementos desde bodega.'
+            ? `${KIND_DESCRIPTION[kind]} La cantidad no baja hasta que bodega entregue.`
+            : `Entrega las solicitudes pendientes de ${KIND_LABEL[kind].toLowerCase()}.`
         }
         action={
           view === 'solicitar' &&
@@ -531,53 +485,13 @@ export default function SolicitudesPage() {
         </FilterCard>
       ) : null}
 
-      {/*
-       * Selector Equipo / Material
-       */}
       <FilterCard>
-        <div className="flex flex-wrap gap-2">
-          {(
-            ['equipo', 'material'] as const
-          ).map((item) => {
-            const allowed =
-              view === 'solicitar'
-                ? item === 'equipo'
-                  ? canCreateEquipo
-                  : canCreateMaterial
-                : item === 'equipo'
-                  ? canDeliverEquipo
-                  : canDeliverMaterial
-
-            if (!allowed) {
-              return null
-            }
-
-            return (
-              <button
-                key={item}
-                type="button"
-                onClick={() => {
-                  setKind(item)
-                  setSearch('')
-                  setError('')
-                }}
-                className={
-                  item === kind
-                    ? 'rounded-2xl bg-sena px-5 py-3 text-sm font-semibold text-white shadow-brand'
-                    : 'rounded-2xl border border-sena-line bg-glass-strong px-5 py-3 text-sm font-semibold text-sena-dark'
-                }
-              >
-                {KIND_LABEL[item]}
-              </button>
-            )
-          })}
-        </div>
-
-        {view === 'solicitar' ? (
-          <p className="px-1 pb-1 text-sm text-sena-strong">
-            {KIND_DESCRIPTION[kind]}
-          </p>
-        ) : null}
+        <Link
+          to="/inventario/solicitudes"
+          className="inline-flex w-fit text-sm font-semibold text-sena-strong"
+        >
+          ← Solicitudes
+        </Link>
 
         {view === 'entregar' || canCreateCurrent ? (
           <SearchInput

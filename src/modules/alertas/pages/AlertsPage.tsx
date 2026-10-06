@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
   PageHeader,
@@ -112,7 +113,9 @@ export default function AlertsPage() {
     <AppLayout title="Alertas">
       <div className="mb-3 flex items-center gap-2 text-xs font-medium text-sena-text-soft">
         <HomeIcon className="size-4" />
-        <span>Inicio</span>
+        <Link to="/inventario" className="hover:text-sena-strong">
+          Inventario
+        </Link>
         <span aria-hidden="true">›</span>
         <span className="text-sena-strong">Alertas</span>
       </div>
