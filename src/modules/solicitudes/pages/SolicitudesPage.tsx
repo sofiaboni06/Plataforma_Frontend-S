@@ -82,9 +82,9 @@ const KIND_LABEL: Record<SolicitudKind, string> = {
 
 const KIND_DESCRIPTION: Record<SolicitudKind, string> = {
   equipo:
-    'Herramientas, maquinaria y equipos de carácter devolutivo.',
+    'Herramientas y equipos que se prestan para la obra y después se devuelven.',
   material:
-    'Materiales de consumo que se descuentan cuando bodega los entrega.',
+    'Materiales que se gastan en la obra, como pintura, cemento o lija.',
 }
 
 const RETURN_STATUS_OPTIONS = [
@@ -621,7 +621,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
         title={KIND_LABEL[kind]}
         description={
           view === 'solicitar'
-            ? `${KIND_DESCRIPTION[kind]} La cantidad no baja hasta que bodega entregue.`
+            ? KIND_DESCRIPTION[kind]
             : view === 'devolver'
               ? 'Recibe los equipos que vuelven a bodega y registra en qué estado llegaron.'
               : `Entrega las solicitudes pendientes de ${KIND_LABEL[kind].toLowerCase()}.`
@@ -724,20 +724,17 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
                 />
 
                 <InfoCard
-                  title={
-                    kind === 'equipo'
-                      ? 'Equipos disponibles'
-                      : 'Materiales disponibles'
-                  }
+                  title="Pendientes de entrega"
                   value={String(
-                    visibleElements.length,
+                    solicitudes.filter((row) => row.estado === 'pendiente').length,
                   )}
                 />
 
                 <InfoCard
-                  title="Regla de stock"
-                  value="Solo baja al entregar"
-                  compact
+                  title={kind === 'equipo' ? 'Equipos por devolver' : 'Entregadas'}
+                  value={String(
+                    solicitudes.filter((row) => row.estado === 'entregado').length,
+                  )}
                 />
               </div>
             ) : (
@@ -1570,13 +1567,6 @@ function SolicitudModal({
           </Field>
         </div>
 
-        {selectedElement ? (
-          <Availability
-            elemento={selectedElement}
-            available={available}
-          />
-        ) : null}
-
         <div className="grid gap-5 md:grid-cols-2">
           <Field
             label="Cantidad"
@@ -1653,13 +1643,6 @@ function SolicitudModal({
           />
         </Field>
 
-        <div className="rounded-2xl bg-sena-soft px-4 py-3 text-sm leading-6 text-sena-dark">
-          <strong>Importante:</strong>{' '}
-          solicitar no descuenta el inventario.
-          La cantidad se mantiene igual hasta
-          que bodega confirme la entrega.
-        </div>
-
         <div className="flex justify-end gap-3">
           <Button
             variant="secondary"
@@ -1687,112 +1670,6 @@ function SolicitudModal({
         </div>
       </form>
     </Modal>
-  )
-}
-
-/*
- * Disponibilidad del elemento elegido.
- * Lo reservado son pedidos pendientes que todavía no salen de bodega.
- */
-function Availability({
-  elemento,
-  available,
-}: {
-  elemento: ElementoApi
-  available: number
-}) {
-  const enBodega = Number(elemento.cantidad) || 0
-  const reservado = Math.max(0, enBodega - available)
-  const minimo = elemento.cantidadMinima
-  const unidad =
-    elemento.unidadMedida?.abreviatura ??
-    elemento.unidadMedida?.nombre ??
-    ''
-
-  const tone =
-    available <= 0
-      ? 'danger'
-      : minimo !== undefined && enBodega <= minimo
-        ? 'warn'
-        : 'ok'
-
-  const label =
-    tone === 'danger'
-      ? 'Sin disponibilidad'
-      : tone === 'warn'
-        ? 'Por agotarse'
-        : 'Con stock'
-
-  return (
-    <section
-      aria-label="Disponibilidad del elemento"
-      className="rounded-2xl border border-sena-line bg-white/65 px-5 py-4"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-sena-strong">
-            Disponible para pedir
-          </p>
-
-          <p className="mt-1 flex items-baseline gap-2">
-            <span className="text-3xl font-bold tabular-nums text-sena-text">
-              {available}
-            </span>
-
-            {unidad ? (
-              <span className="text-sm text-sena-text-soft">
-                {unidad}
-              </span>
-            ) : null}
-          </p>
-        </div>
-
-        <StatusPill tone={tone}>{label}</StatusPill>
-      </div>
-
-      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-sena-hairline pt-4 sm:grid-cols-4">
-        <AvailabilityFact
-          term="En bodega"
-          value={String(enBodega)}
-        />
-        <AvailabilityFact
-          term="Reservado"
-          value={String(reservado)}
-        />
-        <AvailabilityFact
-          term="Mínimo"
-          value={
-            minimo !== undefined
-              ? String(minimo)
-              : '—'
-          }
-        />
-        <AvailabilityFact
-          term="Stand"
-          value={elemento.stand?.nombre ?? '—'}
-        />
-      </dl>
-    </section>
-  )
-}
-
-function AvailabilityFact({
-  term,
-  value,
-}: {
-  term: string
-  value: string
-}) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs text-sena-text-soft">
-        {term}
-      </dt>
-
-      <dd className="mt-0.5 truncate text-sm font-semibold tabular-nums text-sena-text">
-        {value}
-      </dd>
-    </div>
   )
 }
 

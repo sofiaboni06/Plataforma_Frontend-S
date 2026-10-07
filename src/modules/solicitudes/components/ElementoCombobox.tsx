@@ -275,7 +275,6 @@ export default function ElementoCombobox({
                       </p>
                       <p className="mt-0.5 truncate text-xs text-sena-text-soft">
                         <Highlight text={elemento.codigo} words={words} />
-                        {elemento.stand ? ` · ${elemento.stand.nombre}` : ''}
                       </p>
                     </div>
 

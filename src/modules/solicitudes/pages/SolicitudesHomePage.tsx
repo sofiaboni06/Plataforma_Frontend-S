@@ -15,7 +15,7 @@ const OPTIONS = [
   {
     code: 'material',
     title: 'Material de consumo',
-    description: 'Materiales que se descuentan del stock cuando bodega los entrega.',
+    description: 'Materiales que se gastan en la obra, como pintura, cemento o lija.',
     to: '/inventario/solicitudes/material',
     permissions: ['solicitud_material.ver', 'solicitud_material.crear', 'solicitud_material.entregar'],
   },
