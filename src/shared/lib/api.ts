@@ -93,6 +93,20 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return body as T
 }
 
+export async function apiPage<T>(path: string, query: Record<string, string> = {}) {
+  const params = new URLSearchParams(query)
+  const body = await requestJson(params.size ? `${path}?${params}` : path)
+  const envelope = (body ?? {}) as { data?: T[]; meta?: PageMeta; metadata?: PageMeta }
+  const data = envelope.data ?? []
+  const meta = envelope.meta ?? envelope.metadata ?? {
+    total: data.length,
+    perPage: data.length,
+    currentPage: 1,
+    lastPage: 1,
+  }
+  return { data, meta }
+}
+
 export async function listAll<T>(path: string, query: Record<string, string> = {}): Promise<T[]> {
   const rows: T[] = []
   let page = 1

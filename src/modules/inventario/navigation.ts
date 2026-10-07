@@ -10,6 +10,7 @@ export type InventoryScreenCode =
   | 'codigos'
   | 'bodegas'
   | 'stands'
+  | 'obras'
   | 'solicitudes'
   | 'alertas'
 
@@ -90,6 +91,12 @@ export const INVENTORY_SCREENS: InventoryScreen[] = [
     to: '/inventario/stands',
   },
   {
+    code: 'obras',
+    label: 'Obras',
+    description: 'Obras de tu centro de formación. Las solicitudes de material y equipo se hacen para una obra.',
+    to: '/inventario/obras',
+  },
+  {
     code: 'alertas',
     label: 'Alertas',
     description: 'Vencimientos, stock bajo y movimientos del inventario de tu centro.',
@@ -107,6 +114,7 @@ const SCREEN_WORDS: Array<{ code: InventoryScreenCode; words: string[] }> = [
   { code: 'codigos', words: ['unspsc', 'estandar'] },
   { code: 'bodegas', words: ['bodega', 'bodegas'] },
   { code: 'stands', words: ['stand', 'stands'] },
+  { code: 'obras', words: ['obra', 'obras'] },
   { code: 'alertas', words: ['alerta', 'alertas'] },
 ]
 
@@ -169,6 +177,7 @@ export function locateInventoryPath(path: string): { screen: InventoryScreenCode
   if (/^\/inventario\/bodegas\/[^/]+$/.test(path)) return { screen: 'bodegas', action: 'view' }
 
   if (path === '/inventario/stands') return { screen: 'stands', action: 'list' }
+  if (path === '/inventario/obras') return { screen: 'obras', action: 'list' }
   if (path === '/inventario/alertas') return { screen: 'alertas', action: 'list' }
 
   if (path === '/inventario/solicitudes' || path.startsWith('/inventario/solicitudes/')) {
@@ -198,7 +207,7 @@ export function hasInventoryAccess(modules: AppModule[]) {
   return modules.some((mod) => isInventoryParent(mod) || classifyInventoryModule(mod) !== null)
 }
 
-const CENTER_OPERATION = new Set<InventoryScreenCode>(['items', 'elementos', 'stands'])
+const CENTER_OPERATION = new Set<InventoryScreenCode>(['items', 'elementos', 'stands', 'obras'])
 
 const ADMIN_MENU = new Set<InventoryScreenCode>([
   'categorias',
@@ -219,6 +228,7 @@ const VIEW_CODE: Record<Exclude<InventoryScreenCode, 'solicitudes' | 'alertas'>,
   codigos: 'elemento.ver',
   bodegas: 'bodega.ver',
   stands: 'stand.ver',
+  obras: 'obra.ver',
 }
 
 const SOLICITUD_CODES = [
@@ -256,6 +266,7 @@ const WRITE_CODE: Partial<Record<InventoryScreenCode, Partial<Record<InventoryAc
   codigos: { create: 'codigo_estandar.crear', edit: 'codigo_estandar.editar' },
   bodegas: { create: 'bodega.crear', edit: 'bodega.editar' },
   stands: { create: 'stand.crear', edit: 'stand.editar' },
+  obras: { create: 'obra.crear', edit: 'obra.editar' },
 }
 
 const CATALOG_WRITE = new Set([
@@ -283,7 +294,7 @@ export function allowsPermission(
   permissions: string[] | undefined,
   code: string,
 ) {
-  if (isAdmin && /^(item|elemento|stand)\./.test(code)) return false
+  if (isAdmin && /^(item|elemento|stand|obra)\./.test(code)) return false
   if (!isAdmin && CATALOG_WRITE.has(code)) return false
   return permissions?.includes(code) === true
 }
@@ -298,7 +309,7 @@ function canUseAction(screen: InventoryScreenCode, action: InventoryAction, acce
     return canOpenSolicitudes(access.isAdmin === true, access.permissions)
   }
   if (screen === 'alertas') {
-    return access.permissions?.includes('alerta.ver') === true
+    return !access.isAdmin && access.permissions?.includes('alerta.ver') === true
   }
   if (access.isAdmin && screen === 'codigos' && (action === 'list' || action === 'view')) {
     return true
@@ -322,7 +333,7 @@ export function visibleInventoryScreens(access: InventoryCaller = {}) {
     extra.push(SOLICITUDES_SCREEN)
   }
 
-  if (access.permissions?.includes('alerta.ver')) {
+  if (!access.isAdmin && access.permissions?.includes('alerta.ver')) {
     const alertas = INVENTORY_SCREENS.find((screen) => screen.code === 'alertas')
     if (alertas) extra.push(alertas)
   }

@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -19,6 +20,7 @@ import {
   ActionButton,
   ErrorBanner,
   FilterCard,
+  FilterGroup,
   PageHeader,
   RowActions,
   SearchInput,
@@ -26,15 +28,22 @@ import {
   TableEmpty,
   TableHeader,
   TableLoading,
+  TablePagination,
   TableRow,
+  tableClass,
+  tableColumns,
 } from '@/shared/components/DataTable'
 import { StatusPill } from '@/shared/components/ResourceBoard'
+import { filterSelectClass, usePagination } from '@/shared/lib/table'
+import {
+  DeliverIcon,
 import {
   EyeIcon,
   InventoryIcon,
 } from '@/shared/components/icons/AppIcons'
 
 import { useAuth } from '@/modules/auth/context/auth'
+import { useNotifications } from '@/modules/notificaciones/context/notifications'
 
 import {
   getElementos,
@@ -53,6 +62,15 @@ import type {
 } from '@/modules/solicitudes/types'
 
 import type { ElementoApi } from '@/modules/inventario/types/elemento'
+
+type DeliveryFilter = 'pendiente' | 'entregado' | 'devuelto' | 'todas'
+
+const DELIVERY_EMPTY: Record<DeliveryFilter, string> = {
+  pendiente: 'No hay solicitudes pendientes para entregar.',
+  entregado: 'Todavía no hay solicitudes entregadas.',
+  devuelto: 'Todavía no hay equipos devueltos.',
+  todas: 'Todavía no hay solicitudes.',
+}
 
 const KIND_LABEL: Record<SolicitudKind, string> = {
   equipo: 'Equipo devolutivo',
@@ -133,6 +151,22 @@ function formatDate(value: string | null) {
   }).format(date)
 }
 
+function formatDay(value: string | null | undefined) {
+  if (!value) return ''
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  return new Intl.DateTimeFormat('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
 export default function SolicitudesPage() {
   const { tipo } = useParams()
 
@@ -145,6 +179,7 @@ export default function SolicitudesPage() {
 
 function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   const { user, isAdmin } = useAuth()
+  const { lastArrival } = useNotifications()
 
   const permissions = user?.permissions
 
@@ -174,7 +209,15 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   const [elementos, setElementos] = useState<ElementoApi[]>([])
   const [solicitudes, setSolicitudes] = useState<SolicitudItemApi[]>([])
 
-  const [search, setSearch] = useState('')
+  const [search, setSearchValue] = useState('')
+  const [page, setPage] = useState(1)
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>('pendiente')
+  const [detail, setDetail] = useState<SolicitudItemApi | null>(null)
+
+  const setSearch = (value: string) => {
+    setSearchValue(value)
+    setPage(1)
+  }
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -186,6 +229,9 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   const [returnId, setReturnId] = useState<number | null>(null)
   const [detailId, setDetailId] = useState<number | null>(null)
 
+  // Si cambian el filtro antes de que responda la carga anterior, gana la última.
+  const lastLoad = useRef(0)
+
   /*
    * Carga las obras activas y los elementos activos.
    *
@@ -193,6 +239,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
    * una solicitud.
    */
   const loadCreateData = useCallback(async () => {
+    const ticket = ++lastLoad.current
     setLoading(true)
     setError('')
 
@@ -204,6 +251,8 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
         canCreateCurrent ? getSolicitudes(kind) : Promise.resolve([]),
       ])
 
+      if (ticket !== lastLoad.current) return
+
       setObras(
         obraRows.filter((obra) => obra.estado),
       )
@@ -214,13 +263,14 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
 
       setSolicitudes(solicitudRows)
     } catch (cause) {
+      if (ticket !== lastLoad.current) return
       setError(
         cause instanceof ApiError
           ? cause.message
           : 'No se pudieron cargar obras, elementos y solicitudes.',
       )
     } finally {
-      setLoading(false)
+      if (ticket === lastLoad.current) setLoading(false)
     }
   }, [canCreateEquipo, canCreateMaterial, kind])
 
@@ -228,6 +278,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
    * Carga las solicitudes pendientes para bodega.
    */
   const loadPending = useCallback(async () => {
+    const ticket = ++lastLoad.current
     setLoading(true)
     setError('')
 
@@ -244,22 +295,25 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
 
       const rows = await getSolicitudes(
         kind,
-        'pendiente',
+        deliveryFilter === 'todas' ? undefined : deliveryFilter,
       )
 
+      if (ticket !== lastLoad.current) return
       setSolicitudes(rows)
     } catch (cause) {
+      if (ticket !== lastLoad.current) return
       setError(
         cause instanceof ApiError
           ? cause.message
-          : 'No se pudieron cargar las solicitudes pendientes.',
+          : 'No se pudieron cargar las solicitudes.',
       )
     } finally {
-      setLoading(false)
+      if (ticket === lastLoad.current) setLoading(false)
     }
   }, [
     canDeliverEquipo,
     canDeliverMaterial,
+    deliveryFilter,
     kind,
   ])
 
@@ -337,6 +391,14 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
     loadReturnable,
   ])
 
+  useEffect(() => {
+    if (lastArrival?.recurso !== `solicitud_${kind}`) return
+    if (view === 'solicitar' && canCreate) void loadCreateData()
+    else if (view === 'entregar' && canDeliver) void loadPending()
+    // Solo reacciona a un aviso nuevo, no a cambios de vista.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastArrival])
+
   /*
    * Para Equipo:
    * clasificación = devolutivo
@@ -393,6 +455,20 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
         .includes(needle),
     )
   }, [search, solicitudes])
+
+  const {
+    pageRows,
+    totalPages,
+    currentPage,
+    from,
+    to,
+    total,
+  } = usePagination(filteredRequests, page)
+
+  const deliveryRow =
+    deliveryId === null
+      ? null
+      : solicitudes.find((row) => row.id === deliveryId) ?? null
 
   /*
    * Abre el formulario.
@@ -603,6 +679,26 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
             placeholder="Buscar solicitud..."
           />
         ) : null}
+
+        {view === 'entregar' && canDeliverCurrent ? (
+          <FilterGroup label="Estado">
+            <select
+              value={deliveryFilter}
+              onChange={(event) => {
+                setDeliveryFilter(event.target.value as DeliveryFilter)
+                setPage(1)
+              }}
+              className={`${filterSelectClass} lg:w-44`}
+            >
+              <option value="pendiente">Pendientes</option>
+              <option value="entregado">Entregadas</option>
+              {kind === 'equipo' ? (
+                <option value="devuelto">Devueltas</option>
+              ) : null}
+              <option value="todas">Todas</option>
+            </select>
+          </FilterGroup>
+        ) : null}
       </FilterCard>
 
       {/*
@@ -646,6 +742,25 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
 
           {canCreateCurrent && !loading ? (
             <TableCard>
+              <RequestsTable
+                mode="mine"
+                rows={pageRows}
+                emptyLabel={
+                  search.trim()
+                    ? 'No se encontraron solicitudes.'
+                    : `Todavía no has pedido ${KIND_LABEL[kind].toLowerCase()}.`
+                }
+                onView={setDetail}
+              />
+              <TablePagination
+                page={currentPage}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                from={from}
+                to={to}
+                total={total}
+                noun="solicitudes"
+              />
               <div className="overflow-x-auto">
                   <table className="data-table w-full min-w-262.5 text-sm">
                     <thead>
@@ -728,8 +843,31 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
          */
         <TableCard>
           {loading ? (
-            <TableLoading label="Cargando solicitudes pendientes..." />
+            <TableLoading label="Cargando solicitudes..." />
           ) : (
+            <>
+              <RequestsTable
+                mode="deliver"
+                rows={pageRows}
+                emptyLabel={
+                  search.trim()
+                    ? 'No se encontraron solicitudes.'
+                    : DELIVERY_EMPTY[deliveryFilter]
+                }
+                saving={saving}
+                onView={setDetail}
+                onDeliver={(row) => setDeliveryId(row.id)}
+              />
+              <TablePagination
+                page={currentPage}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                from={from}
+                to={to}
+                total={total}
+                noun="solicitudes"
+              />
+            </>
             <div className="overflow-x-auto">
               <table className="data-table w-full min-w-262.5 text-sm">
                 <thead>
@@ -850,14 +988,6 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
               </table>
             </div>
           )}
-
-          {!loading ? (
-            <div className="border-t border-sena-hairline px-6 py-4 text-sm text-sena-strong">
-              Mostrando{' '}
-              {filteredRequests.length}{' '}
-              solicitudes pendientes
-            </div>
-          ) : null}
         </TableCard>
       ) : (
         <ReturnRequestsTable
@@ -901,6 +1031,21 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
           onClose={() => setDeliveryId(null)}
         >
           <div className="space-y-5">
+            {deliveryRow ? (
+              <p className="rounded-2xl bg-sena-soft px-4 py-3 text-sm leading-6 text-sena-dark">
+                Vas a entregar{' '}
+                <strong>
+                  {deliveryRow.cantidad} de{' '}
+                  {deliveryRow.elemento?.nombre ?? 'este elemento'}
+                </strong>{' '}
+                a {personName(deliveryRow.usuario)}
+                {deliveryRow.obra
+                  ? ` para ${deliveryRow.obra.nombre}`
+                  : ''}
+                .
+              </p>
+            ) : null}
+
             <p className="text-sm leading-6 text-sena-strong">
               Esta acción cambiará la solicitud de{' '}
               <strong>pendiente</strong> a{' '}
@@ -935,6 +1080,20 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
         </Modal>
       ) : null}
 
+      {detail ? (
+        <SolicitudDetail
+          kind={kind}
+          row={detail}
+          canDeliver={
+            view === 'entregar' &&
+            canDeliverCurrent &&
+            detail.estado === 'pendiente'
+          }
+          onDeliver={() => {
+            setDeliveryId(detail.id)
+            setDetail(null)
+          }}
+          onClose={() => setDetail(null)}
       {returnId !== null ? (
         <DevolucionModal
           saving={saving}
@@ -1328,6 +1487,249 @@ function ReturnRequestsTable({
 }
 
 /*
+ * Tabla de solicitudes: pocas columnas y el detalle completo en el ojo.
+ * "mine" es lo que pidió el instructor; "deliver" es la vista de bodega.
+ */
+function RequestsTable({
+  mode,
+  rows,
+  emptyLabel,
+  saving = false,
+  onView,
+  onDeliver,
+}: {
+  mode: 'mine' | 'deliver'
+  rows: SolicitudItemApi[]
+  emptyLabel: string
+  saving?: boolean
+  onView: (row: SolicitudItemApi) => void
+  onDeliver?: (row: SolicitudItemApi) => void
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <table className={tableClass}>
+        <thead>
+          <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
+            <TableHeader width="w-[30%]">Elemento</TableHeader>
+            <TableHeader width="w-[27%]">
+              {mode === 'mine' ? 'Obra' : 'Solicitante'}
+            </TableHeader>
+            <TableHeader align="center" width="w-[12%]">
+              Cantidad
+            </TableHeader>
+            <TableHeader align="center" width={tableColumns.status}>
+              Estado
+            </TableHeader>
+            <TableHeader align="center" width={tableColumns.actions}>
+              Acciones
+            </TableHeader>
+          </tr>
+        </thead>
+
+        <tbody>
+          {rows.length === 0 ? (
+            <TableEmpty colSpan={5}>{emptyLabel}</TableEmpty>
+          ) : (
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <td className="px-5 py-4">
+                  <p className="truncate font-semibold text-sena-text">
+                    {row.elemento?.nombre ?? '—'}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                    {row.elemento?.codigo ?? '—'}
+                  </p>
+                </td>
+
+                <td className="px-5 py-4">
+                  {mode === 'mine' ? (
+                    <p className="truncate text-sena-text">
+                      {row.obra?.nombre ?? '—'}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="truncate text-sena-text">
+                        {personName(row.usuario)}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                        {row.obra ? `para ${row.obra.nombre}` : '—'}
+                      </p>
+                    </>
+                  )}
+                </td>
+
+                <td className="px-5 py-4 text-center font-semibold tabular-nums text-sena-text">
+                  {row.cantidad}
+                </td>
+
+                <td className="px-5 py-4 text-center">
+                  <StatusPill tone={requestTone(row.estado)}>
+                    {requestLabel(row.estado)}
+                  </StatusPill>
+                  <p className="mt-1 text-[11px] text-sena-text/45">
+                    {formatDay(
+                      row.estado === 'pendiente'
+                        ? row.fecha
+                        : row.fechaDevolucion ?? row.fechaEntrega,
+                    )}
+                  </p>
+                </td>
+
+                <td className="px-5 py-4">
+                  <RowActions>
+                    <ActionButton
+                      title="Ver solicitud"
+                      onClick={() => onView(row)}
+                    >
+                      <EyeIcon className="size-[18px]" />
+                    </ActionButton>
+
+                    {mode === 'deliver' &&
+                    onDeliver &&
+                    row.estado === 'pendiente' ? (
+                      <ActionButton
+                        title="Entregar"
+                        disabled={saving}
+                        onClick={() => onDeliver(row)}
+                      >
+                        <DeliverIcon className="size-[18px]" />
+                      </ActionButton>
+                    ) : null}
+                  </RowActions>
+                </td>
+              </TableRow>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+const ESTADO_ELEMENTO_LABEL: Record<
+  NonNullable<SolicitudItemApi['estadoElemento']>,
+  string
+> = {
+  bueno: 'Bueno',
+  danado: 'Dañado',
+  perdido: 'Perdido',
+  en_reparacion: 'En reparación',
+}
+
+/*
+ * Detalle completo de una solicitud.
+ */
+function SolicitudDetail({
+  kind,
+  row,
+  canDeliver,
+  onDeliver,
+  onClose,
+}: {
+  kind: SolicitudKind
+  row: SolicitudItemApi
+  canDeliver: boolean
+  onDeliver: () => void
+  onClose: () => void
+}) {
+  const devuelto = row.estado === 'devuelto'
+
+  return (
+    <Modal
+      title={`Solicitud ${row.codigoSolicitud}`}
+      description={KIND_LABEL[kind]}
+      onClose={onClose}
+      wide
+    >
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-lg font-bold text-sena-text">
+              {row.elemento?.nombre ?? '—'}
+            </p>
+            <p className="mt-0.5 text-sm text-sena-text-soft">
+              {row.elemento?.codigo ?? '—'}
+            </p>
+          </div>
+
+          <StatusPill tone={requestTone(row.estado)}>
+            {requestLabel(row.estado)}
+          </StatusPill>
+        </div>
+
+        <dl className="grid gap-x-6 gap-y-4 rounded-2xl border border-sena-line bg-white/65 px-5 py-4 sm:grid-cols-2">
+          <DetailField term="Cantidad" value={String(row.cantidad)} />
+          <DetailField term="Ficha" value={row.ficha || '—'} />
+          <DetailField
+            term="Obra"
+            value={
+              row.obra
+                ? `${row.obra.nombre}${row.obra.lugar ? ` — ${row.obra.lugar}` : ''}`
+                : '—'
+            }
+          />
+          <DetailField term="Solicitante" value={personName(row.usuario)} />
+          <DetailField term="Fecha de solicitud" value={formatDate(row.fecha)} />
+          <DetailField
+            term="Fecha de entrega"
+            value={formatDate(row.fechaEntrega)}
+          />
+          <DetailField
+            term="Entregó"
+            value={row.usuarioEntrega ? personName(row.usuarioEntrega) : '—'}
+          />
+          {kind === 'equipo' ? (
+            <DetailField
+              term={devuelto ? 'Fecha de devolución' : 'Devolución'}
+              value={
+                devuelto
+                  ? formatDate(row.fechaDevolucion ?? null)
+                  : 'Todavía no se devuelve'
+              }
+            />
+          ) : null}
+          {devuelto && row.estadoElemento ? (
+            <DetailField
+              term="Cómo volvió"
+              value={ESTADO_ELEMENTO_LABEL[row.estadoElemento]}
+            />
+          ) : null}
+          <div className="sm:col-span-2">
+            <DetailField
+              term="Observación"
+              value={row.observacion || '—'}
+            />
+          </div>
+        </dl>
+
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" size="sm" onClick={onClose}>
+            Cerrar
+          </Button>
+
+          {canDeliver ? (
+            <Button size="sm" onClick={onDeliver}>
+              Entregar
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+function DetailField({ term, value }: { term: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-sena-text-soft">{term}</dt>
+      <dd className="mt-0.5 text-sm font-semibold break-words text-sena-text">
+        {value}
+      </dd>
+    </div>
+  )
+}
+
+/*
  * Tarjeta informativa
  */
 function InfoCard({
@@ -1400,6 +1802,10 @@ function SolicitudModal({
   const available = selectedElement
     ? availableOf(selectedElement)
     : 0
+
+  const overLimit =
+    selectedElement !== null &&
+    Number(cantidad) > available
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>,
@@ -1477,7 +1883,7 @@ function SolicitudModal({
           />
         ) : null}
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-5">
           <Field
             label="Obra"
             required
@@ -1532,39 +1938,41 @@ function SolicitudModal({
                 Selecciona un elemento
               </option>
 
-              {elementos.map(
-                (elemento) => (
+              {elementos.map((elemento) => {
+                const disponible = availableOf(elemento)
+
+                return (
                   <option
                     key={elemento.id}
                     value={elemento.id}
+                    disabled={disponible <= 0}
                   >
-                    {elemento.nombre} —{' '}
-                    {elemento.codigo} —
-                    disponible:{' '}
-                    {availableOf(
-                      elemento,
-                    )}
+                    {elemento.nombre} · {elemento.codigo} ·{' '}
+                    {disponible > 0
+                      ? `${disponible} disponibles`
+                      : 'sin disponibilidad'}
                   </option>
-                ),
-              )}
+                )
+              })}
             </select>
           </Field>
+        </div>
 
+        {selectedElement ? (
+          <Availability
+            elemento={selectedElement}
+            available={available}
+          />
+        ) : null}
+
+        <div className="grid gap-5 md:grid-cols-2">
           <Field
             label="Cantidad"
             required
-            hint={
-              selectedElement
-                ? `Disponible: ${available}`
-                : undefined
-            }
           >
             <input
               type="number"
               min="1"
-              max={
-                available || undefined
-              }
               step="1"
               value={cantidad}
               onChange={(event) =>
@@ -1572,9 +1980,30 @@ function SolicitudModal({
                   event.target.value,
                 )
               }
-              className={inputClass}
+              aria-invalid={overLimit}
+              aria-describedby="cantidad-ayuda"
+              className={
+                overLimit
+                  ? inputErrorClass
+                  : inputClass
+              }
               required
             />
+
+            <span
+              id="cantidad-ayuda"
+              className={
+                overLimit
+                  ? 'mt-2 block text-xs font-semibold text-sena-danger-text'
+                  : 'mt-2 block text-xs text-sena-text-soft'
+              }
+            >
+              {!selectedElement
+                ? 'Primero elige el elemento.'
+                : overLimit
+                  ? `Solo hay ${available} disponibles. Baja la cantidad.`
+                  : `Puedes pedir hasta ${available}.`}
+            </span>
           </Field>
 
           <Field
@@ -1634,6 +2063,7 @@ function SolicitudModal({
             size="sm"
             disabled={
               saving ||
+              overLimit ||
               obras.length === 0 ||
               elementos.length === 0
             }
@@ -1645,6 +2075,112 @@ function SolicitudModal({
         </div>
       </form>
     </Modal>
+  )
+}
+
+/*
+ * Disponibilidad del elemento elegido.
+ * Lo reservado son pedidos pendientes que todavía no salen de bodega.
+ */
+function Availability({
+  elemento,
+  available,
+}: {
+  elemento: ElementoApi
+  available: number
+}) {
+  const enBodega = Number(elemento.cantidad) || 0
+  const reservado = Math.max(0, enBodega - available)
+  const minimo = elemento.cantidadMinima
+  const unidad =
+    elemento.unidadMedida?.abreviatura ??
+    elemento.unidadMedida?.nombre ??
+    ''
+
+  const tone =
+    available <= 0
+      ? 'danger'
+      : minimo !== undefined && enBodega <= minimo
+        ? 'warn'
+        : 'ok'
+
+  const label =
+    tone === 'danger'
+      ? 'Sin disponibilidad'
+      : tone === 'warn'
+        ? 'Por agotarse'
+        : 'Con stock'
+
+  return (
+    <section
+      aria-label="Disponibilidad del elemento"
+      className="rounded-2xl border border-sena-line bg-white/65 px-5 py-4"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-sena-strong">
+            Disponible para pedir
+          </p>
+
+          <p className="mt-1 flex items-baseline gap-2">
+            <span className="text-3xl font-bold tabular-nums text-sena-text">
+              {available}
+            </span>
+
+            {unidad ? (
+              <span className="text-sm text-sena-text-soft">
+                {unidad}
+              </span>
+            ) : null}
+          </p>
+        </div>
+
+        <StatusPill tone={tone}>{label}</StatusPill>
+      </div>
+
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-sena-hairline pt-4 sm:grid-cols-4">
+        <AvailabilityFact
+          term="En bodega"
+          value={String(enBodega)}
+        />
+        <AvailabilityFact
+          term="Reservado"
+          value={String(reservado)}
+        />
+        <AvailabilityFact
+          term="Mínimo"
+          value={
+            minimo !== undefined
+              ? String(minimo)
+              : '—'
+          }
+        />
+        <AvailabilityFact
+          term="Stand"
+          value={elemento.stand?.nombre ?? '—'}
+        />
+      </dl>
+    </section>
+  )
+}
+
+function AvailabilityFact({
+  term,
+  value,
+}: {
+  term: string
+  value: string
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-sena-text-soft">
+        {term}
+      </dt>
+
+      <dd className="mt-0.5 truncate text-sm font-semibold tabular-nums text-sena-text">
+        {value}
+      </dd>
+    </div>
   )
 }
 
@@ -1687,3 +2223,6 @@ function Field({
 
 const inputClass =
   'w-full rounded-2xl border border-sena-line bg-white/80 px-4 py-3 text-sm text-sena-text outline-none transition focus:border-sena focus:bg-white focus:ring-4 focus:ring-sena/10'
+
+const inputErrorClass =
+  'w-full rounded-2xl border border-sena-danger-line bg-sena-danger-soft/40 px-4 py-3 text-sm text-sena-text outline-none transition focus:border-sena-danger-text focus:bg-white focus:ring-4 focus:ring-sena-danger-text/10'

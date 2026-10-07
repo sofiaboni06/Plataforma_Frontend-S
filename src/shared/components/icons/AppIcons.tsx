@@ -165,6 +165,17 @@ export function EyeOffIcon(props: IconProps) {
   )
 }
 
+/** Caja con check: entregar una solicitud. */
+export function DeliverIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M20.2 11.2v-3L12 4.2l-8.2 4v7.6L12 20" />
+      <path d="m7.5 10.2 4.5 2.2 4.5-2.2M12 12.4V20" />
+      <path d="m15.2 18.2 2 2 3.8-3.8" />
+    </BaseIcon>
+  )
+}
+
 export function TrashIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

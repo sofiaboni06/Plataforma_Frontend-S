@@ -9,6 +9,7 @@ import RequireAdmin from '@/modules/auth/guards/RequireAdmin'
 import RequireAuth from '@/modules/auth/guards/RequireAuth'
 import RequireModule from '@/modules/auth/guards/RequireModule'
 import { AuthProvider } from '@/modules/auth/context/auth'
+import { NotificationsProvider } from '@/modules/notificaciones/context/notifications'
 
 import ActivitiesPage from '@/modules/actividades/pages/ActivitiesPage'
 import RoleModuleCreatePage from '@/modules/administracion/pages/RoleModuleCreatePage'
@@ -43,6 +44,7 @@ import ViewItemPage from '@/modules/inventario/pages/ViewItemPage'
 import ElementosPage from '@/modules/inventario/pages/ElementosPage'
 import ViewElementoPage from '@/modules/inventario/pages/ViewElementoPage'
 import CatalogoCentroPage from '@/modules/inventario/pages/CatalogoCentroPage'
+import ObrasPage from '@/modules/inventario/pages/ObrasPage'
 
 import Dashboard from '@/modules/landing/pages/Dashboard'
 import LoginPage from '@/modules/auth/pages/LoginPage'
@@ -53,6 +55,18 @@ import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
 
 import type { ReactNode } from 'react'
+
+function SessionProviders({
+  children,
+}: {
+  children: ReactNode
+}) {
+  return (
+    <AuthProvider>
+      <NotificationsProvider>{children}</NotificationsProvider>
+    </AuthProvider>
+  )
+}
 
 function Private({
   children,
@@ -89,7 +103,7 @@ function AdminRoute({
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
+      <SessionProviders>
         <Routes>
 
           {/* =========================
@@ -158,6 +172,7 @@ function App() {
             <Route path="stands" element={<StandsPage />} />
             <Route path="stands/:id/editar" element={<EditStandPage />} />
             <Route path="stands/:id" element={<ViewStandPage />} />
+            <Route path="obras" element={<ObrasPage />} />
             <Route path="solicitudes" element={<SolicitudesHomePage />} />
             <Route path="solicitudes/:tipo" element={<SolicitudesPage />} />
             <Route path="alertas" element={<AlertsPage />} />
@@ -288,7 +303,7 @@ function App() {
           />
 
         </Routes>
-      </AuthProvider>
+      </SessionProviders>
     </BrowserRouter>
   )
 }
