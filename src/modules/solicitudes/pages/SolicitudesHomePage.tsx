@@ -22,18 +22,25 @@ const OPTIONS = [
 ] as const
 
 export default function SolicitudesHomePage() {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const permissions = user?.permissions ?? []
   const options = OPTIONS.filter((option) =>
     option.permissions.some((code) => permissions.includes(code)),
   )
+  const canRequest =
+    !isAdmin &&
+    (permissions.includes('solicitud_equipo.crear') || permissions.includes('solicitud_material.crear'))
 
   return (
     <AppLayout title="Solicitudes">
       <PageHeader
         icon={<InventoryIcon />}
         title="Solicitudes"
-        description="Elige si vas a pedir equipo devolutivo o material de consumo. Van separados."
+        description={
+          canRequest
+            ? 'Elige si vas a pedir equipo devolutivo o material de consumo. Van separados.'
+            : 'Revisa las solicitudes de los instructores. El equipo devolutivo y el material de consumo se manejan por separado.'
+        }
       />
 
       {options.length ? (
