@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useLocation } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
+import NotificationsPanel from '@/modules/perfil/components/NotificationsPanel'
 import PasswordForm from '@/modules/perfil/components/PasswordForm'
 import PersonalInfoForm from '@/modules/perfil/components/PersonalInfoForm'
 import ProfileIdentityCard from '@/modules/perfil/components/ProfileIdentityCard'
@@ -26,7 +28,13 @@ function toDraft(profile: { documentId: string; email: string; phone: string; ad
 
 export default function ProfilePage() {
   const { user, updateProfile, changePassword } = useAuth()
-  const [tab, setTab] = useState<TabId>('info')
+  const location = useLocation()
+  const requestedTab = (location.state as { tab?: TabId } | null)?.tab
+  const [tab, setTab] = useState<TabId>(requestedTab ?? 'info')
+
+  useEffect(() => {
+    if (requestedTab) setTab(requestedTab)
+  }, [requestedTab, location.key])
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState<ProfileDraft | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
@@ -135,12 +143,7 @@ export default function ProfilePage() {
 
         {tab === 'password' ? <PasswordForm onSubmit={changePassword} /> : null}
 
-        {tab === 'notifications' ? (
-          <p className="mt-6 max-w-xl text-sm leading-6 text-sena-text/70">
-            Esta pestaña está en el diseño. El dump no tiene tabla de notificaciones; el equipo que
-            tome ese módulo debe crear modelo, validador, servicio y `GET/PATCH /api/v1/account/notifications`.
-          </p>
-        ) : null}
+        {tab === 'notifications' ? <NotificationsPanel /> : null}
       </div>
     </AppLayout>
   )

@@ -1,96 +1,145 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
+  ActionButton,
+  ErrorBanner,
   PageHeader,
+  RowActions,
   TableCard,
   TableHeader,
+  TableLoading,
   TableRow,
   pageButtonClass,
   tableClass,
 } from '@/shared/components/DataTable'
 import {
   AlertIcon,
+  EyeIcon,
   FilterBroomIcon,
   HomeIcon,
   SearchIcon,
 } from '@/shared/components/icons/AppIcons'
+import { ApiError } from '@/shared/lib/api'
+import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
+import { useNotifications } from '@/modules/notificaciones/context/notifications'
+import { getAllAlertas } from '@/modules/alertas/data/alertas'
+import type { AlertaApi, TipoAlerta } from '@/modules/alertas/types'
 
-type AlertType = 'Vencimiento' | 'Stock bajo' | 'Movimiento'
-type AlertStatus = 'Crítica' | 'Advertencia' | 'Info'
-type AlertRow = {
-  id: number
-  type: AlertType
-  product: string
-  code: string
-  detail: string
-  date: string
-  time: string
-  status: AlertStatus
-}
+type EstadoFiltro = 'Activas' | 'Cerradas' | 'Todas'
 
 type AlertFilters = {
-  type: AlertType | 'Todos'
-  status: AlertStatus | 'Todos'
+  type: TipoAlerta | 'Todos'
+  status: EstadoFiltro
   product: string
   from: string
   to: string
 }
 
-const ALERTS: AlertRow[] = [
-  { id: 1, type: 'Vencimiento', product: 'Suero fisiológico 0.9%', code: 'MED-003', detail: 'Vence en 3 días', date: '2026-08-06', time: '08:45 a. m.', status: 'Crítica' },
-  { id: 2, type: 'Stock bajo', product: 'Guantes estériles', code: 'INS-001', detail: 'Quedan 5 unidades', date: '2026-08-06', time: '07:32 a. m.', status: 'Advertencia' },
-  { id: 3, type: 'Stock bajo', product: 'Jeringa 10 ml', code: 'MED-007', detail: 'Quedan 8 unidades', date: '2026-08-05', time: '06:18 p. m.', status: 'Advertencia' },
-  { id: 4, type: 'Movimiento', product: 'Paracetamol 500 mg', code: 'MED-005', detail: 'Ingreso de 50 unidades', date: '2026-08-05', time: '05:40 a. m.', status: 'Info' },
-  { id: 5, type: 'Vencimiento', product: 'Amoxicilina 500 mg', code: 'MED-008', detail: 'Vence en 7 días', date: '2026-08-05', time: '04:22 a. m.', status: 'Crítica' },
-  { id: 6, type: 'Stock bajo', product: 'Gasas estériles', code: 'INS-002', detail: 'Quedan 20 unidades', date: '2026-08-05', time: '09:15 a. m.', status: 'Advertencia' },
-  { id: 7, type: 'Stock bajo', product: 'Termómetro digital', code: 'EQU-001', detail: 'Quedan 3 unidades', date: '2026-08-05', time: '08:50 a. m.', status: 'Advertencia' },
-  { id: 8, type: 'Stock bajo', product: 'Mascarillas N95', code: 'INS-003', detail: 'Quedan 10 unidades', date: '2026-08-04', time: '04:22 p. m.', status: 'Advertencia' },
-  { id: 9, type: 'Vencimiento', product: 'Suero fisiológico 0.9%', code: 'MED-001', detail: 'Vence en 5 días', date: '2026-08-04', time: '01:10 p. m.', status: 'Crítica' },
-  { id: 10, type: 'Movimiento', product: 'Guantes estériles', code: 'INS-001', detail: 'Salida de 15 unidades', date: '2026-08-04', time: '12:45 a. m.', status: 'Info' },
-  { id: 11, type: 'Stock bajo', product: 'Solución antiséptica', code: 'MED-010', detail: 'Quedan 4 unidades', date: '2026-08-03', time: '10:15 a. m.', status: 'Advertencia' },
-  { id: 12, type: 'Vencimiento', product: 'Guantes de nitrilo', code: 'INS-006', detail: 'Vence en 9 días', date: '2026-08-03', time: '07:20 a. m.', status: 'Crítica' },
-]
+const PAGE_SIZE = 10
 
 const DEFAULT_FILTERS: AlertFilters = {
   type: 'Todos',
-  status: 'Todos',
+  status: 'Activas',
   product: '',
-  from: '2026-08-01',
-  to: '2026-08-06',
+  from: '',
+  to: '',
 }
 
-const TABS = [
-  { label: 'Todas las alertas', type: 'Todos' as const, count: ALERTS.length },
-  { label: 'Stock bajo', type: 'Stock bajo' as const, count: 6 },
-  { label: 'Vencimientos', type: 'Vencimiento' as const, count: 4 },
-  { label: 'Movimientos', type: 'Movimiento' as const, count: 2 },
+const TIPO_LABEL: Record<TipoAlerta, string> = {
+  agotado: 'Agotado',
+  por_agotarse: 'Por agotarse',
+}
+
+const TABS: Array<{ label: string; type: TipoAlerta | 'Todos' }> = [
+  { label: 'Todas las alertas', type: 'Todos' },
+  { label: 'Agotados', type: 'agotado' },
+  { label: 'Por agotarse', type: 'por_agotarse' },
 ]
 
+const dayKey = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' })
+const dayLabel = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+const timeLabel = new Intl.DateTimeFormat('es-CO', { hour: '2-digit', minute: '2-digit' })
+
 export default function AlertsPage() {
-  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]['label']>(TABS[0].label)
+  const navigate = useNavigate()
+  const { permit } = useInventoryAccess()
+  const canViewElemento = permit('elemento.ver')
+  const { lastArrival } = useNotifications()
+
+  const [alertas, setAlertas] = useState<AlertaApi[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState(TABS[0].label)
   const [draftFilters, setDraftFilters] = useState(DEFAULT_FILTERS)
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [page, setPage] = useState(1)
 
-  const filteredAlerts = useMemo(() => {
-    const tabType = TABS.find((tab) => tab.label === activeTab)?.type
-    const selectedType = filters.type !== 'Todos' ? filters.type : tabType
+  async function load() {
+    setLoading(true)
+    setError(null)
+    try {
+      setAlertas(await getAllAlertas())
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : 'No se pudieron cargar las alertas.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    document.title = 'Alertas | SENA'
+    void load()
+  }, [])
+
+  useEffect(() => {
+    if (lastArrival?.recurso === 'alerta') void load()
+  }, [lastArrival])
+
+  const byStatusAndFilters = useMemo(() => {
     const search = filters.product.trim().toLowerCase()
 
-    return ALERTS.filter((alert) => {
-      const matchesType = selectedType === 'Todos' || alert.type === selectedType
-      const matchesStatus = filters.status === 'Todos' || alert.status === filters.status
-      const matchesProduct = !search || `${alert.product} ${alert.code}`.toLowerCase().includes(search)
-      const matchesFrom = !filters.from || alert.date >= filters.from
-      const matchesTo = !filters.to || alert.date <= filters.to
-      return matchesType && matchesStatus && matchesProduct && matchesFrom && matchesTo
+    return alertas.filter((alerta) => {
+      const day = alerta.fecha ? dayKey.format(new Date(alerta.fecha)) : ''
+      const matchesStatus =
+        filters.status === 'Todas' ||
+        (filters.status === 'Activas' && alerta.estado) ||
+        (filters.status === 'Cerradas' && !alerta.estado)
+      const matchesType = filters.type === 'Todos' || alerta.tipo === filters.type
+      const matchesProduct =
+        !search ||
+        `${alerta.elemento?.nombre ?? ''} ${alerta.elemento?.codigo ?? ''}`.toLowerCase().includes(search)
+      const matchesFrom = !filters.from || day >= filters.from
+      const matchesTo = !filters.to || day <= filters.to
+      return matchesStatus && matchesType && matchesProduct && matchesFrom && matchesTo
     })
-  }, [activeTab, filters])
+  }, [alertas, filters])
 
-  const pageCount = Math.max(1, Math.ceil(filteredAlerts.length / 10))
-  const pageAlerts = filteredAlerts.slice((page - 1) * 10, page * 10)
-  const visibleCount = pageAlerts.length
+  const tabCount = (type: TipoAlerta | 'Todos') =>
+    type === 'Todos'
+      ? byStatusAndFilters.length
+      : byStatusAndFilters.filter((alerta) => alerta.tipo === type).length
+
+  const filteredAlerts = useMemo(() => {
+    const tabType = TABS.find((tab) => tab.label === activeTab)?.type ?? 'Todos'
+    return tabType === 'Todos'
+      ? byStatusAndFilters
+      : byStatusAndFilters.filter((alerta) => alerta.tipo === tabType)
+  }, [activeTab, byStatusAndFilters])
+
+  const summary = useMemo(() => {
+    const activas = alertas.filter((alerta) => alerta.estado)
+    return {
+      agotados: activas.filter((alerta) => alerta.tipo === 'agotado').length,
+      porAgotarse: activas.filter((alerta) => alerta.tipo === 'por_agotarse').length,
+      activas: activas.length,
+      cerradas: alertas.length - activas.length,
+    }
+  }, [alertas])
+
+  const pageCount = Math.max(1, Math.ceil(filteredAlerts.length / PAGE_SIZE))
+  const currentPage = Math.min(page, pageCount)
+  const pageAlerts = filteredAlerts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   const updateDraft = <K extends keyof AlertFilters>(key: K, value: AlertFilters[K]) => {
     setDraftFilters((current) => ({ ...current, [key]: value }))
@@ -123,8 +172,10 @@ export default function AlertsPage() {
       <PageHeader
         icon={<AlertIcon />}
         title="Alertas"
-        description="Monitorea y gestiona las alertas del sistema en tiempo real."
+        description="Elementos de tus bodegas que llegaron a su cantidad mínima o se agotaron. Se cierran solas cuando se repone el stock."
       />
+
+      {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}
 
       <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1.9fr)_minmax(320px,0.9fr)]">
         <TableCard>
@@ -147,92 +198,103 @@ export default function AlertsPage() {
               >
                 {tab.label}
                 <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === tab.label ? 'bg-sena text-white' : 'bg-sena-soft text-sena-strong'}`}>
-                  {tab.count}
+                  {tabCount(tab.type)}
                 </span>
               </button>
             ))}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className={tableClass}>
-              <thead>
-                <tr>
-                  <TableHeader width="w-[5%]">
-                    <input type="checkbox" aria-label="Seleccionar todas las alertas" className="size-3.5 accent-[#00a651]" />
-                  </TableHeader>
-                  <TableHeader width="w-[16%]">Tipo</TableHeader>
-                  <TableHeader width="w-[22%]">Producto</TableHeader>
-                  <TableHeader width="w-[20%]">Detalle</TableHeader>
-                  <TableHeader width="w-[17%]">Fecha</TableHeader>
-                  <TableHeader width="w-[13%]">Estado</TableHeader>
-                  <TableHeader width="w-[7%]" align="center">Acciones</TableHeader>
-                </tr>
-              </thead>
-              <tbody>
-                {pageAlerts.length ? pageAlerts.map((alert) => (
-                  <TableRow key={alert.id}>
-                    <td className="px-4 py-3">
-                      <input type="checkbox" aria-label={`Seleccionar alerta de ${alert.product}`} className="size-3.5 accent-[#00a651]" />
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-sena-text">
-                        <AlertTypeMark type={alert.type} />
-                        {alert.type}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="block font-semibold text-sena-text">{alert.product}</span>
-                      <span className="mt-0.5 block text-[11px] text-sena-text-soft">{alert.code}</span>
-                    </td>
-                    <td className="px-3 py-3 text-xs text-sena-strong">{alert.detail}</td>
-                    <td className="px-3 py-3 text-xs text-sena-text">
-                      <time dateTime={alert.date}>
-                        {formatAlertDate(alert.date)}
-                        <span className="mt-0.5 block text-[11px] text-sena-text-soft">{alert.time}</span>
-                      </time>
-                    </td>
-                    <td className="px-3 py-3">
-                      <AlertStatusPill status={alert.status} />
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      <button type="button" aria-label={`Más acciones para ${alert.product}`} className="grid size-8 place-items-center rounded-lg text-lg leading-none text-sena-text-soft hover:bg-sena-soft hover:text-sena-dark">
-                        ⋯
-                      </button>
-                    </td>
-                  </TableRow>
-                )) : (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-sm text-sena-text-soft">
-                      No hay alertas que coincidan con los filtros.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {loading ? (
+            <TableLoading label="Cargando alertas…" />
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className={tableClass}>
+                  <thead>
+                    <tr>
+                      <TableHeader width="w-[17%]">Tipo</TableHeader>
+                      <TableHeader width="w-[26%]">Elemento</TableHeader>
+                      <TableHeader width="w-[22%]">Detalle</TableHeader>
+                      <TableHeader width="w-[15%]">Fecha</TableHeader>
+                      <TableHeader width="w-[12%]">Estado</TableHeader>
+                      <TableHeader width="w-[8%]" align="center">Acciones</TableHeader>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageAlerts.length ? pageAlerts.map((alerta) => (
+                      <TableRow key={alerta.id}>
+                        <td className="px-3 py-3">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-sena-text">
+                            <AlertTypeMark type={alerta.tipo} />
+                            {TIPO_LABEL[alerta.tipo]}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="block font-semibold text-sena-text">{alerta.elemento?.nombre ?? `Elemento ${alerta.idElemento}`}</span>
+                          <span className="mt-0.5 block text-[11px] text-sena-text-soft">{alerta.elemento?.codigo ?? '—'}</span>
+                        </td>
+                        <td className="px-3 py-3 text-xs text-sena-strong">{alertDetail(alerta)}</td>
+                        <td className="px-3 py-3 text-xs text-sena-text">
+                          {alerta.fecha ? (
+                            <time dateTime={alerta.fecha}>
+                              {dayLabel.format(new Date(alerta.fecha))}
+                              <span className="mt-0.5 block text-[11px] text-sena-text-soft">{timeLabel.format(new Date(alerta.fecha))}</span>
+                            </time>
+                          ) : '—'}
+                        </td>
+                        <td className="px-3 py-3">
+                          <AlertStatusPill alerta={alerta} />
+                        </td>
+                        <td className="px-3 py-3">
+                          <RowActions>
+                            {canViewElemento ? (
+                              <ActionButton
+                                title="Ver elemento"
+                                onClick={() => navigate(`/inventario/elementos/${alerta.idElemento}`)}
+                              >
+                                <EyeIcon className="size-[18px]" />
+                              </ActionButton>
+                            ) : null}
+                          </RowActions>
+                        </td>
+                      </TableRow>
+                    )) : (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-sm text-sena-text-soft">
+                          {alertas.length === 0
+                            ? 'No hay alertas. Todo el stock está por encima de su mínimo.'
+                            : 'No hay alertas que coincidan con los filtros.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-sena-hairline px-5 py-3.5 text-xs text-sena-strong sm:px-6">
-            <p>Mostrando {visibleCount} de {filteredAlerts.length} alertas</p>
-            <nav aria-label="Paginación de alertas" className="flex items-center gap-1.5">
-              <button type="button" className={pageButtonClass} aria-label="Página anterior" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
-                ‹
-              </button>
-              {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
-                <button
-                  key={pageNumber}
-                  type="button"
-                  aria-current={page === pageNumber ? 'page' : undefined}
-                  onClick={() => setPage(pageNumber)}
-                  className={`grid size-9 place-items-center rounded-xl text-sm font-semibold ${page === pageNumber ? 'bg-sena text-white shadow-brand-sm' : 'text-sena-strong hover:bg-sena-soft'}`}
-                >
-                  {pageNumber}
-                </button>
-              ))}
-              <button type="button" className={pageButtonClass} aria-label="Página siguiente" disabled={page >= pageCount} onClick={() => setPage((current) => Math.min(pageCount, current + 1))}>
-                ›
-              </button>
-            </nav>
-          </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-sena-hairline px-5 py-3.5 text-xs text-sena-strong sm:px-6">
+                <p>Mostrando {pageAlerts.length} de {filteredAlerts.length} alertas</p>
+                <nav aria-label="Paginación de alertas" className="flex items-center gap-1.5">
+                  <button type="button" className={pageButtonClass} aria-label="Página anterior" disabled={currentPage <= 1} onClick={() => setPage(Math.max(1, currentPage - 1))}>
+                    ‹
+                  </button>
+                  {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      aria-current={currentPage === pageNumber ? 'page' : undefined}
+                      onClick={() => setPage(pageNumber)}
+                      className={`grid size-9 place-items-center rounded-xl text-sm font-semibold ${currentPage === pageNumber ? 'bg-sena text-white shadow-brand-sm' : 'text-sena-strong hover:bg-sena-soft'}`}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                  <button type="button" className={pageButtonClass} aria-label="Página siguiente" disabled={currentPage >= pageCount} onClick={() => setPage(Math.min(pageCount, currentPage + 1))}>
+                    ›
+                  </button>
+                </nav>
+              </div>
+            </>
+          )}
         </TableCard>
 
         <aside className="flex flex-col gap-4">
@@ -242,10 +304,10 @@ export default function AlertsPage() {
               Resumen de alertas
             </h2>
             <div className="grid grid-cols-2 gap-2.5">
-              <SummaryTile label="Vencimientos" count="4" symbol="!" tone="red" />
-              <SummaryTile label="Stock bajo" count="6" symbol="!" tone="amber" />
-              <SummaryTile label="Movimientos" count="2" symbol="↗" tone="green" />
-              <SummaryTile label="Críticas" count="0" symbol="i" tone="slate" />
+              <SummaryTile label="Agotados" count={summary.agotados} symbol="!" tone="red" />
+              <SummaryTile label="Por agotarse" count={summary.porAgotarse} symbol="!" tone="amber" />
+              <SummaryTile label="Activas" count={summary.activas} symbol="●" tone="green" />
+              <SummaryTile label="Cerradas" count={summary.cerradas} symbol="✓" tone="slate" />
             </div>
           </section>
 
@@ -263,22 +325,20 @@ export default function AlertsPage() {
             <div className="flex flex-col gap-3.5">
               <FilterField label="Tipo de alerta" htmlFor="alert-type">
                 <select id="alert-type" value={draftFilters.type} onChange={(event) => updateDraft('type', event.target.value as AlertFilters['type'])} className={filterControlClass}>
-                  <option>Todos</option>
-                  <option>Stock bajo</option>
-                  <option>Vencimiento</option>
-                  <option>Movimiento</option>
+                  <option value="Todos">Todos</option>
+                  <option value="agotado">Agotado</option>
+                  <option value="por_agotarse">Por agotarse</option>
                 </select>
               </FilterField>
               <FilterField label="Estado" htmlFor="alert-status">
-                <select id="alert-status" value={draftFilters.status} onChange={(event) => updateDraft('status', event.target.value as AlertFilters['status'])} className={filterControlClass}>
-                  <option>Todos</option>
-                  <option>Crítica</option>
-                  <option>Advertencia</option>
-                  <option>Info</option>
+                <select id="alert-status" value={draftFilters.status} onChange={(event) => updateDraft('status', event.target.value as EstadoFiltro)} className={filterControlClass}>
+                  <option value="Activas">Activas</option>
+                  <option value="Cerradas">Cerradas</option>
+                  <option value="Todas">Todas</option>
                 </select>
               </FilterField>
-              <FilterField label="Producto" htmlFor="alert-product">
-                <input id="alert-product" value={draftFilters.product} onChange={(event) => updateDraft('product', event.target.value)} placeholder="Buscar producto..." className={filterControlClass} />
+              <FilterField label="Elemento" htmlFor="alert-product">
+                <input id="alert-product" value={draftFilters.product} onChange={(event) => updateDraft('product', event.target.value)} placeholder="Buscar por nombre o código..." className={filterControlClass} />
               </FilterField>
               <fieldset>
                 <legend className="mb-1.5 text-[11px] font-semibold text-sena-text">Rango de fechas</legend>
@@ -300,6 +360,11 @@ export default function AlertsPage() {
   )
 }
 
+function alertDetail(alerta: AlertaApi) {
+  if (alerta.tipo === 'agotado') return `Sin existencias. El mínimo es ${alerta.cantidadMinima}.`
+  return `Quedan ${alerta.cantidad}. El mínimo es ${alerta.cantidadMinima}.`
+}
+
 const filterControlClass = 'h-10 w-full min-w-0 rounded-xl border border-sena-line bg-white/75 px-3 text-xs text-sena-text outline-none transition focus:border-sena focus:ring-2 focus:ring-sena/15'
 
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
@@ -311,31 +376,31 @@ function FilterField({ label, htmlFor, children }: { label: string; htmlFor: str
   )
 }
 
-function AlertTypeMark({ type }: { type: AlertType }) {
-  const className = type === 'Vencimiento'
+function AlertTypeMark({ type }: { type: TipoAlerta }) {
+  const className = type === 'agotado'
     ? 'bg-red-100 text-red-600'
-    : type === 'Stock bajo'
-      ? 'bg-amber-100 text-amber-600'
-      : 'bg-emerald-100 text-emerald-700'
+    : 'bg-amber-100 text-amber-600'
 
   return (
     <span aria-hidden="true" className={`grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold ${className}`}>
-      {type === 'Movimiento' ? '↗' : '!'}
+      !
     </span>
   )
 }
 
-function AlertStatusPill({ status }: { status: AlertStatus }) {
-  const className = status === 'Crítica'
-    ? 'bg-red-100 text-red-700'
-    : status === 'Advertencia'
-      ? 'bg-amber-100 text-amber-700'
-      : 'bg-emerald-100 text-emerald-700'
+function AlertStatusPill({ alerta }: { alerta: AlertaApi }) {
+  if (!alerta.estado) {
+    return <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600">Cerrada</span>
+  }
 
-  return <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${className}`}>{status}</span>
+  const className = alerta.tipo === 'agotado'
+    ? 'bg-red-100 text-red-700'
+    : 'bg-amber-100 text-amber-700'
+
+  return <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${className}`}>Activa</span>
 }
 
-function SummaryTile({ label, count, symbol, tone }: { label: string; count: string; symbol: string; tone: 'red' | 'amber' | 'green' | 'slate' }) {
+function SummaryTile({ label, count, symbol, tone }: { label: string; count: number; symbol: string; tone: 'red' | 'amber' | 'green' | 'slate' }) {
   const colors = {
     red: 'bg-red-100 text-red-600',
     amber: 'bg-amber-100 text-amber-600',
@@ -352,9 +417,4 @@ function SummaryTile({ label, count, symbol, tone }: { label: string; count: str
       </span>
     </div>
   )
-}
-
-function formatAlertDate(date: string) {
-  const [year, month, day] = date.split('-')
-  return `${day}/${month}/${year}`
 }

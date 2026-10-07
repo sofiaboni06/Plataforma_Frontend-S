@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { BellIcon, MenuIcon } from '@/shared/components/icons/AppIcons'
 import SenaMark from '@/shared/components/icons/SenaMark'
 import { useAuth } from '@/modules/auth/context/auth'
+import { useNotifications } from '@/modules/notificaciones/context/notifications'
+import {
+  notificationMark,
+  notificationPath,
+  timeAgo,
+} from '@/modules/notificaciones/lib/presentacion'
+import type { NotificacionApi } from '@/modules/notificaciones/types'
 import Sidebar from './Sidebar'
 
 type AppLayoutProps = {
@@ -10,59 +18,27 @@ type AppLayoutProps = {
   showCenterBanner?: boolean
 }
 
-const notifications = [
-  {
-    title: 'Stock bajo',
-    message: 'El producto Suero fisiológico 0.9% (MED-003) tiene un stock de 3 unidades.',
-    time: 'Hace 5 minutos',
-    icon: '!' as const,
-    color: 'bg-red-500 text-white',
-    unread: true,
-  },
-  {
-    title: 'Movimiento registrado',
-    message: 'Se ha registrado una entrada de Gasas estériles (INS-002) - 50 unidades.',
-    time: 'Hace 23 minutos',
-    icon: '✓' as const,
-    color: 'bg-emerald-500 text-white',
-    unread: true,
-  },
-  {
-    title: 'Vencimiento próximo',
-    message: 'El producto Jeringa 10 ml (MED-007) vence en 3 días (06/08/2026).',
-    time: 'Hace 1 hora',
-    icon: '!' as const,
-    color: 'bg-amber-500 text-white',
-    unread: false,
-  },
-  {
-    title: 'Stock normalizado',
-    message: 'El producto Mascarillas N95 (INS-003) se encuentra en stock óptimo.',
-    time: 'Hace 3 horas',
-    icon: 'i' as const,
-    color: 'bg-green-600 text-white',
-    unread: false,
-  },
-  {
-    title: 'Nuevo producto',
-    message: 'Se ha registrado un nuevo producto en el sistema: Termómetro digital (EQU-007).',
-    time: 'Hace 5 horas',
-    icon: 'i' as const,
-    color: 'bg-sky-500 text-white',
-    unread: true,
-  },
-]
+const POPOVER_LIMIT = 8
 
 export default function AppLayout({
   title,
   children,
 }: AppLayoutProps) {
   const { user } = useAuth()
+  const navigate = useNavigate()
+  const notifications = useNotifications()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
-  const [areNotificationsRead, setAreNotificationsRead] = useState(false)
   const notificationsRef = useRef<HTMLDivElement>(null)
+  const unreadLabel = notifications.unread > 99 ? '99+' : String(notifications.unread)
+
+  const openNotification = (notification: NotificacionApi) => {
+    void notifications.markRead(notification.id)
+    const path = notificationPath(notification)
+    setIsNotificationsOpen(false)
+    if (path) navigate(path)
+  }
   const closeSidebar = useCallback(() => setIsSidebarOpen(false), [])
   const today = new Intl.DateTimeFormat('es-CO', {
     weekday: 'short',
@@ -178,16 +154,20 @@ export default function AppLayout({
                   <button
                     type="button"
                     className="relative grid size-11 shrink-0 place-items-center rounded-full bg-[#d5f2e1] text-sena-dark transition hover:bg-[#c5ebd5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sena"
-                    aria-label={areNotificationsRead ? 'Notificaciones' : 'Notificaciones, 3 sin leer'}
+                    aria-label={
+                      notifications.unread
+                        ? `Notificaciones, ${notifications.unread} sin leer`
+                        : 'Notificaciones'
+                    }
                     aria-expanded={isNotificationsOpen}
                     aria-controls="notifications-popover"
                     title="Notificaciones"
                     onClick={() => setIsNotificationsOpen((open) => !open)}
                   >
                     <BellIcon className="size-6" />
-                    {!areNotificationsRead ? (
-                      <span className="absolute -top-0.5 right-0 grid size-4 place-items-center rounded-full bg-[#e53935] text-[10px] leading-none font-bold text-white">
-                        3
+                    {notifications.unread ? (
+                      <span className="absolute -top-0.5 right-0 grid h-4 min-w-4 place-items-center rounded-full bg-[#e53935] px-1 text-[10px] leading-none font-bold text-white">
+                        {unreadLabel}
                       </span>
                     ) : null}
                   </button>
@@ -219,50 +199,68 @@ export default function AppLayout({
                         </h2>
                         <button
                           type="button"
-                          className="whitespace-nowrap text-[10px] font-medium text-sena-strong transition hover:text-sena-dark"
-                          onClick={() => setAreNotificationsRead(true)}
+                          className="whitespace-nowrap text-[10px] font-medium text-sena-strong transition hover:text-sena-dark disabled:opacity-40"
+                          disabled={!notifications.unread}
+                          onClick={() => void notifications.markAllRead()}
                         >
                           Marcar todas como leídas
                         </button>
                       </div>
 
                       <ul className="max-h-[min(62vh,390px)] overflow-y-auto">
-                        {notifications.map((notification) => (
-                          <li
-                            key={notification.title}
-                            className="flex min-h-[65px] items-start gap-2.5 border-b border-sena-line/60 px-3.5 py-2.5 transition hover:bg-white/55"
-                          >
-                            <span
-                              className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-[13px] font-bold ${notification.color}`}
-                              aria-hidden="true"
-                            >
-                              {notification.icon}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="flex items-center gap-1.5 text-[10px] font-bold leading-4">
-                                {notification.title}
-                                {!areNotificationsRead && notification.unread ? (
-                                  <span className="size-1.5 rounded-full bg-red-500" aria-label="No leída" />
-                                ) : null}
-                              </span>
-                              <span className="mt-0.5 block text-[9px] leading-[1.35] text-sena-text">
-                                {notification.message}
-                              </span>
-                              <span className="mt-1 block text-[8px] text-sena-text-soft">
-                                {notification.time}
-                              </span>
-                            </span>
-                            <span className="pt-2 text-sm leading-none text-sena-text/70" aria-hidden="true">
-                              ›
-                            </span>
+                        {notifications.items.length === 0 ? (
+                          <li className="px-4 py-8 text-center text-[11px] text-sena-text-soft">
+                            {notifications.loading
+                              ? 'Cargando notificaciones…'
+                              : notifications.error ?? 'No tienes notificaciones.'}
                           </li>
-                        ))}
+                        ) : (
+                          notifications.items.slice(0, POPOVER_LIMIT).map((notification) => {
+                            const mark = notificationMark(notification.tipo)
+                            return (
+                              <li key={notification.id} className="border-b border-sena-line/60">
+                                <button
+                                  type="button"
+                                  onClick={() => openNotification(notification)}
+                                  className="flex min-h-[65px] w-full items-start gap-2.5 px-3.5 py-2.5 text-left transition hover:bg-white/55"
+                                >
+                                  <span
+                                    className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-[13px] font-bold ${mark.color}`}
+                                    aria-hidden="true"
+                                  >
+                                    {mark.icon}
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="flex items-center gap-1.5 text-[10px] font-bold leading-4">
+                                      {notification.titulo}
+                                      {!notification.leida ? (
+                                        <span className="size-1.5 rounded-full bg-red-500" aria-label="No leída" />
+                                      ) : null}
+                                    </span>
+                                    <span className="mt-0.5 block text-[9px] leading-[1.35] text-sena-text">
+                                      {notification.mensaje}
+                                    </span>
+                                    <span className="mt-1 block text-[8px] text-sena-text-soft">
+                                      {timeAgo(notification.fecha)}
+                                    </span>
+                                  </span>
+                                  <span className="pt-2 text-sm leading-none text-sena-text/70" aria-hidden="true">
+                                    ›
+                                  </span>
+                                </button>
+                              </li>
+                            )
+                          })
+                        )}
                       </ul>
 
                       <button
                         type="button"
                         className="flex w-full items-center justify-center gap-1.5 bg-[#e2f7e9] px-3 py-2.5 text-[10px] font-bold text-sena-dark transition hover:bg-[#d6f1df]"
-                        onClick={() => setIsNotificationsOpen(false)}
+                        onClick={() => {
+                          setIsNotificationsOpen(false)
+                          navigate('/perfil', { state: { tab: 'notifications' } })
+                        }}
                       >
                         Ver todas las notificaciones
                         <span aria-hidden="true">→</span>
