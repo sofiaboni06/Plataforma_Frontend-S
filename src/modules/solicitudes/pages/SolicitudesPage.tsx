@@ -194,8 +194,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
 
   const canCreateCurrent = kind === 'equipo' ? canCreateEquipo : canCreateMaterial
   const canDeliverCurrent = kind === 'equipo' ? canDeliverEquipo : canDeliverMaterial
-  // El backend solo deja devolver a quien pidió el equipo.
-  const canReturnCurrent = kind === 'equipo' && canReturnEquipo && canCreateEquipo
+  const canReturnCurrent = kind === 'equipo' && canReturnEquipo
 
   const [view, setView] = useState<'solicitar' | 'entregar' | 'devolver'>(
     canCreateCurrent ? 'solicitar' : 'entregar',
@@ -313,7 +312,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   ])
 
   /*
-   * Carga los equipos entregados que el instructor todavía debe devolver.
+   * Carga los equipos entregados que bodega todavía no ha recibido de vuelta.
    */
   const loadReturnable = useCallback(async () => {
     const ticket = ++lastLoad.current
@@ -591,7 +590,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
       setReturnId(null)
       setToast('Devolución registrada correctamente.')
 
-      await (view === 'devolver' ? loadReturnable() : loadCreateData())
+      await (view === 'devolver' ? loadReturnable() : loadPending())
     } catch (cause) {
       setError(
         cause instanceof ApiError
@@ -624,7 +623,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
           view === 'solicitar'
             ? `${KIND_DESCRIPTION[kind]} La cantidad no baja hasta que bodega entregue.`
             : view === 'devolver'
-              ? 'Registra la devolución de los equipos entregados y su estado.'
+              ? 'Recibe los equipos que vuelven a bodega y registra en qué estado llegaron.'
               : `Entrega las solicitudes pendientes de ${KIND_LABEL[kind].toLowerCase()}.`
         }
         action={
@@ -758,11 +757,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
                     ? 'No se encontraron solicitudes.'
                     : `Todavía no has pedido ${KIND_LABEL[kind].toLowerCase()}.`
                 }
-                saving={saving}
                 onView={setDetail}
-                onReturn={
-                  canReturnCurrent ? (row) => setReturnId(row.id) : undefined
-                }
               />
               <TablePagination
                 page={currentPage}
@@ -796,6 +791,9 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
                 saving={saving}
                 onView={setDetail}
                 onDeliver={(row) => setDeliveryId(row.id)}
+                onReturn={
+                  canReturnCurrent ? (row) => setReturnId(row.id) : undefined
+                }
               />
               <TablePagination
                 page={currentPage}
@@ -819,12 +817,12 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
           ) : (
             <>
               <RequestsTable
-                mode="mine"
+                mode="deliver"
                 rows={pageRows}
                 emptyLabel={
                   search.trim()
                     ? 'No se encontraron solicitudes.'
-                    : 'No tienes equipos pendientes de devolución.'
+                    : 'No hay equipos pendientes de devolución.'
                 }
                 saving={saving}
                 onView={setDetail}
@@ -929,11 +927,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
             setDeliveryId(detail.id)
             setDetail(null)
           }}
-          canReturn={
-            view !== 'entregar' &&
-            canReturnCurrent &&
-            detail.estado === 'entregado'
-          }
+          canReturn={canReturnCurrent && detail.estado === 'entregado'}
           onReturn={() => {
             setReturnId(detail.id)
             setDetail(null)
@@ -998,7 +992,7 @@ function DevolucionModal({
   return (
     <Modal
       title="Registrar devolución"
-      description="Indica el estado en que se devuelve el elemento y registra cualquier novedad."
+      description="Revisa el equipo que llega a bodega, indica en qué estado volvió y registra cualquier novedad."
       onClose={onClose}
     >
       <form
@@ -1014,11 +1008,12 @@ function DevolucionModal({
 
         {row ? (
           <p className="rounded-2xl bg-sena-soft px-4 py-3 text-sm leading-6 text-sena-dark">
-            Vas a devolver{' '}
+            Vas a recibir{' '}
             <strong>
               {row.cantidad} de {row.elemento?.nombre ?? 'este elemento'}
-            </strong>
-            {row.obra ? ` de ${row.obra.nombre}` : ''}.
+            </strong>{' '}
+            que tenía {personName(row.usuario)}
+            {row.obra ? ` para ${row.obra.nombre}` : ''}.
           </p>
         ) : null}
 
