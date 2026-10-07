@@ -21,7 +21,7 @@ export default function HomePage() {
 
   return (
     <AppLayout title="Inicio">
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sena-soft via-sena-veil to-white shadow-card ring-1 ring-sena-line">
+      <section className="relative overflow-hidden rounded-3xl bg-linear-to-br from-sena-soft via-sena-veil to-white shadow-card ring-1 ring-sena-line">
         <span
           aria-hidden="true"
           className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-sena/10 blur-2xl"
@@ -68,7 +68,7 @@ export default function HomePage() {
               key={card.to}
               className="group flex flex-col rounded-2xl bg-white p-6 shadow-card ring-1 ring-sena-line transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover"
             >
-              <span className="grid size-14 place-items-center rounded-full bg-gradient-to-br from-sena to-[#00c45c] text-white shadow-brand">
+              <span className="grid size-14 place-items-center rounded-full bg-linear-to-br from-sena to-[#00c45c] text-white shadow-brand">
                 <NavIcon name={toNavIcon(card.icon)} className="size-7" />
               </span>
 
