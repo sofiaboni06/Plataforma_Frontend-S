@@ -1,6 +1,7 @@
 import {
   hasInventoryAccess,
   canOpenInventoryPath,
+  canOpenSolicitudes,
   isInventoryDescendantPath,
 } from '@/modules/inventario/navigation'
 
@@ -34,26 +35,17 @@ const INVENTORY_ENTRY: AppModule = {
   order: 1,
 }
 
-const MATERIALS_ENTRY: AppModule = {
-  id: 999,
-  code: 'materiales',
-  label: 'Materiales',
-  description: 'Solicitudes de equipos y materiales.',
-  to: '/materiales',
-  icon: 'inventory',
-  parentId: null,
-  order: 2,
-}
-
 export function grantedModuleLinks(
   modules: AppModule[],
   isAdmin = false,
+  permissions?: string[],
 ) {
   const seen = new Set<string>()
 
   const links = modules
     .filter((item) => item.to && item.parentId == null)
     .filter((item) => !isInventoryDescendantPath(item.to as string))
+    .filter((item) => item.to !== '/materiales')
     .filter((item) => {
       const path = item.to as string
 
@@ -66,14 +58,10 @@ export function grantedModuleLinks(
     })
 
   if (
-    (isAdmin || hasInventoryAccess(modules)) &&
+    (isAdmin || hasInventoryAccess(modules) || canOpenSolicitudes(isAdmin, permissions)) &&
     !links.some((item) => item.to === '/inventario')
   ) {
     links.push(INVENTORY_ENTRY)
-  }
-
-  if (!links.some((item) => item.to === '/materiales')) {
-    links.push(MATERIALS_ENTRY)
   }
 
   return links.sort((left, right) => left.order - right.order)
@@ -111,7 +99,7 @@ export function canOpenPath(
   }
 
   if (path === '/materiales') {
-    return true
+    return canOpenSolicitudes(isAdmin, permissions)
   }
 
   return modules.some((item) => item.to === path)

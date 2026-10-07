@@ -10,6 +10,8 @@ export type InventoryScreenCode =
   | 'codigos'
   | 'bodegas'
   | 'stands'
+  | 'solicitudes'
+  | 'alertas'
 
 export type InventoryCaller = {
   isAdmin?: boolean
@@ -87,6 +89,12 @@ export const INVENTORY_SCREENS: InventoryScreen[] = [
     description: 'Ubicaciones dentro de una sub-bodega de tu bodega.',
     to: '/inventario/stands',
   },
+  {
+    code: 'alertas',
+    label: 'Alertas',
+    description: 'Vencimientos, stock bajo y movimientos del inventario de tu centro.',
+    to: '/inventario/alertas',
+  },
 ]
 
 const SCREEN_WORDS: Array<{ code: InventoryScreenCode; words: string[] }> = [
@@ -99,6 +107,7 @@ const SCREEN_WORDS: Array<{ code: InventoryScreenCode; words: string[] }> = [
   { code: 'codigos', words: ['unspsc', 'estandar'] },
   { code: 'bodegas', words: ['bodega', 'bodegas'] },
   { code: 'stands', words: ['stand', 'stands'] },
+  { code: 'alertas', words: ['alerta', 'alertas'] },
 ]
 
 function normalize(value: string) {
@@ -160,6 +169,11 @@ export function locateInventoryPath(path: string): { screen: InventoryScreenCode
   if (/^\/inventario\/bodegas\/[^/]+$/.test(path)) return { screen: 'bodegas', action: 'view' }
 
   if (path === '/inventario/stands') return { screen: 'stands', action: 'list' }
+  if (path === '/inventario/alertas') return { screen: 'alertas', action: 'list' }
+
+  if (path === '/inventario/solicitudes' || path.startsWith('/inventario/solicitudes/')) {
+    return { screen: 'solicitudes', action: 'list' }
+  }
 
   return null
 }
@@ -195,7 +209,7 @@ const ADMIN_MENU = new Set<InventoryScreenCode>([
   'bodegas',
 ])
 
-const VIEW_CODE: Record<InventoryScreenCode, string> = {
+const VIEW_CODE: Record<Exclude<InventoryScreenCode, 'solicitudes' | 'alertas'>, string> = {
   categorias: 'categoria.ver',
   items: 'item.ver',
   elementos: 'elemento.ver',
@@ -205,6 +219,31 @@ const VIEW_CODE: Record<InventoryScreenCode, string> = {
   codigos: 'elemento.ver',
   bodegas: 'bodega.ver',
   stands: 'stand.ver',
+}
+
+const SOLICITUD_CODES = [
+  'solicitud_equipo.ver',
+  'solicitud_equipo.crear',
+  'solicitud_equipo.entregar',
+  'solicitud_equipo.devolver',
+  'solicitud_material.ver',
+  'solicitud_material.crear',
+  'solicitud_material.entregar',
+]
+
+export const SOLICITUDES_SCREEN: InventoryScreen = {
+  code: 'solicitudes',
+  label: 'Solicitudes',
+  description: 'Equipo devolutivo y material de consumo, cada uno por separado.',
+  to: '/inventario/solicitudes',
+}
+
+export function canOpenSolicitudes(isAdmin: boolean, permissions?: string[]) {
+  if (isAdmin) return true
+
+  return SOLICITUD_CODES.some(
+    (code) => permissions?.includes(code) === true,
+  )
 }
 
 const WRITE_CODE: Partial<Record<InventoryScreenCode, Partial<Record<InventoryAction, string>>>> = {
@@ -249,12 +288,18 @@ export function allowsPermission(
   return permissions?.includes(code) === true
 }
 
-function actionCode(screen: InventoryScreenCode, action: InventoryAction) {
+function actionCode(screen: Exclude<InventoryScreenCode, 'solicitudes' | 'alertas'>, action: InventoryAction) {
   if (action === 'list' || action === 'view') return VIEW_CODE[screen]
   return WRITE_CODE[screen]?.[action] ?? VIEW_CODE[screen]
 }
 
 function canUseAction(screen: InventoryScreenCode, action: InventoryAction, access: InventoryCaller) {
+  if (screen === 'solicitudes') {
+    return canOpenSolicitudes(access.isAdmin === true, access.permissions)
+  }
+  if (screen === 'alertas') {
+    return access.permissions?.includes('alerta.ver') === true
+  }
   if (access.isAdmin && screen === 'codigos' && (action === 'list' || action === 'view')) {
     return true
   }
@@ -262,12 +307,27 @@ function canUseAction(screen: InventoryScreenCode, action: InventoryAction, acce
 }
 
 export function visibleInventoryScreens(access: InventoryCaller = {}) {
-  if (access.isAdmin) {
-    return INVENTORY_SCREENS.filter((screen) => ADMIN_MENU.has(screen.code))
+  const screens = access.isAdmin
+    ? INVENTORY_SCREENS.filter((screen) => ADMIN_MENU.has(screen.code))
+    : INVENTORY_SCREENS.filter(
+        (screen) =>
+          screen.code !== 'solicitudes' &&
+          screen.code !== 'alertas' &&
+          (access.permissions ?? []).includes(VIEW_CODE[screen.code]),
+      )
+
+  const extra: InventoryScreen[] = []
+
+  if (canOpenSolicitudes(access.isAdmin === true, access.permissions)) {
+    extra.push(SOLICITUDES_SCREEN)
   }
 
-  const permissions = access.permissions ?? []
-  return INVENTORY_SCREENS.filter((screen) => permissions.includes(VIEW_CODE[screen.code]))
+  if (access.permissions?.includes('alerta.ver')) {
+    const alertas = INVENTORY_SCREENS.find((screen) => screen.code === 'alertas')
+    if (alertas) extra.push(alertas)
+  }
+
+  return extra.length ? [...screens, ...extra] : screens
 }
 
 export function canSeeInventoryScreen(

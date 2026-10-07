@@ -45,3 +45,18 @@ export function entregarSolicitud(
     method: 'PATCH',
   })
 }
+
+export type DevolverSolicitudPayload = {
+  estadoElemento: 'bueno' | 'danado' | 'perdido' | 'en_reparacion'
+  observacion?: string
+}
+
+export function devolverSolicitud(
+  id: number,
+  payload: DevolverSolicitudPayload,
+): Promise<SolicitudItemApi> {
+  return api<SolicitudItemApi>(`/solicitudes-equipo/${id}/devolver`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}

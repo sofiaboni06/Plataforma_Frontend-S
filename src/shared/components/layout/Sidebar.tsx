@@ -34,7 +34,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const { logout, modules, isAdmin, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const granted = grantedModuleLinks(modules, isAdmin)
+  const granted = grantedModuleLinks(modules, isAdmin, user?.permissions)
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,
     permissions: user?.permissions,
@@ -175,14 +175,6 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
             </div>
           )
         })}
-
-        <SideLink
-          to="/alertas"
-          icon="alert"
-          onClose={onClose}
-        >
-          Alertas
-        </SideLink>
 
         <SideLink
           to="/perfil"

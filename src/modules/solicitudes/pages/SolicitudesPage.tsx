@@ -6,6 +6,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react'
+import { Link, Navigate, useParams } from 'react-router-dom'
 
 import { ApiError } from '@/shared/lib/api'
 
@@ -15,9 +16,11 @@ import Modal from '@/shared/components/ui/Modal'
 import Toast from '@/shared/components/ui/Toast'
 
 import {
+  ActionButton,
   ErrorBanner,
   FilterCard,
   PageHeader,
+  RowActions,
   SearchInput,
   TableCard,
   TableEmpty,
@@ -25,9 +28,11 @@ import {
   TableLoading,
   TableRow,
 } from '@/shared/components/DataTable'
-
 import { StatusPill } from '@/shared/components/ResourceBoard'
-import { InventoryIcon } from '@/shared/components/icons/AppIcons'
+import {
+  EyeIcon,
+  InventoryIcon,
+} from '@/shared/components/icons/AppIcons'
 
 import { useAuth } from '@/modules/auth/context/auth'
 
@@ -37,6 +42,7 @@ import {
   getSolicitudes,
   createSolicitud,
   entregarSolicitud,
+  devolverSolicitud,
 } from '@/modules/solicitudes/data/solicitudes'
 
 import type {
@@ -49,8 +55,8 @@ import type {
 import type { ElementoApi } from '@/modules/inventario/types/elemento'
 
 const KIND_LABEL: Record<SolicitudKind, string> = {
-  equipo: 'Equipo',
-  material: 'Material',
+  equipo: 'Equipo devolutivo',
+  material: 'Material de consumo',
 }
 
 const KIND_DESCRIPTION: Record<SolicitudKind, string> = {
@@ -60,40 +66,39 @@ const KIND_DESCRIPTION: Record<SolicitudKind, string> = {
     'Materiales de consumo que se descuentan cuando bodega los entrega.',
 }
 
-/**
- * Control de permisos de la pantalla.
- *
- * Administrador:
- * - Puede crear.
- * - Puede entregar.
- *
- * Instructor:
- * - Puede crear solicitudes.
- * - No puede entregar.
- *
- * Otros roles:
- * - Dependen de los permisos recibidos desde backend.
- */
-function permission(
+const RETURN_STATUS_OPTIONS = [
+  { value: 'bueno', label: 'Bueno' },
+  { value: 'danado', label: 'Dañado' },
+  { value: 'perdido', label: 'Perdido' },
+  { value: 'en_reparacion', label: 'En reparación' },
+] as const
+
+function allows(
   userPermissions: string[] | undefined,
   code: string,
   isAdmin: boolean,
-  role?: string,
 ) {
-  if (isAdmin) {
-    return true
-  }
-
-  const normalizedRole = role?.trim().toLowerCase()
-
-  if (normalizedRole === 'instructor') {
-    return (
-      code === 'solicitud_equipo.crear' ||
-      code === 'solicitud_material.crear'
-    )
-  }
-
+  if (isAdmin) return true
   return userPermissions?.includes(code) === true
+}
+
+function personName(
+  person?: { nombres: string; apellidos: string } | null,
+) {
+  const name = `${person?.nombres ?? ''} ${person?.apellidos ?? ''}`.trim()
+  return name || '—'
+}
+
+function requestTone(estado: SolicitudItemApi['estado']) {
+  if (estado === 'entregado') return 'ok' as const
+  if (estado === 'devuelto') return 'danger' as const
+  return 'warn' as const
+}
+
+function requestLabel(estado: SolicitudItemApi['estado']) {
+  if (estado === 'entregado') return 'Entregado'
+  if (estado === 'devuelto') return 'Devuelto'
+  return 'Pendiente'
 }
 
 function availableOf(elemento: ElementoApi) {
@@ -129,69 +134,40 @@ function formatDate(value: string | null) {
 }
 
 export default function SolicitudesPage() {
+  const { tipo } = useParams()
+
+  if (tipo !== 'equipo' && tipo !== 'material') {
+    return <Navigate to="/inventario/solicitudes" replace />
+  }
+
+  return <SolicitudKindPage kind={tipo} />
+}
+
+function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   const { user, isAdmin } = useAuth()
 
   const permissions = user?.permissions
-  const role = user?.role
 
-  /*
-   * Permisos para solicitar equipo.
-   */
-  const canCreateEquipo = permission(
-    permissions,
-    'solicitud_equipo.crear',
-    isAdmin,
-    role,
-  )
+  const canCreateEquipo = allows(permissions, 'solicitud_equipo.crear', isAdmin)
+  const canDeliverEquipo = allows(permissions, 'solicitud_equipo.entregar', isAdmin)
+  const canReturnEquipo = allows(permissions, 'solicitud_equipo.devolver', isAdmin)
+  const canCreateMaterial = allows(permissions, 'solicitud_material.crear', isAdmin)
+  const canDeliverMaterial = allows(permissions, 'solicitud_material.entregar', isAdmin)
 
-  /*
-   * Permiso para entregar equipo.
-   */
-  const canDeliverEquipo = permission(
-    permissions,
-    'solicitud_equipo.entregar',
-    isAdmin,
-    role,
-  )
+  const canCreateCurrent = kind === 'equipo' ? canCreateEquipo : canCreateMaterial
+  const canDeliverCurrent = kind === 'equipo' ? canDeliverEquipo : canDeliverMaterial
+  const canReturnCurrent = kind === 'equipo' && canReturnEquipo
 
-  /*
-   * Permisos para solicitar material.
-   */
-  const canCreateMaterial = permission(
-    permissions,
-    'solicitud_material.crear',
-    isAdmin,
-    role,
-  )
-
-  /*
-   * Permiso para entregar material.
-   */
-  const canDeliverMaterial = permission(
-    permissions,
-    'solicitud_material.entregar',
-    isAdmin,
-    role,
-  )
-
-  const canCreate = canCreateEquipo || canCreateMaterial
-  const canDeliver = canDeliverEquipo || canDeliverMaterial
-
-  /*
-   * Instructor entra directamente a "Solicitar".
-   * Administrador entra a "Solicitar" si también tiene permisos
-   * de creación; de lo contrario entra a "Entregar".
-   */
-  const [view, setView] = useState<'solicitar' | 'entregar'>(
-    canCreate ? 'solicitar' : 'entregar',
-  )
-
-  /*
-   * Si puede crear equipo comienza mostrando Equipo.
-   * Si no, muestra Material.
-   */
-  const [kind, setKind] = useState<SolicitudKind>(
-    canCreateEquipo ? 'equipo' : 'material',
+  const [view, setView] = useState<'solicitar' | 'entregar' | 'devolver'>(
+    isAdmin && canDeliverCurrent
+      ? 'entregar'
+      : canCreateCurrent
+        ? 'solicitar'
+        : canDeliverCurrent
+          ? 'entregar'
+          : canReturnCurrent
+            ? 'devolver'
+            : 'entregar',
   )
 
   const [obras, setObras] = useState<ObraApi[]>([])
@@ -207,6 +183,8 @@ export default function SolicitudesPage() {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [deliveryId, setDeliveryId] = useState<number | null>(null)
+  const [returnId, setReturnId] = useState<number | null>(null)
+  const [detailId, setDetailId] = useState<number | null>(null)
 
   /*
    * Carga las obras activas y los elementos activos.
@@ -219,9 +197,11 @@ export default function SolicitudesPage() {
     setError('')
 
     try {
-      const [obraRows, elementoRows] = await Promise.all([
+      const canCreateCurrent = kind === 'equipo' ? canCreateEquipo : canCreateMaterial
+      const [obraRows, elementoRows, solicitudRows] = await Promise.all([
         getObras(),
         getElementos(),
+        canCreateCurrent ? getSolicitudes(kind) : Promise.resolve([]),
       ])
 
       setObras(
@@ -231,16 +211,18 @@ export default function SolicitudesPage() {
       setElementos(
         elementoRows.filter((elemento) => elemento.estado),
       )
+
+      setSolicitudes(solicitudRows)
     } catch (cause) {
       setError(
         cause instanceof ApiError
           ? cause.message
-          : 'No se pudieron cargar obras y elementos.',
+          : 'No se pudieron cargar obras, elementos y solicitudes.',
       )
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [canCreateEquipo, canCreateMaterial, kind])
 
   /*
    * Carga las solicitudes pendientes para bodega.
@@ -281,6 +263,29 @@ export default function SolicitudesPage() {
     kind,
   ])
 
+  const loadReturnable = useCallback(async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      if (!canReturnEquipo) {
+        setSolicitudes([])
+        return
+      }
+
+      const rows = await getSolicitudes('equipo', 'entregado')
+      setSolicitudes(rows)
+    } catch (cause) {
+      setError(
+        cause instanceof ApiError
+          ? cause.message
+          : 'No se pudieron cargar los equipos pendientes de devolución.',
+      )
+    } finally {
+      setLoading(false)
+    }
+  }, [canReturnEquipo])
+
   /*
    * Cuando cambia Solicitar/Entregar o Equipo/Material,
    * cargamos la información correspondiente.
@@ -293,6 +298,16 @@ export default function SolicitudesPage() {
           : canCreateMaterial
       ) {
         void loadCreateData()
+      } else {
+        setLoading(false)
+      }
+
+      return
+    }
+
+    if (view === 'devolver') {
+      if (canReturnCurrent) {
+        void loadReturnable()
       } else {
         setLoading(false)
       }
@@ -316,55 +331,10 @@ export default function SolicitudesPage() {
     canCreateMaterial,
     canDeliverEquipo,
     canDeliverMaterial,
+    canReturnCurrent,
     loadCreateData,
     loadPending,
-  ])
-
-  /*
-   * Evita que el usuario quede en un tipo de solicitud
-   * que no tiene permitido.
-   */
-  useEffect(() => {
-    if (view === 'solicitar') {
-      if (
-        kind === 'equipo' &&
-        !canCreateEquipo &&
-        canCreateMaterial
-      ) {
-        setKind('material')
-      }
-
-      if (
-        kind === 'material' &&
-        !canCreateMaterial &&
-        canCreateEquipo
-      ) {
-        setKind('equipo')
-      }
-    } else {
-      if (
-        kind === 'equipo' &&
-        !canDeliverEquipo &&
-        canDeliverMaterial
-      ) {
-        setKind('material')
-      }
-
-      if (
-        kind === 'material' &&
-        !canDeliverMaterial &&
-        canDeliverEquipo
-      ) {
-        setKind('equipo')
-      }
-    }
-  }, [
-    view,
-    kind,
-    canCreateEquipo,
-    canCreateMaterial,
-    canDeliverEquipo,
-    canDeliverMaterial,
+    loadReturnable,
   ])
 
   /*
@@ -417,6 +387,7 @@ export default function SolicitudesPage() {
         ${row.elemento?.codigo ?? ''}
         ${row.obra?.nombre ?? ''}
         ${row.ficha ?? ''}
+        ${personName(row.usuario)}
       `
         .toLowerCase()
         .includes(needle),
@@ -511,20 +482,66 @@ export default function SolicitudesPage() {
     }
   }
 
-  const canCreateCurrent =
-    kind === 'equipo'
-      ? canCreateEquipo
-      : canCreateMaterial
+  const devolver = async (
+    estadoElemento:
+      | 'bueno'
+      | 'danado'
+      | 'perdido'
+      | 'en_reparacion',
+    observacion: string,
+  ) => {
+    if (returnId === null) return
+
+    setSaving(true)
+    setError('')
+
+    try {
+      await devolverSolicitud(returnId, {
+        estadoElemento,
+        ...(observacion.trim()
+          ? { observacion: observacion.trim() }
+          : {}),
+      })
+
+      setReturnId(null)
+      setToast('Devolución registrada correctamente.')
+
+      const updated = await getSolicitudes(kind)
+      setSolicitudes(updated)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No fue posible registrar la devolución.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const availableViews = [
+    ...(canCreateCurrent
+      ? [{ id: 'solicitar' as const, label: 'Solicitar' }]
+      : []),
+    ...(canDeliverCurrent
+      ? [{ id: 'entregar' as const, label: 'Entregar' }]
+      : []),
+    ...(canReturnCurrent
+      ? [{ id: 'devolver' as const, label: 'Devolver' }]
+      : []),
+  ]
 
   return (
-    <AppLayout title="Solicitudes de equipo y materiales">
+    <AppLayout title={KIND_LABEL[kind]}>
       <PageHeader
         icon={<InventoryIcon />}
-        title="Solicitudes de equipo y materiales"
+        title={KIND_LABEL[kind]}
         description={
           view === 'solicitar'
-            ? 'Solicita herramientas, equipos o materiales para una obra. La cantidad no baja hasta que bodega entregue.'
-            : 'Administra las solicitudes pendientes y entrega los elementos desde bodega.'
+            ? `${KIND_DESCRIPTION[kind]} La cantidad no baja hasta que bodega entregue.`
+            : view === 'devolver'
+              ? 'Registra la devolución de los equipos entregados y su estado.'
+              : `Entrega las solicitudes pendientes de ${KIND_LABEL[kind].toLowerCase()}.`
         }
         action={
           view === 'solicitar' &&
@@ -546,129 +563,166 @@ export default function SolicitudesPage() {
         />
       ) : null}
 
-      {canCreate && canDeliver ? (
+      {availableViews.length > 1 ? (
         <FilterCard>
           <div className="flex flex-wrap gap-2">
-            {(
-              ['solicitar', 'entregar'] as const
-            ).map((item) => (
+            {availableViews.map(({ id, label }) => (
               <button
-                key={item}
+                key={id}
                 type="button"
                 onClick={() => {
-                  setView(item)
+                  setView(id)
                   setSearch('')
                   setError('')
                 }}
                 className={
-                  item === view
+                  id === view
                     ? 'h-13 rounded-2xl bg-sena px-5 text-sm font-semibold text-white shadow-brand'
                     : 'h-13 rounded-2xl border border-sena-line bg-glass-strong px-5 text-sm font-semibold text-sena-dark'
                 }
               >
-                {item === 'solicitar'
-                  ? 'Solicitar'
-                  : 'Entregar'}
+                {label}
               </button>
             ))}
           </div>
         </FilterCard>
       ) : null}
 
-      {/*
-       * Selector Equipo / Material
-       */}
       <FilterCard>
-        <div className="flex flex-wrap gap-2">
-          {(
-            ['equipo', 'material'] as const
-          ).map((item) => {
-            const allowed =
-              view === 'solicitar'
-                ? item === 'equipo'
-                  ? canCreateEquipo
-                  : canCreateMaterial
-                : item === 'equipo'
-                  ? canDeliverEquipo
-                  : canDeliverMaterial
+        <Link
+          to="/inventario/solicitudes"
+          className="inline-flex w-fit text-sm font-semibold text-sena-strong"
+        >
+          ← Solicitudes
+        </Link>
 
-            if (!allowed) {
-              return null
-            }
-
-            return (
-              <button
-                key={item}
-                type="button"
-                onClick={() => {
-                  setKind(item)
-                  setSearch('')
-                  setError('')
-                }}
-                className={
-                  item === kind
-                    ? 'rounded-2xl bg-sena px-5 py-3 text-sm font-semibold text-white shadow-brand'
-                    : 'rounded-2xl border border-sena-line bg-glass-strong px-5 py-3 text-sm font-semibold text-sena-dark'
-                }
-              >
-                {KIND_LABEL[item]}
-              </button>
-            )
-          })}
-        </div>
-
-        {view === 'entregar' ? (
+        {view !== 'solicitar' || canCreateCurrent ? (
           <SearchInput
             value={search}
             onChange={setSearch}
             placeholder="Buscar solicitud..."
           />
-        ) : (
-          <p className="px-1 pb-1 text-sm text-sena-strong">
-            {KIND_DESCRIPTION[kind]}
-          </p>
-        )}
+        ) : null}
       </FilterCard>
 
       {/*
        * VISTA PARA SOLICITAR
        */}
       {view === 'solicitar' ? (
-        <section className="rounded-[26px] border border-glass-line bg-glass-strong p-7 shadow-surface backdrop-blur-glass">
-          {loading ? (
-            <TableLoading label="Cargando obras y elementos disponibles..." />
-          ) : canCreateCurrent ? (
-            <div className="grid gap-5 md:grid-cols-3">
-              <InfoCard
-                title="Obras activas"
-                value={String(obras.length)}
-              />
+        <>
+          <section className="rounded-[26px] border border-glass-line bg-glass-strong p-7 shadow-surface backdrop-blur-glass">
+            {loading ? (
+              <TableLoading label="Cargando obras y elementos disponibles..." />
+            ) : canCreateCurrent ? (
+              <div className="grid gap-5 md:grid-cols-3">
+                <InfoCard
+                  title="Obras activas"
+                  value={String(obras.length)}
+                />
 
-              <InfoCard
-                title={
-                  kind === 'equipo'
-                    ? 'Equipos disponibles'
-                    : 'Materiales disponibles'
-                }
-                value={String(
-                  visibleElements.length,
-                )}
-              />
+                <InfoCard
+                  title={
+                    kind === 'equipo'
+                      ? 'Equipos disponibles'
+                      : 'Materiales disponibles'
+                  }
+                  value={String(
+                    visibleElements.length,
+                  )}
+                />
 
-              <InfoCard
-                title="Regla de stock"
-                value="Solo baja al entregar"
-                compact
-              />
-            </div>
-          ) : (
-            <TableEmpty colSpan={1}>
-              No tienes permiso para crear este tipo de
-              solicitud.
-            </TableEmpty>
-          )}
-        </section>
-      ) : (
+                <InfoCard
+                  title="Regla de stock"
+                  value="Solo baja al entregar"
+                  compact
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-sena-text-soft">
+                No tienes permiso para crear este tipo de solicitud.
+              </p>
+            )}
+          </section>
+
+          {canCreateCurrent && !loading ? (
+            <TableCard>
+              <div className="overflow-x-auto">
+                  <table className="data-table w-full min-w-262.5 text-sm">
+                    <thead>
+                      <tr className="border-b border-sena-hairline bg-sena-soft/85">
+                        <TableHeader>Solicitud</TableHeader>
+                        <TableHeader>Elemento</TableHeader>
+                        <TableHeader>Obra</TableHeader>
+                        <TableHeader>Cantidad</TableHeader>
+                        <TableHeader>Ficha</TableHeader>
+                        <TableHeader>Estado</TableHeader>
+                        <TableHeader>Fecha</TableHeader>
+                        <TableHeader align="center">Acción</TableHeader>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRequests.length === 0 ? (
+                        <TableEmpty colSpan={8}>
+                          Todavía no has pedido {KIND_LABEL[kind].toLowerCase()}.
+                        </TableEmpty>
+                      ) : (
+                        filteredRequests.map((row) => (
+                          <TableRow key={row.id}>
+                            <td className="font-semibold">{row.codigoSolicitud}</td>
+                            <td>
+                              <div className="font-medium">{row.elemento?.nombre ?? '—'}</div>
+                              <div className="text-xs text-sena-text-soft">{row.elemento?.codigo ?? '—'}</div>
+                            </td>
+                            <td>{row.obra?.nombre ?? '—'}</td>
+                            <td>{row.cantidad}</td>
+                            <td>{row.ficha || '—'}</td>
+                            <td>
+                              <StatusPill tone={requestTone(row.estado)}>
+                                {requestLabel(row.estado)}
+                              </StatusPill>
+                            </td>
+                            <td>{formatDate(row.fecha)}</td>
+                            <td>
+                              <div className="flex justify-center">
+                                <RowActions>
+                                  <ActionButton
+                                    title="Ver solicitud"
+                                    onClick={() => setDetailId(row.id)}
+                                  >
+                                    <EyeIcon className="size-[18px]" />
+                                  </ActionButton>
+                                  {kind === 'equipo' &&
+                                  canReturnEquipo &&
+                                  row.estado === 'entregado' ? (
+                                    <ActionButton
+                                      title="Devolver"
+                                      onClick={() => setReturnId(row.id)}
+                                      disabled={saving}
+                                    >
+                                      <span
+                                        aria-hidden="true"
+                                        className="text-xl leading-none"
+                                      >
+                                        ↔
+                                      </span>
+                                    </ActionButton>
+                                  ) : null}
+                                </RowActions>
+                              </div>
+                            </td>
+                          </TableRow>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              <div className="border-t border-sena-hairline px-6 py-4 text-sm text-sena-strong">
+                Mostrando {filteredRequests.length} solicitudes
+              </div>
+            </TableCard>
+          ) : null}
+        </>
+      ) : view === 'entregar' ? (
         /*
          * VISTA PARA ENTREGAR
          */
@@ -701,6 +755,10 @@ export default function SolicitudesPage() {
                     </TableHeader>
 
                     <TableHeader>
+                      Solicitante
+                    </TableHeader>
+
+                    <TableHeader>
                       Estado
                     </TableHeader>
 
@@ -716,7 +774,7 @@ export default function SolicitudesPage() {
 
                 <tbody>
                   {filteredRequests.length === 0 ? (
-                    <TableEmpty colSpan={8}>
+                    <TableEmpty colSpan={9}>
                       No hay solicitudes pendientes para
                       entregar.
                     </TableEmpty>
@@ -750,8 +808,12 @@ export default function SolicitudesPage() {
                         </td>
 
                         <td>
-                          <StatusPill tone="warn">
-                            Pendiente
+                          {personName(row.usuario)}
+                        </td>
+
+                        <td>
+                          <StatusPill tone={requestTone(row.estado)}>
+                            {requestLabel(row.estado)}
                           </StatusPill>
                         </td>
 
@@ -760,17 +822,26 @@ export default function SolicitudesPage() {
                         </td>
 
                         <td>
-                          <div className="flex justify-center">
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                setDeliveryId(row.id)
-                              }
+                          <RowActions>
+                            <ActionButton
+                              title="Ver solicitud"
+                              onClick={() => setDetailId(row.id)}
+                            >
+                              <EyeIcon className="size-5" />
+                            </ActionButton>
+                            <ActionButton
+                              title="Entregar"
+                              onClick={() => setDeliveryId(row.id)}
                               disabled={saving}
                             >
-                              Entregar
-                            </Button>
-                          </div>
+                              <span
+                                aria-hidden="true"
+                                className="text-xl leading-none"
+                              >
+                                ↔
+                              </span>
+                            </ActionButton>
+                          </RowActions>
                         </td>
                       </TableRow>
                     ))
@@ -788,11 +859,18 @@ export default function SolicitudesPage() {
             </div>
           ) : null}
         </TableCard>
+      ) : (
+        <ReturnRequestsTable
+          loading={loading}
+          requests={filteredRequests}
+          saving={saving}
+          onView={(id) => setDetailId(id)}
+          onReturn={(id) => {
+            setReturnId(id)
+          }}
+        />
       )}
 
-      {/*
-       * MODAL PARA CREAR SOLICITUD
-       */}
       {modalOpen ? (
         <SolicitudModal
           kind={kind}
@@ -801,6 +879,13 @@ export default function SolicitudesPage() {
           saving={saving}
           onClose={() => setModalOpen(false)}
           onSubmit={submit}
+        />
+      ) : null}
+
+      {detailId !== null ? (
+        <SolicitudDetalleModal
+          solicitud={solicitudes.find((row) => row.id === detailId) ?? null}
+          onClose={() => setDetailId(null)}
         />
       ) : null}
 
@@ -850,6 +935,14 @@ export default function SolicitudesPage() {
         </Modal>
       ) : null}
 
+      {returnId !== null ? (
+        <DevolucionModal
+          saving={saving}
+          onClose={() => setReturnId(null)}
+          onSubmit={devolver}
+        />
+      ) : null}
+
       {toast ? (
         <Toast
           message={toast}
@@ -857,6 +950,380 @@ export default function SolicitudesPage() {
         />
       ) : null}
     </AppLayout>
+  )
+}
+
+function SolicitudDetalleModal({
+  solicitud,
+  onClose,
+}: {
+  solicitud: SolicitudItemApi | null
+  onClose: () => void
+}) {
+  if (!solicitud) return null
+
+  return (
+    <Modal
+      title="Detalle de la solicitud"
+      description="Información completa de la solicitud de equipo."
+      onClose={onClose}
+    >
+      <div className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <DetailItem
+            label="Código de solicitud"
+            value={solicitud.codigoSolicitud}
+          />
+
+          <DetailItem
+            label="Estado"
+            value={requestLabel(solicitud.estado)}
+          />
+
+          <DetailItem
+            label="Elemento"
+            value={solicitud.elemento?.nombre ?? '—'}
+          />
+
+          <DetailItem
+            label="Código del elemento"
+            value={solicitud.elemento?.codigo ?? '—'}
+          />
+
+          <DetailItem
+            label="Cantidad"
+            value={String(solicitud.cantidad)}
+          />
+
+          <DetailItem
+            label="Ficha"
+            value={solicitud.ficha || '—'}
+          />
+
+          <DetailItem
+            label="Obra"
+            value={solicitud.obra?.nombre ?? '—'}
+          />
+
+          <DetailItem
+            label="Lugar"
+            value={solicitud.obra?.lugar ?? '—'}
+          />
+
+          <DetailItem
+            label="Solicitante"
+            value={personName(solicitud.usuario)}
+          />
+
+          <DetailItem
+            label="Correo"
+            value={solicitud.usuario?.email ?? '—'}
+          />
+
+          <DetailItem
+            label="Fecha de solicitud"
+            value={formatDate(solicitud.fecha)}
+          />
+
+          <DetailItem
+            label="Fecha de entrega"
+            value={formatDate(solicitud.fechaEntrega)}
+          />
+        </div>
+
+        {solicitud.observacion ? (
+          <div className="rounded-2xl border border-sena-line bg-sena-soft/50 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-sena-strong">
+              Observación
+            </p>
+
+            <p className="mt-2 text-sm leading-6 text-sena-dark">
+              {solicitud.observacion}
+            </p>
+          </div>
+        ) : null}
+
+        {solicitud.estado === 'devuelto' ? (
+          <div className="rounded-2xl border border-sena-line bg-sena-soft/50 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-sena-strong">
+              Información de devolución
+            </p>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <DetailItem
+                label="Estado del elemento"
+                value={formatEstadoElemento(solicitud.estadoElemento)}
+              />
+
+              <DetailItem
+                label="Fecha de devolución"
+                value={formatDate(solicitud.fechaDevolucion ?? null)}
+              />
+            </div>
+
+            {solicitud.observacion ? (
+              <div className="mt-4">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-sena-strong">
+                  Causa / novedad de devolución
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-sena-dark">
+                  {solicitud.observacion}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="flex justify-end">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onClose}
+          >
+            Cerrar
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+function DetailItem({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}) {
+  return (
+    <div>
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-sena-strong">
+        {label}
+      </p>
+
+      <p className="mt-1 text-sm text-sena-dark">
+        {value}
+      </p>
+    </div>
+  )
+}
+
+function formatEstadoElemento(
+  estado: SolicitudItemApi['estadoElemento'],
+) {
+  if (estado === 'bueno') return 'Bueno'
+  if (estado === 'danado') return 'Dañado'
+  if (estado === 'perdido') return 'Perdido'
+  if (estado === 'en_reparacion') return 'En reparación'
+
+  return '—'
+}
+
+function DevolucionModal({
+  saving,
+  onClose,
+  onSubmit,
+}: {
+  saving: boolean
+  onClose: () => void
+  onSubmit: (
+    estadoElemento: (typeof RETURN_STATUS_OPTIONS)[number]['value'],
+    observacion: string,
+  ) => Promise<void>
+}) {
+  const [estadoElemento, setEstadoElemento] =
+    useState<(typeof RETURN_STATUS_OPTIONS)[number]['value'] | ''>('')
+  const [observacion, setObservacion] = useState('')
+  const [localError, setLocalError] = useState('')
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setLocalError('')
+
+    if (!estadoElemento) {
+      setLocalError('Selecciona el estado del elemento.')
+      return
+    }
+
+    await onSubmit(estadoElemento, observacion)
+  }
+
+  return (
+    <Modal
+      title="Registrar devolución"
+      description="Indica el estado en que se devuelve el elemento y registra cualquier novedad."
+      onClose={onClose}
+    >
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-5"
+      >
+        <div>
+          <label
+            htmlFor="estado-elemento"
+            className="mb-2 block text-sm font-semibold text-sena-strong"
+          >
+            Estado del elemento
+          </label>
+
+          <select
+            id="estado-elemento"
+            value={estadoElemento}
+            onChange={(event) => {
+              const value = event.target.value
+              const option = RETURN_STATUS_OPTIONS.find(
+                (item) => item.value === value,
+              )
+              if (value === '') setEstadoElemento('')
+              else if (option) setEstadoElemento(option.value)
+            }}
+            className={`${inputClass} w-full`}
+            disabled={saving}
+          >
+            <option value="">Selecciona un estado</option>
+            {RETURN_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label
+            htmlFor="observacion-devolucion"
+            className="mb-2 block text-sm font-semibold text-sena-strong"
+          >
+            Novedad / observación
+          </label>
+
+          <textarea
+            id="observacion-devolucion"
+            value={observacion}
+            onChange={(event) => setObservacion(event.target.value)}
+            rows={4}
+            placeholder="Describe cualquier novedad del elemento..."
+            className={`${inputClass} w-full resize-none`}
+            disabled={saving}
+          />
+        </div>
+
+        <p className="text-sm leading-6 text-sena-text-soft">
+          Si el elemento se devuelve en buen estado, el backend lo reincorporará
+          al stock. Los demás estados no aumentan el stock disponible.
+        </p>
+
+        {localError ? (
+          <p className="text-sm font-semibold text-red-600">
+            {localError}
+          </p>
+        ) : null}
+
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Cancelar
+          </Button>
+
+          <Button type="submit" size="sm" disabled={saving}>
+            {saving ? 'Registrando...' : 'Registrar devolución'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+function ReturnRequestsTable({
+  loading,
+  requests,
+  saving,
+  onView,
+  onReturn,
+}: {
+  loading: boolean
+  requests: SolicitudItemApi[]
+  saving: boolean
+  onView: (id: number) => void
+  onReturn: (id: number) => void
+}) {
+  return (
+    <TableCard>
+      {loading ? (
+        <TableLoading label="Cargando equipos pendientes de devolución..." />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="data-table w-full min-w-262.5 text-sm">
+            <thead>
+              <tr className="border-b border-sena-hairline bg-sena-soft/85">
+                <TableHeader>Solicitud</TableHeader>
+                <TableHeader>Elemento</TableHeader>
+                <TableHeader>Obra</TableHeader>
+                <TableHeader>Cantidad</TableHeader>
+                <TableHeader>Solicitante</TableHeader>
+                <TableHeader>Fecha entrega</TableHeader>
+                <TableHeader align="center">Acción</TableHeader>
+              </tr>
+            </thead>
+
+            <tbody>
+              {requests.length === 0 ? (
+                <TableEmpty colSpan={7}>
+                  No hay equipos pendientes de devolución.
+                </TableEmpty>
+              ) : (
+                requests.map((row) => (
+                  <TableRow key={row.id}>
+                    <td className="font-semibold">{row.codigoSolicitud}</td>
+                    <td>
+                      <div className="font-medium">
+                        {row.elemento?.nombre ?? '—'}
+                      </div>
+                      <div className="text-xs text-sena-text-soft">
+                        {row.elemento?.codigo ?? '—'}
+                      </div>
+                    </td>
+                    <td>{row.obra?.nombre ?? '—'}</td>
+                    <td>{row.cantidad}</td>
+                    <td>{personName(row.usuario)}</td>
+                    <td>{formatDate(row.fechaEntrega)}</td>
+                    <td>
+                      <RowActions>
+                        <ActionButton
+                          title="Ver solicitud"
+                          onClick={() => onView(row.id)}
+                        >
+                          <EyeIcon className="size-5" />
+                        </ActionButton>
+                        <ActionButton
+                          title="Devolver"
+                          onClick={() => onReturn(row.id)}
+                          disabled={saving}
+                        >
+                          <span aria-hidden="true">↔</span>
+                        </ActionButton>
+                      </RowActions>
+                    </td>
+                  </TableRow>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {!loading ? (
+        <div className="border-t border-sena-hairline px-6 py-4 text-sm text-sena-strong">
+          Mostrando {requests.length} equipos pendientes de devolución
+        </div>
+      ) : null}
+    </TableCard>
   )
 }
 
