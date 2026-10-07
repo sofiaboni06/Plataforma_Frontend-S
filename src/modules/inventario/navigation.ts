@@ -218,6 +218,23 @@ const ADMIN_MENU = new Set<InventoryScreenCode>([
   'bodegas',
 ])
 
+const REQUESTER_HIDDEN = new Set<InventoryScreenCode>(['elementos', 'clasificaciones', 'codigos'])
+
+/*
+ * Quien pide pero no entrega (instructor) conserva elemento.ver porque el
+ * formulario de solicitud lo necesita, pero no ve las pantallas de bodega.
+ */
+function onlyRequests(access: InventoryCaller) {
+  const permissions = access.permissions ?? []
+  return (
+    !access.isAdmin &&
+    (permissions.includes('solicitud_material.crear') ||
+      permissions.includes('solicitud_equipo.crear')) &&
+    !permissions.includes('solicitud_material.entregar') &&
+    !permissions.includes('solicitud_equipo.entregar')
+  )
+}
+
 const VIEW_CODE: Record<Exclude<InventoryScreenCode, 'solicitudes' | 'alertas'>, string> = {
   categorias: 'categoria.ver',
   items: 'item.ver',
@@ -311,6 +328,9 @@ function canUseAction(screen: InventoryScreenCode, action: InventoryAction, acce
   if (screen === 'alertas') {
     return !access.isAdmin && access.permissions?.includes('alerta.ver') === true
   }
+  if (REQUESTER_HIDDEN.has(screen) && onlyRequests(access)) {
+    return false
+  }
   if (access.isAdmin && screen === 'codigos' && (action === 'list' || action === 'view')) {
     return true
   }
@@ -324,6 +344,7 @@ export function visibleInventoryScreens(access: InventoryCaller = {}) {
         (screen) =>
           screen.code !== 'solicitudes' &&
           screen.code !== 'alertas' &&
+          !(REQUESTER_HIDDEN.has(screen.code) && onlyRequests(access)) &&
           (access.permissions ?? []).includes(VIEW_CODE[screen.code]),
       )
 
