@@ -213,6 +213,7 @@ export default function ElementoCombobox({
             setOpen(true)
           }}
           onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
           onBlur={() => setOpen(false)}
           onKeyDown={onKeyDown}
           className={cn(inputClassName, 'pl-11', value ? 'pr-11' : '')}

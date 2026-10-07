@@ -1562,8 +1562,8 @@ function SolicitudModal({
               label={kind === 'equipo' ? 'Equipo / herramienta' : 'Material'}
               placeholder={
                 kind === 'equipo'
-                  ? 'Escribe el nombre o código, ej. extintor'
-                  : 'Escribe el nombre o código, ej. cemento'
+                  ? 'Escribe el nombre o código, ej. taladro'
+                  : 'Escribe el nombre o código, ej. pintura'
               }
               inputClassName={inputClass}
             />
