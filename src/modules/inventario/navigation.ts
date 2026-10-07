@@ -239,8 +239,11 @@ export const SOLICITUDES_SCREEN: InventoryScreen = {
 }
 
 export function canOpenSolicitudes(isAdmin: boolean, permissions?: string[]) {
-  if (isAdmin) return false
-  return SOLICITUD_CODES.some((code) => permissions?.includes(code) === true)
+  if (isAdmin) return true
+
+  return SOLICITUD_CODES.some(
+    (code) => permissions?.includes(code) === true,
+  )
 }
 
 const WRITE_CODE: Partial<Record<InventoryScreenCode, Partial<Record<InventoryAction, string>>>> = {
