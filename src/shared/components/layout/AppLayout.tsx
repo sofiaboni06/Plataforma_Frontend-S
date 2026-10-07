@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BellIcon, MenuIcon } from '@/shared/components/icons/AppIcons'
+import { BellIcon, LogoutIcon, MenuIcon, UserIcon } from '@/shared/components/icons/AppIcons'
 import SenaMark from '@/shared/components/icons/SenaMark'
 import { useAuth } from '@/modules/auth/context/auth'
 import { useNotifications } from '@/modules/notificaciones/context/notifications'
@@ -24,13 +24,16 @@ export default function AppLayout({
   title,
   children,
 }: AppLayoutProps) {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const notifications = useNotifications()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const notificationsRef = useRef<HTMLDivElement>(null)
+  const profileRef = useRef<HTMLDivElement>(null)
+  const profileButtonRef = useRef<HTMLButtonElement>(null)
   const unreadLabel = notifications.unread > 99 ? '99+' : String(notifications.unread)
 
   const openNotification = (notification: NotificacionApi) => {
@@ -89,6 +92,34 @@ export default function AppLayout({
       document.removeEventListener('keydown', onKeyDown)
     }
   }, [isNotificationsOpen])
+
+  useEffect(() => {
+    if (!isProfileOpen) return
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (!profileRef.current?.contains(event.target as Node)) {
+        setIsProfileOpen(false)
+      }
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsProfileOpen(false)
+        profileButtonRef.current?.focus()
+      }
+    }
+
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isProfileOpen])
+
+  const signOut = () => {
+    setIsProfileOpen(false)
+    void logout().then(() => navigate('/login'))
+  }
 
   return (
     <div className="app-shell app-canvas">
@@ -162,7 +193,10 @@ export default function AppLayout({
                     aria-expanded={isNotificationsOpen}
                     aria-controls="notifications-popover"
                     title="Notificaciones"
-                    onClick={() => setIsNotificationsOpen((open) => !open)}
+                    onClick={() => {
+                      setIsProfileOpen(false)
+                      setIsNotificationsOpen((open) => !open)
+                    }}
                   >
                     <BellIcon className="size-6" />
                     {notifications.unread ? (
@@ -171,20 +205,6 @@ export default function AppLayout({
                       </span>
                     ) : null}
                   </button>
-                  <div
-                    className="flex items-center gap-2 rounded-full border border-glass-line bg-glass-strong py-1 pr-2 pl-1 shadow-hairline backdrop-blur-glass sm:gap-3 sm:pr-5"
-                    aria-label={`${user.fullName}, ${user.roleLabel}`}
-                  >
-                    <span className="grid size-9 place-items-center rounded-full bg-sena text-xs font-bold text-white shadow-brand-sm sm:size-10">
-                      {user.initials}
-                    </span>
-                    <span className="hidden text-sm font-semibold leading-tight text-sena-text sm:block">
-                      {user.fullName}
-                      <span className="block text-xs font-normal text-sena-text-soft">
-                        {user.roleLabel}
-                      </span>
-                    </span>
-                  </div>
 
                   {isNotificationsOpen ? (
                     <section
@@ -266,6 +286,80 @@ export default function AppLayout({
                         <span aria-hidden="true">→</span>
                       </button>
                     </section>
+                  ) : null}
+                </div>
+
+                <div ref={profileRef} className="relative">
+                  <button
+                    ref={profileButtonRef}
+                    type="button"
+                    className="flex items-center gap-2 rounded-full border border-glass-line bg-glass-strong py-1 pr-2 pl-1 text-left shadow-hairline backdrop-blur-glass transition hover:bg-white/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sena sm:gap-3 sm:pr-4"
+                    aria-label={`${user.fullName}, ${user.roleLabel}. Abrir menú de la cuenta`}
+                    aria-expanded={isProfileOpen}
+                    aria-controls="profile-menu"
+                    onClick={() => {
+                      setIsNotificationsOpen(false)
+                      setIsProfileOpen((open) => !open)
+                    }}
+                  >
+                    <span className="grid size-9 place-items-center rounded-full bg-sena text-xs font-bold text-white shadow-brand-sm sm:size-10">
+                      {user.initials}
+                    </span>
+                    <span className="hidden text-sm font-semibold leading-tight text-sena-text sm:block">
+                      {user.fullName}
+                      <span className="block text-xs font-normal text-sena-text-soft">
+                        {user.roleLabel}
+                      </span>
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className={`hidden text-xs text-sena-text-soft transition-transform duration-150 sm:block ${
+                        isProfileOpen ? 'rotate-180' : ''
+                      }`}
+                    >
+                      ⌄
+                    </span>
+                  </button>
+
+                  {isProfileOpen ? (
+                    <div
+                      id="profile-menu"
+                      className="absolute top-full right-0 z-50 mt-3 w-64 overflow-hidden rounded-[14px] border border-white/80 bg-[#f6fff9]/95 text-sena-dark shadow-[0_18px_48px_rgba(0,70,42,0.24)] backdrop-blur-2xl"
+                    >
+                      <div className="border-b border-sena-line/70 px-4 py-3">
+                        <p className="truncate text-sm font-bold text-sena-text">{user.fullName}</p>
+                        <p className="truncate text-xs text-sena-text-soft">{user.roleLabel}</p>
+                        {user.email ? (
+                          <p className="mt-0.5 truncate text-xs text-sena-text-soft">{user.email}</p>
+                        ) : null}
+                      </div>
+
+                      <ul className="py-1.5">
+                        <li>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-sena-text transition hover:bg-white/70"
+                            onClick={() => {
+                              setIsProfileOpen(false)
+                              navigate('/perfil')
+                            }}
+                          >
+                            <UserIcon className="size-4 shrink-0 text-sena-strong" />
+                            Mi perfil
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-sena-danger-text transition hover:bg-white/70"
+                            onClick={signOut}
+                          >
+                            <LogoutIcon className="size-4 shrink-0" />
+                            Cerrar sesión
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
                   ) : null}
                 </div>
               </>
