@@ -64,6 +64,8 @@ import type {
 
 import type { ElementoApi } from '@/modules/inventario/types/elemento'
 
+import ElementoCombobox from '@/modules/solicitudes/components/ElementoCombobox'
+
 type DeliveryFilter = 'pendiente' | 'entregado' | 'devuelto' | 'todas'
 
 const DELIVERY_EMPTY: Record<DeliveryFilter, string> = {
@@ -1555,37 +1557,21 @@ function SolicitudModal({
             }
             required
           >
-            <select
-              value={idElemento}
-              onChange={(event) =>
-                setIdElemento(
-                  event.target.value,
-                )
+            <ElementoCombobox
+              elementos={elementos}
+              value={selectedElement}
+              onChange={(elemento) =>
+                setIdElemento(elemento ? String(elemento.id) : '')
               }
-              className={inputClass}
-              required
-            >
-              <option value="">
-                Selecciona un elemento
-              </option>
-
-              {elementos.map((elemento) => {
-                const disponible = availableOf(elemento)
-
-                return (
-                  <option
-                    key={elemento.id}
-                    value={elemento.id}
-                    disabled={disponible <= 0}
-                  >
-                    {elemento.nombre} · {elemento.codigo} ·{' '}
-                    {disponible > 0
-                      ? `${disponible} disponibles`
-                      : 'sin disponibilidad'}
-                  </option>
-                )
-              })}
-            </select>
+              availableOf={availableOf}
+              label={kind === 'equipo' ? 'Equipo / herramienta' : 'Material'}
+              placeholder={
+                kind === 'equipo'
+                  ? 'Escribe el nombre o código, ej. extintor'
+                  : 'Escribe el nombre o código, ej. cemento'
+              }
+              inputClassName={inputClass}
+            />
           </Field>
         </div>
 
