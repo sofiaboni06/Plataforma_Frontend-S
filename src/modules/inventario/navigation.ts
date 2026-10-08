@@ -265,8 +265,12 @@ export const SOLICITUDES_SCREEN: InventoryScreen = {
   to: '/inventario/solicitudes',
 }
 
+/*
+ * Las solicitudes son entre el instructor y bodega. El administrador de la
+ * plataforma no las ve.
+ */
 export function canOpenSolicitudes(isAdmin: boolean, permissions?: string[]) {
-  if (isAdmin) return true
+  if (isAdmin) return false
 
   return SOLICITUD_CODES.some(
     (code) => permissions?.includes(code) === true,

@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type ReactNode,
 } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 
@@ -49,14 +48,22 @@ import {
   getElementos,
   getObras,
   getSolicitudes,
-  createSolicitud,
+  createFactura,
   entregarSolicitud,
   devolverSolicitud,
   type DevolverSolicitudPayload,
 } from '@/modules/solicitudes/data/solicitudes'
+import {
+  formatDate,
+  formatDay,
+  inputClass,
+  personName,
+  requestLabel,
+  requestTone,
+} from '@/modules/solicitudes/lib/presentacion'
 
 import type {
-  CrearSolicitudPayload,
+  CrearFacturaPayload,
   ObraApi,
   SolicitudItemApi,
   SolicitudKind,
@@ -64,7 +71,7 @@ import type {
 
 import type { ElementoApi } from '@/modules/inventario/types/elemento'
 
-import ElementoCombobox from '@/modules/solicitudes/components/ElementoCombobox'
+import FacturaModal from '@/modules/solicitudes/components/FacturaModal'
 
 type DeliveryFilter = 'pendiente' | 'entregado' | 'devuelto' | 'todas'
 
@@ -101,73 +108,6 @@ function allows(
 ) {
   if (isAdmin) return false
   return userPermissions?.includes(code) === true
-}
-
-function personName(
-  person?: { nombres: string; apellidos: string } | null,
-) {
-  const name = `${person?.nombres ?? ''} ${person?.apellidos ?? ''}`.trim()
-  return name || '—'
-}
-
-function requestTone(estado: SolicitudItemApi['estado']) {
-  if (estado === 'entregado') return 'ok' as const
-  if (estado === 'devuelto') return 'danger' as const
-  return 'warn' as const
-}
-
-function requestLabel(estado: SolicitudItemApi['estado']) {
-  if (estado === 'entregado') return 'Entregado'
-  if (estado === 'devuelto') return 'Devuelto'
-  return 'Pendiente'
-}
-
-function availableOf(elemento: ElementoApi) {
-  const value = Number(
-    (elemento as ElementoApi & { disponible?: number }).disponible ??
-      elemento.cantidad,
-  )
-
-  return Number.isFinite(value) ? value : 0
-}
-
-function buildCode(kind: SolicitudKind) {
-  const prefix = kind === 'equipo' ? 'EQ' : 'MAT'
-  return `${prefix}-${Date.now()}`
-}
-
-function formatDate(value: string | null) {
-  if (!value) return '—'
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return '—'
-  }
-
-  return new Intl.DateTimeFormat('es-CO', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
-}
-
-function formatDay(value: string | null | undefined) {
-  if (!value) return ''
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return ''
-  }
-
-  return new Intl.DateTimeFormat('es-CO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(date)
 }
 
 export default function SolicitudesPage() {
@@ -402,39 +342,6 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   }, [lastArrival])
 
   /*
-   * Para Equipo:
-   * clasificación = devolutivo
-   *
-   * Para Material:
-   * clasificación = consumo
-   */
-  const visibleElements = useMemo(() => {
-    const character =
-      kind === 'equipo'
-        ? 'devolutivo'
-        : 'consumo'
-
-    return elementos
-      .filter((elemento) => {
-        const classification = elemento.clasificacion as
-          | {
-              id: number
-              nombre: string
-              caracter?: string | null
-            }
-          | null
-
-        return classification?.caracter === character
-      })
-      .sort((left, right) =>
-        left.nombre.localeCompare(
-          right.nombre,
-          'es',
-        ),
-      )
-  }, [elementos, kind])
-
-  /*
    * Filtra las solicitudes pendientes.
    */
   const filteredRequests = useMemo(() => {
@@ -486,46 +393,25 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   }
 
   /*
-   * Registra una nueva solicitud.
-   *
-   * IMPORTANTE:
-   * aquí NO se descuenta stock.
+   * Registra una solicitud con uno o varios elementos. Aquí NO se descuenta
+   * stock: baja cuando bodega entrega. El error lo muestra el formulario.
    */
   const submit = async (
-    payload: Omit<
-      CrearSolicitudPayload,
-      'codigoSolicitud'
-    >,
+    payload: Omit<CrearFacturaPayload, 'codigoSolicitud'>,
   ) => {
-    setSaving(true)
-    setError('')
+    const factura = await createFactura({
+      ...payload,
+      codigoSolicitud: `SOL-${Date.now()}`,
+    })
 
-    try {
-      await createSolicitud(kind, {
-        ...payload,
-        codigoSolicitud: buildCode(kind),
-      })
+    setModalOpen(false)
+    setToast(
+      `Solicitud ${factura.codigoSolicitud} registrada con ${factura.totales.lineas} ${
+        factura.totales.lineas === 1 ? 'elemento' : 'elementos'
+      }. Quedó pendiente de entrega.`,
+    )
 
-      setModalOpen(false)
-
-      setToast(
-        `${KIND_LABEL[kind]} solicitado correctamente. Quedó pendiente de entrega.`,
-      )
-
-      /*
-       * El stock NO baja al solicitar.
-       * Solo baja cuando bodega entrega.
-       */
-      await loadCreateData()
-    } catch (cause) {
-      setError(
-        cause instanceof ApiError
-          ? cause.message
-          : 'No se pudo registrar la solicitud.',
-      )
-    } finally {
-      setSaving(false)
-    }
+    await loadCreateData()
   }
 
   /*
@@ -840,11 +726,10 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
       )}
 
       {modalOpen ? (
-        <SolicitudModal
-          kind={kind}
+        <FacturaModal
           obras={obras}
-          elementos={visibleElements}
-          saving={saving}
+          elementos={elementos}
+          tipos={[kind === 'equipo' ? 'devolutivo' : 'consumo']}
           onClose={() => setModalOpen(false)}
           onSubmit={submit}
         />
@@ -1384,334 +1269,3 @@ function InfoCard({
     </div>
   )
 }
-
-/*
- * Modal para crear una solicitud.
- */
-function SolicitudModal({
-  kind,
-  obras,
-  elementos,
-  saving,
-  onClose,
-  onSubmit,
-}: {
-  kind: SolicitudKind
-  obras: ObraApi[]
-  elementos: ElementoApi[]
-  saving: boolean
-  onClose: () => void
-  onSubmit: (
-    payload: Omit<
-      CrearSolicitudPayload,
-      'codigoSolicitud'
-    >,
-  ) => Promise<void>
-}) {
-  const [idObra, setIdObra] = useState('')
-  const [idElemento, setIdElemento] = useState('')
-  const [cantidad, setCantidad] = useState('1')
-  const [ficha, setFicha] = useState('')
-  const [observacion, setObservacion] =
-    useState('')
-
-  const [localError, setLocalError] =
-    useState('')
-
-  const selectedElement =
-    elementos.find(
-      (item) =>
-        String(item.id) === idElemento,
-    ) ?? null
-
-  const available = selectedElement
-    ? availableOf(selectedElement)
-    : 0
-
-  const overLimit =
-    selectedElement !== null &&
-    Number(cantidad) > available
-
-  const handleSubmit = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault()
-    setLocalError('')
-
-    const obraId = Number(idObra)
-    const elementId = Number(idElemento)
-    const quantity = Number(cantidad)
-
-    if (!obraId || !elementId) {
-      setLocalError(
-        'Selecciona la obra y el elemento.',
-      )
-      return
-    }
-
-    if (
-      !Number.isInteger(quantity) ||
-      quantity <= 0
-    ) {
-      setLocalError(
-        'La cantidad debe ser un número entero mayor que cero.',
-      )
-      return
-    }
-
-    if (quantity > available) {
-      setLocalError(
-        `No puedes pedir ${quantity}. Solo hay ${available} disponibles. La solicitud no se guardará.`,
-      )
-      return
-    }
-
-    await onSubmit({
-      idObra: obraId,
-      idElemento: elementId,
-      cantidad: quantity,
-
-      ...(ficha.trim()
-        ? {
-            ficha: ficha.trim(),
-          }
-        : {}),
-
-      ...(observacion.trim()
-        ? {
-            observacion:
-              observacion.trim(),
-          }
-        : {}),
-    })
-  }
-
-  return (
-    <Modal
-      title={`Solicitar ${KIND_LABEL[
-        kind
-      ].toLowerCase()}`}
-      description={KIND_DESCRIPTION[kind]}
-      onClose={onClose}
-      wide
-    >
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-5"
-      >
-        {localError ? (
-          <ErrorBanner
-            message={localError}
-            onClose={() =>
-              setLocalError('')
-            }
-          />
-        ) : null}
-
-        <div className="grid gap-5">
-          <Field
-            label="Obra"
-            required
-          >
-            <select
-              value={idObra}
-              onChange={(event) =>
-                setIdObra(
-                  event.target.value,
-                )
-              }
-              className={inputClass}
-              required
-            >
-              <option value="">
-                Selecciona una obra
-              </option>
-
-              {obras.map((obra) => (
-                <option
-                  key={obra.id}
-                  value={obra.id}
-                >
-                  {obra.nombre}
-                  {obra.lugar
-                    ? ` — ${obra.lugar}`
-                    : ''}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field
-            label={
-              kind === 'equipo'
-                ? 'Equipo / herramienta'
-                : 'Material'
-            }
-            required
-          >
-            <ElementoCombobox
-              elementos={elementos}
-              value={selectedElement}
-              onChange={(elemento) =>
-                setIdElemento(elemento ? String(elemento.id) : '')
-              }
-              availableOf={availableOf}
-              label={kind === 'equipo' ? 'Equipo / herramienta' : 'Material'}
-              placeholder={
-                kind === 'equipo'
-                  ? 'Escribe el nombre o código, ej. taladro'
-                  : 'Escribe el nombre o código, ej. pintura'
-              }
-              inputClassName={inputClass}
-            />
-          </Field>
-        </div>
-
-        <div className="grid gap-5 md:grid-cols-2">
-          <Field
-            label="Cantidad"
-            required
-          >
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={cantidad}
-              onChange={(event) =>
-                setCantidad(
-                  event.target.value,
-                )
-              }
-              aria-invalid={overLimit}
-              aria-describedby="cantidad-ayuda"
-              className={
-                overLimit
-                  ? inputErrorClass
-                  : inputClass
-              }
-              required
-            />
-
-            <span
-              id="cantidad-ayuda"
-              className={
-                overLimit
-                  ? 'mt-2 block text-xs font-semibold text-sena-danger-text'
-                  : 'mt-2 block text-xs text-sena-text-soft'
-              }
-            >
-              {!selectedElement
-                ? 'Primero elige el elemento.'
-                : overLimit
-                  ? `Solo hay ${available} disponibles. Baja la cantidad.`
-                  : `Puedes pedir hasta ${available}.`}
-            </span>
-          </Field>
-
-          <Field
-            label="Ficha"
-            hint="Opcional"
-          >
-            <input
-              value={ficha}
-              onChange={(event) =>
-                setFicha(
-                  event.target.value,
-                )
-              }
-              maxLength={50}
-              placeholder="Ej. 2876543"
-              className={inputClass}
-            />
-          </Field>
-        </div>
-
-        <Field
-          label="Observación"
-          hint="Opcional"
-        >
-          <textarea
-            value={observacion}
-            onChange={(event) =>
-              setObservacion(
-                event.target.value,
-              )
-            }
-            rows={3}
-            placeholder="Indica para qué se necesita el elemento..."
-            className={`${inputClass} min-h-24 resize-y py-3`}
-          />
-        </Field>
-
-        <div className="flex justify-end gap-3">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onClose}
-            disabled={saving}
-          >
-            Cancelar
-          </Button>
-
-          <Button
-            type="submit"
-            size="sm"
-            disabled={
-              saving ||
-              overLimit ||
-              obras.length === 0 ||
-              elementos.length === 0
-            }
-          >
-            {saving
-              ? 'Guardando...'
-              : 'Registrar solicitud'}
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-/*
- * Campo reutilizable del formulario.
- */
-function Field({
-  label,
-  required = false,
-  hint,
-  children,
-}: {
-  label: string
-  required?: boolean
-  hint?: string
-  children: ReactNode
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-sena-text">
-        {label}
-
-        {required ? (
-          <span className="text-sena">
-            *
-          </span>
-        ) : null}
-
-        {hint ? (
-          <span className="text-xs font-normal text-sena-text-soft">
-            {hint}
-          </span>
-        ) : null}
-      </span>
-
-      {children}
-    </label>
-  )
-}
-
-const inputClass =
-  'w-full rounded-2xl border border-sena-line bg-white/80 px-4 py-3 text-sm text-sena-text outline-none transition focus:border-sena focus:bg-white focus:ring-4 focus:ring-sena/10'
-
-const inputErrorClass =
-  'w-full rounded-2xl border border-sena-danger-line bg-sena-danger-soft/40 px-4 py-3 text-sm text-sena-text outline-none transition focus:border-sena-danger-text focus:bg-white focus:ring-4 focus:ring-sena-danger-text/10'

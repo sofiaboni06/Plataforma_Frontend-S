@@ -20,7 +20,7 @@ const MAX_RESULTS = 30
 
 type Match = {
   elemento: ElementoApi
-  disponible: number
+  disponible: number | null
   score: number
 }
 
@@ -93,6 +93,10 @@ function Highlight({ text, words }: { text: string; words: string[] }) {
   return <>{parts}</>
 }
 
+/*
+ * Sin `availableOf` no se muestra la existencia: el instructor no la ve.
+ * Con ella, lo agotado se puede elegir igual y queda pendiente.
+ */
 export default function ElementoCombobox({
   elementos,
   value,
@@ -105,7 +109,7 @@ export default function ElementoCombobox({
   elementos: ElementoApi[]
   value: ElementoApi | null
   onChange: (elemento: ElementoApi | null) => void
-  availableOf: (elemento: ElementoApi) => number
+  availableOf?: (elemento: ElementoApi) => number
   label: string
   placeholder: string
   inputClassName: string
@@ -129,13 +133,13 @@ export default function ElementoCombobox({
     for (const elemento of elementos) {
       const score = scoreOf(elemento, words)
       if (score > 0) {
-        found.push({ elemento, disponible: availableOf(elemento), score })
+        found.push({ elemento, disponible: availableOf ? availableOf(elemento) : null, score })
       }
     }
 
     return found.sort(
       (left, right) =>
-        Number(right.disponible > 0) - Number(left.disponible > 0) ||
+        Number((right.disponible ?? 1) > 0) - Number((left.disponible ?? 1) > 0) ||
         right.score - left.score ||
         left.elemento.nombre.localeCompare(right.elemento.nombre, 'es'),
     )
@@ -151,7 +155,6 @@ export default function ElementoCombobox({
   }
 
   const pick = (match: Match) => {
-    if (match.disponible <= 0) return
     onChange(match.elemento)
     setQuery('')
     setOpen(false)
@@ -249,7 +252,7 @@ export default function ElementoCombobox({
             >
               {visible.map((match, index) => {
                 const { elemento, disponible } = match
-                const agotado = disponible <= 0
+                const agotado = disponible !== null && disponible <= 0
                 const selected = value?.id === elemento.id
 
                 return (
@@ -259,14 +262,12 @@ export default function ElementoCombobox({
                     data-index={index}
                     role="option"
                     aria-selected={selected}
-                    aria-disabled={agotado}
                     onMouseDown={(event) => event.preventDefault()}
                     onMouseMove={() => index !== active && setActive(index)}
                     onClick={() => pick(match)}
                     className={cn(
-                      'mx-1.5 flex items-center justify-between gap-4 rounded-xl px-3 py-2.5',
-                      agotado ? 'cursor-not-allowed opacity-55' : 'cursor-pointer',
-                      index === active && !agotado ? 'bg-sena-soft' : '',
+                      'mx-1.5 flex cursor-pointer items-center justify-between gap-4 rounded-xl px-3 py-2.5',
+                      index === active ? 'bg-sena-soft' : '',
                     )}
                   >
                     <div className="min-w-0">
@@ -278,16 +279,18 @@ export default function ElementoCombobox({
                       </p>
                     </div>
 
-                    <span
-                      className={cn(
-                        'shrink-0 text-xs font-semibold tabular-nums',
-                        agotado ? 'text-sena-danger-text' : 'text-sena-strong',
-                      )}
-                    >
-                      {agotado
-                        ? 'Sin disponibilidad'
-                        : `${disponible}${unidad(elemento) ? ` ${unidad(elemento)}` : ''} disp.`}
-                    </span>
+                    {disponible !== null ? (
+                      <span
+                        className={cn(
+                          'shrink-0 text-xs font-semibold tabular-nums',
+                          agotado ? 'text-sena-danger-text' : 'text-sena-strong',
+                        )}
+                      >
+                        {agotado
+                          ? 'Sin existencia'
+                          : `${disponible}${unidad(elemento) ? ` ${unidad(elemento)}` : ''} disp.`}
+                      </span>
+                    ) : null}
                   </li>
                 )
               })}
