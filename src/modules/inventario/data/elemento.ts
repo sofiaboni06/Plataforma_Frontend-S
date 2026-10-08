@@ -4,6 +4,7 @@ import type {
   CodigoEstandarApi,
   CreateElementoPayload,
   ElementoApi,
+  ElementoGuardadoApi,
   UnidadMedidaApi,
   UpdateElementoPayload,
   UsoPresupuestalApi,
@@ -41,11 +42,12 @@ export function createElemento(payload: CreateElementoPayload): Promise<Elemento
   })
 }
 
+/* Si la cantidad sube, trae `solicitudesPendientes`: lo que bodega puede ir a entregar. */
 export function updateElemento(
   id: string | number,
   payload: UpdateElementoPayload,
-): Promise<ElementoApi> {
-  return api<ElementoApi>(`/inventario/elementos/${id}`, {
+): Promise<ElementoGuardadoApi> {
+  return api<ElementoGuardadoApi>(`/inventario/elementos/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   })

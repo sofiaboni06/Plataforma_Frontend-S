@@ -53,20 +53,30 @@ import { formatCantidad, lugarDelElemento } from '@/modules/inventario/lib/lugar
 import type { BodegaApi, StandResumen } from '@/modules/inventario/types/bodega'
 import type { ItemApi } from '@/modules/inventario/types/item'
 import type {
+  CaracterElemento,
   ClasificacionElementoApi,
   CodigoEstandarApi,
   CreateElementoPayload,
   ElementoApi,
+  SolicitudPendienteApi,
   UnidadMedidaApi,
   UsoPresupuestalApi,
 } from '@/modules/inventario/types/elemento'
 import { useAuth } from '@/modules/auth/context/auth'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import type { CategoryApi } from '@/shared/types/category'
+import StockPendienteBanner from '@/modules/solicitudes/components/StockPendienteBanner'
+import { rutaEntregar } from '@/modules/solicitudes/lib/presentacion'
+import {
+  CARACTER_AYUDA,
+  CARACTER_LABEL,
+  caracterLabel,
+} from '@/modules/inventario/lib/caracter'
 
 type StatusFilter = 'Todos' | 'Activo' | 'Inactivo'
 
 type ElementoForm = {
+  nombre: string
   idItem: number
   idStand: number
   cantidad: number
@@ -79,6 +89,7 @@ type ElementoForm = {
   marca: string
   color: string
   idClasificacion: number
+  caracter: CaracterElemento | ''
   valorUnitarioPromedio: string
   porcentajeAumento: string
   idCodigoEstandar: number
@@ -104,7 +115,7 @@ const emptyCatalogAccess: CatalogAccess = {
 }
 
 const ELEMENTO_STEPS = [
-  { label: 'Producto', hint: 'Elige el ítem. El nombre del elemento se copia de ahí.' },
+  { label: 'Nombre', hint: 'El nombre con el que lo buscan al pedir y el ítem al que pertenece.' },
   { label: 'Ubicación', hint: 'Bodega, sub-bodega y stand donde queda el stock.' },
   { label: 'Catálogo', hint: 'Unidad, código interno y listas globales. No dependen del centro.' },
   { label: 'Existencia', hint: 'Cantidad, valor, foto y datos opcionales.' },
@@ -113,6 +124,7 @@ const ELEMENTO_STEPS = [
 const LAST_STEP = ELEMENTO_STEPS.length - 1
 
 const emptyForm: ElementoForm = {
+  nombre: '',
   idItem: 0,
   idStand: 0,
   cantidad: 10,
@@ -125,6 +137,7 @@ const emptyForm: ElementoForm = {
   marca: '',
   color: '',
   idClasificacion: 0,
+  caracter: '',
   valorUnitarioPromedio: '',
   porcentajeAumento: '',
   idCodigoEstandar: 0,
@@ -160,6 +173,7 @@ export default function ElementosPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const clearNotice = useCallback(() => setNotice(null), [])
+  const [stockPendiente, setStockPendiente] = useState<StockPendiente | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [step, setStep] = useState(0)
   const [reached, setReached] = useState(0)
@@ -365,6 +379,7 @@ export default function ElementosPage() {
     const lugar = lugarDelElemento(item, bodegas)
     setEditingId(item.id)
     setForm({
+      nombre: item.nombre,
       idItem: item.idItem ?? 0,
       idStand: item.idStand,
       cantidad: item.cantidad,
@@ -377,6 +392,7 @@ export default function ElementosPage() {
       marca: item.marca ?? '',
       color: item.color ?? '',
       idClasificacion: item.idClasificacion ?? 0,
+      caracter: item.caracter ?? '',
       valorUnitarioPromedio:
         item.valorUnitarioPromedio == null ? '' : String(item.valorUnitarioPromedio),
       porcentajeAumento: item.porcentajeAumento == null ? '' : String(item.porcentajeAumento),
@@ -403,6 +419,19 @@ export default function ElementosPage() {
     setForm((current) => ({ ...current, [key]: value }))
   }
 
+  /*
+   * La clasificación sugiere el tipo solo si todavía no se eligió: dentro de
+   * una misma clasificación hay devolutivos y de consumo (escoba y guantes).
+   */
+  function pickClasificacion(idClasificacion: number) {
+    const sugerido = clasificaciones.find((row) => row.id === idClasificacion)?.caracter
+    setForm((current) => ({
+      ...current,
+      idClasificacion,
+      caracter: current.caracter || sugerido || '',
+    }))
+  }
+
   function pickFoto(file: File | null) {
     if (file) {
       const invalid = fotoInvalida(file)
@@ -424,7 +453,12 @@ export default function ElementosPage() {
   }
 
   function stepError(current: number) {
-    if (current === 0 && !form.idItem) return 'Selecciona el ítem de este elemento.'
+    if (current === 0) {
+      const nombre = form.nombre.trim()
+      if (!nombre) return 'Escribe el nombre del elemento.'
+      if (nombre.length < 2) return 'El nombre debe tener al menos 2 caracteres.'
+      if (!form.idItem) return 'Selecciona el ítem de este elemento.'
+    }
 
     if (current === 1) {
       if (!isAdmin && bodegas.length === 0) {
@@ -442,6 +476,8 @@ export default function ElementosPage() {
           : 'Selecciona la unidad de medida.'
       }
       if (!form.codigo.trim()) return 'Escribe el código interno del inventario.'
+      if (!form.idClasificacion) return 'Selecciona la clasificación del elemento.'
+      if (!form.caracter) return 'Elige el tipo: devolutivo o consumo.'
       const taken = elementos.some(
         (row) =>
           row.id !== editingId &&
@@ -560,6 +596,7 @@ export default function ElementosPage() {
     setSaving(true)
     setError(null)
     setNotice(null)
+    setStockPendiente(null)
 
     const cantidad = Number(form.cantidad)
     const minimaText = form.cantidadMinima.trim()
@@ -582,6 +619,7 @@ export default function ElementosPage() {
     }
 
     const payload: CreateElementoPayload = {
+      nombre: form.nombre.trim(),
       idItem: Number(form.idItem),
       idStand: Number(form.idStand),
       cantidad,
@@ -593,7 +631,8 @@ export default function ElementosPage() {
       marca: form.marca.trim() || null,
       color: form.color.trim() || null,
       ...(gramaje !== null ? { gramaje } : editingId ? { gramaje: null } : {}),
-      ...optionalId('idClasificacion', form.idClasificacion, Boolean(editingId)),
+      idClasificacion: Number(form.idClasificacion),
+      caracter: form.caracter as CaracterElemento,
       ...optionalId('idCodigoEstandar', form.idCodigoEstandar, Boolean(editingId)),
       ...optionalId('idUsoPresupuestal', form.idUsoPresupuestal, Boolean(editingId)),
       ...(valor !== undefined || editingId
@@ -605,9 +644,21 @@ export default function ElementosPage() {
     }
 
     try {
-      let saved = editingId
-        ? await updateElemento(editingId, payload)
-        : await createElemento(payload)
+      let saved: ElementoApi
+      let pendientes: SolicitudPendienteApi[] = []
+
+      if (editingId) {
+        const actualizado = await updateElemento(editingId, payload)
+        pendientes = actualizado.solicitudesPendientes ?? []
+        saved = actualizado
+      } else {
+        saved = await createElemento(payload)
+      }
+
+      // La nueva existencia puede servir solicitudes que esperan: bodega decide cuándo entregar.
+      if (pendientes.length) {
+        setStockPendiente({ elemento: saved.nombre, codigo: saved.codigo, filas: pendientes })
+      }
 
       if (fotoFile) {
         try {
@@ -631,9 +682,11 @@ export default function ElementosPage() {
         return current.map((item) => (item.id === editingId ? saved : item))
       })
       setModalOpen(false)
-      setNotice(
-        editingId ? '¡Elemento actualizado exitosamente!' : '¡Elemento creado exitosamente!',
-      )
+      if (!pendientes.length) {
+        setNotice(
+          editingId ? '¡Elemento actualizado exitosamente!' : '¡Elemento creado exitosamente!',
+        )
+      }
     } catch (caught) {
       const message =
         caught instanceof ApiError ? caught.message : 'No se pudo guardar el elemento.'
@@ -663,6 +716,8 @@ export default function ElementosPage() {
     return visible && matchesTerm
   })
   const selectedItem = items.find((item) => item.id === form.idItem) ?? null
+  // El nombre es del elemento: lo escribe bodega y es el que busca el instructor.
+  const nombreElemento = form.nombre.trim()
   const subBodegas = (bodegas.find((bodega) => bodega.id === bodegaId)?.subBodegas ?? []).filter(
     (sub) => sub.estado || sub.id === subBodegaId,
   )
@@ -693,6 +748,17 @@ export default function ElementosPage() {
       />
 
       {notice ? <Toast message={notice} onClose={clearNotice} /> : null}
+
+      {stockPendiente ? (
+        <StockPendienteBanner
+          titulo={`Elemento actualizado. Agregaste nuevas unidades de ${stockPendiente.elemento} que tienen solicitudes pendientes.`}
+          filas={stockPendiente.filas}
+          onEntregar={() =>
+            navigate(rutaEntregar(stockPendiente.codigo, stockPendiente.filas))
+          }
+          onClose={() => setStockPendiente(null)}
+        />
+      ) : null}
 
       {error && !modalOpen ? (
         <ErrorBanner message={error} onClose={() => setError(null)} />
@@ -753,6 +819,7 @@ export default function ElementosPage() {
                   <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
                     <TableHeader width="w-[12%]">Foto</TableHeader>
                     <TableHeader width={tableColumns.name}>Elemento</TableHeader>
+                    <TableHeader width="w-[12%]">Tipo</TableHeader>
                     <TableHeader width={tableColumns.relation}>Ubicación</TableHeader>
                     <TableHeader align="center" width={tableColumns.count}>
                       Cantidad
@@ -768,7 +835,7 @@ export default function ElementosPage() {
 
                 <tbody>
                   {pageRows.length === 0 ? (
-                    <TableEmpty colSpan={6}>No se encontraron elementos.</TableEmpty>
+                    <TableEmpty colSpan={7}>No se encontraron elementos.</TableEmpty>
                   ) : (
                     pageRows.map((item) => {
                       const lugar = lugarDelElemento(item, bodegas)
@@ -799,6 +866,21 @@ export default function ElementosPage() {
                             {item.item
                               ? `Ítem ${item.item.id} · ${item.item.nombre}`
                               : 'Sin ítem'}
+                          </p>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <p
+                            className={
+                              item.caracter
+                                ? 'truncate text-sena-text/75'
+                                : 'truncate font-semibold text-sena-danger-text'
+                            }
+                          >
+                            {caracterLabel(item.caracter)}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                            {item.clasificacion?.nombre ?? 'Sin clasificación'}
                           </p>
                         </td>
 
@@ -876,7 +958,7 @@ export default function ElementosPage() {
 
       {modalOpen ? (
         <Modal
-          title={editingId ? 'Editar elemento' : 'Nuevo elemento'}
+          title={`${editingId ? 'Editar elemento' : 'Nuevo elemento'}${nombreElemento ? ` · ${nombreElemento}` : ''}`}
           description={ELEMENTO_STEPS[step].hint}
           onClose={closeForm}
           wide
@@ -921,21 +1003,45 @@ export default function ElementosPage() {
 
             <div className="max-h-[min(52vh,440px)] overflow-y-auto pr-1">
             {step === 0 ? (
-              <ItemPicker
-                query={itemSearch}
-                selected={selectedItem}
-                options={itemOptions}
-                hasAny={items.some((item) => item.estado || item.id === form.idItem)}
-                onQuery={(value) => {
-                  setItemSearch(value)
-                  if (form.idItem) updateForm('idItem', 0)
-                }}
-                onPick={(item) => {
-                  updateForm('idItem', item.id)
-                  setItemSearch(item.nombre)
-                }}
-                onCreate={() => navigate('/inventario/items')}
-              />
+              <div className="space-y-4">
+                <div className="flex flex-col gap-1.5">
+                  <TextField
+                    id="elemento-nombre"
+                    label="Nombre del elemento *"
+                    value={form.nombre}
+                    onChange={(event) => updateForm('nombre', event.target.value)}
+                    maxLength={150}
+                    required
+                    autoComplete="off"
+                    aria-describedby="elemento-nombre-ayuda"
+                    placeholder="Ej. Vinilo blanco para techos"
+                  />
+                  <p id="elemento-nombre-ayuda" className="text-xs text-sena-text/55">
+                    Es el nombre que ve y busca el instructor al pedir. Puede ser distinto del ítem;
+                    si lo dejas vacío, al elegir el ítem se llena con su nombre y lo puedes cambiar.
+                  </p>
+                </div>
+                <ItemPicker
+                  query={itemSearch}
+                  selected={selectedItem}
+                  options={itemOptions}
+                  hasAny={items.some((item) => item.estado || item.id === form.idItem)}
+                  onQuery={(value) => {
+                    setItemSearch(value)
+                    if (form.idItem) updateForm('idItem', 0)
+                  }}
+                  onPick={(item) => {
+                    // Si todavía no hay nombre, se sugiere el del ítem; se puede cambiar.
+                    setForm((current) => ({
+                      ...current,
+                      idItem: item.id,
+                      nombre: current.nombre.trim() ? current.nombre : item.nombre,
+                    }))
+                    setItemSearch(item.nombre)
+                  }}
+                  onCreate={() => navigate('/inventario/items')}
+                />
+              </div>
             ) : null}
 
             {step === 1 ? (
@@ -1021,9 +1127,10 @@ export default function ElementosPage() {
                 </div>
                 <CatalogSelect
                   id="elemento-clasificacion"
-                  label="Clasificación"
+                  label="Clasificación *"
+                  required
                   value={form.idClasificacion}
-                  onChange={(value) => updateForm('idClasificacion', value)}
+                  onChange={pickClasificacion}
                   loading={catalogLoading}
                   access={catalogAccess.clasificacion}
                   emptyText="No hay clasificaciones."
@@ -1033,6 +1140,30 @@ export default function ElementosPage() {
                     elementos.find((item) => item.id === editingId)?.clasificacion?.nombre,
                   ).map((item) => ({ value: item.id, label: item.nombre })                  )}
                 />
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="elemento-caracter" className="text-sm font-medium text-sena-text/75">
+                    Tipo *
+                  </label>
+                  <select
+                    id="elemento-caracter"
+                    value={form.caracter}
+                    onChange={(event) =>
+                      updateForm(
+                        'caracter',
+                        event.target.value === 'devolutivo' || event.target.value === 'consumo'
+                          ? event.target.value
+                          : '',
+                      )
+                    }
+                    required
+                    className="h-11 w-full rounded-lg bg-sena-muted px-3.5 text-sm text-sena-text outline-none focus:bg-white focus:ring-2 focus:ring-sena/20"
+                  >
+                    <option value="">Selecciona...</option>
+                    <option value="devolutivo">{CARACTER_LABEL.devolutivo}</option>
+                    <option value="consumo">{CARACTER_LABEL.consumo}</option>
+                  </select>
+                  <p className="text-xs text-sena-text/55">{CARACTER_AYUDA}</p>
+                </div>
                 <CatalogSelect
                   id="elemento-unspsc"
                   label="Código UNSPSC"
@@ -1511,7 +1642,7 @@ function ItemPicker({
             <p className="mt-2 text-sm text-sena-text/70">{selected.descripcion}</p>
           ) : (
             <p className="mt-2 text-sm text-sena-text/70">
-              El elemento toma este nombre y esta subcategoría.
+              El elemento toma la subcategoría de este ítem.
             </p>
           )}
         </div>
@@ -1580,3 +1711,10 @@ function SelectField({
     </div>
   )
 }
+
+type StockPendiente = {
+  elemento: string
+  codigo: string
+  filas: SolicitudPendienteApi[]
+}
+

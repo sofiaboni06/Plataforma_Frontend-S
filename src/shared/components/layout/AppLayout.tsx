@@ -236,7 +236,7 @@ export default function AppLayout({
                           </li>
                         ) : (
                           notifications.items.slice(0, POPOVER_LIMIT).map((notification) => {
-                            const mark = notificationMark(notification.tipo)
+                            const mark = notificationMark(notification.tipo, notification.titulo)
                             return (
                               <li key={notification.id} className="border-b border-sena-line/60">
                                 <button

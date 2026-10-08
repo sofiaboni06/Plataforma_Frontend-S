@@ -1,13 +1,16 @@
 import Button from '@/shared/components/ui/Button'
 import Modal from '@/shared/components/ui/Modal'
 import { StatusPill } from '@/shared/components/ResourceBoard'
+import PlazoPill from '@/modules/solicitudes/components/PlazoPill'
 
 import {
   CARACTER_LABEL,
   FACTURA_LABEL,
   facturaTone,
+  filasPorEntregar,
   formatDate,
   formatDay,
+  formatFechaDia,
   personName,
   requestLabel,
   requestTone,
@@ -34,6 +37,7 @@ export default function FacturaDetail({
   onClose: () => void
 }) {
   const { totales } = factura
+  const porEntregar = filasPorEntregar(totales)
 
   return (
     <Modal
@@ -44,10 +48,15 @@ export default function FacturaDetail({
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <StatusPill tone={facturaTone(factura.estado)}>{FACTURA_LABEL[factura.estado]}</StatusPill>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusPill tone={facturaTone(factura.estado)}>{FACTURA_LABEL[factura.estado]}</StatusPill>
+            {factura.plazo ? (
+              <PlazoPill plazo={factura.plazo} limite={factura.fechaDevolucionLimite} />
+            ) : null}
+          </div>
           <p className="text-sm text-sena-text-soft tabular-nums">
             {totales.lineas} {totales.lineas === 1 ? 'elemento' : 'elementos'}
-            {totales.pendientes ? ` · ${totales.pendientes} por entregar` : ''}
+            {porEntregar ? ` · ${porEntregar} por entregar` : ''}
           </p>
         </div>
 
@@ -64,6 +73,27 @@ export default function FacturaDetail({
           <DetailField term="Solicitante" value={personName(factura.usuario)} />
           <DetailField term="Ficha" value={factura.ficha || '—'} />
           <DetailField term="Fecha de solicitud" value={formatDate(factura.fecha)} />
+          <DetailField
+            term={factura.tipo === 'devolutivo' ? 'Inicio del préstamo' : 'Fecha de inicio'}
+            value={formatFechaDia(factura.fechaInicio) || '—'}
+          />
+          {factura.tipo === 'devolutivo' ? (
+            <>
+              <DetailField
+                term="Devolución propuesta"
+                value={formatFechaDia(factura.fechaDevolucionPropuesta) || '—'}
+              />
+              <DetailField
+                term="Fecha límite de devolución"
+                value={formatFechaDia(factura.fechaDevolucionLimite) || 'Se confirma al entregar'}
+              />
+            </>
+          ) : (
+            <DetailField
+              term="Para cuándo lo necesita"
+              value={formatFechaDia(factura.fechaEntregaRequerida) || '—'}
+            />
+          )}
           {factura.registradaEnBodega ? (
             <DetailField
               term="Registrada en el mostrador por"
@@ -103,8 +133,13 @@ export default function FacturaDetail({
                       </p>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3 text-center font-semibold tabular-nums text-sena-text">
-                    {fila.cantidad}
+                  <td className="px-4 py-3 text-center tabular-nums">
+                    <p className="font-semibold text-sena-text">{fila.cantidad}</p>
+                    {fila.estado === 'parcial' ? (
+                      <p className="mt-0.5 text-[11px] text-sena-text-soft">
+                        {fila.cantidadEntregada} entregados · {fila.cantidadPendiente} pendientes
+                      </p>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <StatusPill tone={requestTone(fila.estado)}>{requestLabel(fila.estado)}</StatusPill>

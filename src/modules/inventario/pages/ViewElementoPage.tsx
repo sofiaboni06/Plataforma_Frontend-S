@@ -10,6 +10,7 @@ import { getBodegas } from '@/modules/inventario/data/bodega'
 import { getElemento } from '@/modules/inventario/data/elemento'
 import { getItem } from '@/modules/inventario/data/item'
 import { formatCantidad, lugarDelElemento } from '@/modules/inventario/lib/lugar'
+import { caracterLabel } from '@/modules/inventario/lib/caracter'
 import type { BodegaApi } from '@/modules/inventario/types/bodega'
 import type { ElementoApi } from '@/modules/inventario/types/elemento'
 import type { ItemApi } from '@/modules/inventario/types/item'
@@ -164,6 +165,14 @@ export default function ViewElementoPage() {
               value={elemento.gramaje == null ? '—' : String(elemento.gramaje)}
             />
             <InfoItem label="Clasificación" value={elemento.clasificacion?.nombre ?? '—'} />
+            <InfoItem
+              label="Tipo"
+              value={
+                elemento.caracter
+                  ? `${caracterLabel(elemento.caracter)} · se pide en Solicitudes de ${elemento.caracter === 'devolutivo' ? 'equipo' : 'material'}`
+                  : 'Sin tipo: no se puede pedir hasta asignarlo'
+              }
+            />
             <InfoItem label="Uso presupuestal" value={elemento.usoPresupuestal?.nombre ?? '—'} />
             <InfoItem
               label="Código UNSPSC"

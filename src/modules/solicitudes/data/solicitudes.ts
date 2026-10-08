@@ -8,6 +8,8 @@ import type {
   ObraApi,
   RegistrarEnBodegaPayload,
   SolicitanteApi,
+  SolicitudEstado,
+  SolicitudDevueltaApi,
   SolicitudItemApi,
   SolicitudKind,
 } from '@/modules/solicitudes/types'
@@ -24,11 +26,13 @@ function solicitudPath(kind: SolicitudKind) {
   return kind === 'equipo' ? '/solicitudes-equipo' : '/solicitudes-material'
 }
 
+/* Varios estados viajan separados por coma: `pendiente,parcial`. */
 export function getSolicitudes(
   kind: SolicitudKind,
-  estado?: 'pendiente' | 'entregado' | 'devuelto',
+  estado?: SolicitudEstado | SolicitudEstado[],
 ): Promise<SolicitudItemApi[]> {
-  const query = estado ? `?estado=${encodeURIComponent(estado)}` : ''
+  const estados = Array.isArray(estado) ? estado.join(',') : estado
+  const query = estados ? `?estado=${encodeURIComponent(estados)}` : ''
   return api<SolicitudItemApi[]>(`${solicitudPath(kind)}${query}`)
 }
 
@@ -70,25 +74,73 @@ export function registrarEnBodega(payload: RegistrarEnBodegaPayload): Promise<Fa
   })
 }
 
+/* Equipo: bodega puede confirmar o ajustar el plazo de devolución al entregar. */
 export function entregarSolicitud(
   kind: SolicitudKind,
   id: number,
+  opciones: { fechaDevolucionLimite?: string } = {},
 ): Promise<SolicitudItemApi> {
   return api<SolicitudItemApi>(`${solicitudPath(kind)}/${id}/entregar`, {
     method: 'PATCH',
+    body: JSON.stringify(opciones),
   })
 }
 
+/*
+ * "Entregar todo lo disponible" de una solicitud: sale lo que haya en el
+ * estante de cada elemento pendiente; lo que no tenga existencia sigue
+ * pendiente. Al instructor le llega un solo aviso.
+ */
+export function entregarFactura(
+  codigoSolicitud: string,
+  opciones: { fechaDevolucionLimite?: string } = {},
+): Promise<FacturaApi> {
+  return api<FacturaApi>(`/solicitudes/${encodeURIComponent(codigoSolicitud)}/entregar`, {
+    method: 'PATCH',
+    body: JSON.stringify(opciones),
+  })
+}
+
+/*
+ * Entregas y devoluciones de bodega: pedidos de equipo que ya salieron.
+ * `afuera` (algo sin devolver), `vencidos` (vence hoy o ya venció),
+ * `devueltos` o `todos`.
+ */
+export type VistaPrestamos = 'afuera' | 'vencidos' | 'devueltos' | 'todos'
+
+export function getPrestamos(vista: VistaPrestamos = 'afuera'): Promise<FacturaApi[]> {
+  return api<FacturaApi[]>(`/solicitudes/prestamos?vista=${vista}`)
+}
+
+/* Bodega corre el plazo de devolución de un pedido con equipo afuera. */
+export function ajustarPlazo(
+  codigoSolicitud: string,
+  fechaDevolucionLimite: string,
+): Promise<FacturaApi> {
+  return api<FacturaApi>(`/solicitudes/${encodeURIComponent(codigoSolicitud)}/plazo`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fechaDevolucionLimite }),
+  })
+}
+
+/* Equipo con unidades afuera, `entregado` o `parcial`: lo que bodega puede recibir. */
+export function getEquiposAfuera(): Promise<SolicitudItemApi[]> {
+  return api<SolicitudItemApi[]>('/solicitudes-equipo?afuera=true')
+}
+
+export type EstadoDevolucion = 'bueno' | 'danado' | 'perdido' | 'en_reparacion'
+
+/* `detalle` reparte lo que vuelve por estado: 2 bueno, 1 dañado. */
 export type DevolverSolicitudPayload = {
-  estadoElemento: 'bueno' | 'danado' | 'perdido' | 'en_reparacion'
+  detalle: { estadoElemento: EstadoDevolucion; cantidad: number }[]
   observacion?: string
 }
 
 export function devolverSolicitud(
   id: number,
   payload: DevolverSolicitudPayload,
-): Promise<SolicitudItemApi> {
-  return api<SolicitudItemApi>(`/solicitudes-equipo/${id}/devolver`, {
+): Promise<SolicitudDevueltaApi> {
+  return api<SolicitudDevueltaApi>(`/solicitudes-equipo/${id}/devolver`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   })

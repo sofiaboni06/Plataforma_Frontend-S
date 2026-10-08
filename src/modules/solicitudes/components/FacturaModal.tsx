@@ -9,14 +9,21 @@ import { TrashIcon } from '@/shared/components/icons/AppIcons'
 
 import ElementoCombobox from '@/modules/solicitudes/components/ElementoCombobox'
 import {
+  formatFechaDia,
+  hoyDia,
   availableOf,
   caracterOf,
   inputClass,
   inputErrorClass,
   personName,
 } from '@/modules/solicitudes/lib/presentacion'
+import { getClasificacionesActivas } from '@/modules/inventario/data/elemento'
+import { CARACTER_LABEL } from '@/modules/inventario/lib/caracter'
 
-import type { ElementoApi } from '@/modules/inventario/types/elemento'
+import type {
+  ClasificacionElementoApi,
+  ElementoApi,
+} from '@/modules/inventario/types/elemento'
 import type {
   CrearFacturaPayload,
   FacturaTipo,
@@ -58,12 +65,26 @@ function cantidadError(fila: Fila) {
   return ''
 }
 
-/* En el mostrador: lo que sale ya y lo que queda pendiente a su nombre. */
-function entregaAviso(fila: Fila) {
+/*
+ * Si pide más de lo disponible no se bloquea: lo que falta queda pendiente.
+ * En el mostrador sale lo que hay al registrar; el instructor espera a bodega.
+ */
+function entregaAviso(fila: Fila, mostrador: boolean) {
   const value = Number(fila.cantidad)
   if (fila.disponible === null || cantidadError(fila) || value <= fila.disponible) return ''
-  if (fila.disponible <= 0) return 'Sin existencia: queda pendiente.'
-  return `Salen ${fila.disponible} ahora y ${value - fila.disponible} quedan pendientes.`
+
+  if (mostrador) {
+    if (fila.disponible <= 0) return 'Sin existencia: queda pendiente.'
+    return `Salen ${fila.disponible} ahora y ${value - fila.disponible} quedan pendientes.`
+  }
+
+  if (fila.disponible <= 0) return 'Sin existencia: todo queda pendiente hasta que bodega lo entregue.'
+  const restantes = value - fila.disponible
+  return `${hayDisponibles(fila.disponible)}; ${restantes === 1 ? 'el restante queda pendiente' : `los ${restantes} restantes quedan pendientes`} hasta que bodega los entregue.`
+}
+
+function hayDisponibles(disponible: number) {
+  return `Hay ${disponible} ${disponible === 1 ? 'disponible' : 'disponibles'}`
 }
 
 /*
@@ -72,8 +93,8 @@ function entregaAviso(fila: Fila) {
  * `tipos` son los que el usuario puede pedir; con uno solo, queda fijo.
  *
  * Con `solicitante` es bodega registrando en el mostrador a nombre de otra
- * persona: ve la existencia y entrega lo que haya al registrar. Sin él es el
- * instructor, que pide sin ver lo que queda en bodega.
+ * persona: entrega lo que haya al registrar. Sin él es el instructor: ve solo
+ * cuánto hay disponible y lo que pida de más queda pendiente.
  */
 export default function FacturaModal({
   obras,
@@ -97,10 +118,14 @@ export default function FacturaModal({
   const [idObra, setIdObra] = useState('')
   const [ficha, setFicha] = useState('')
   const [observacion, setObservacion] = useState('')
+  // Equipo: inicio del préstamo y hasta cuándo lo pide. Consumo: inicio y para cuándo lo necesita.
+  const [fechaInicio, setFechaInicio] = useState(hoyDia)
+  const [fechaFin, setFechaFin] = useState('')
   const [filas, setFilas] = useState<Fila[]>([])
   const [intentado, setIntentado] = useState(false)
   const [saving, setSaving] = useState(false)
   const [localError, setLocalError] = useState('')
+  const [clasificaciones, setClasificaciones] = useState<ClasificacionElementoApi[]>([])
 
   const cantidadRefs = useRef(new Map<number, HTMLInputElement>())
   const [recienAgregado, setRecienAgregado] = useState<number | null>(null)
@@ -111,6 +136,21 @@ export default function FacturaModal({
     input?.focus()
     input?.select()
   }, [recienAgregado])
+
+  // Todas las clasificaciones activas del catálogo (el instructor ya puede leerlas).
+  useEffect(() => {
+    let vivo = true
+    getClasificacionesActivas()
+      .then((rows) => {
+        if (vivo) setClasificaciones(rows)
+      })
+      .catch(() => {
+        if (vivo) setClasificaciones([])
+      })
+    return () => {
+      vivo = false
+    }
+  }, [])
 
   const elegibles = useMemo(() => {
     const usados = new Set(filas.map((fila) => fila.elemento.id))
@@ -135,7 +175,7 @@ export default function FacturaModal({
       ...current,
       {
         elemento,
-        disponible: mostrador ? availableOf(elemento) : null,
+        disponible: availableOf(elemento),
         cantidad: '1',
         observacion: '',
       },
@@ -156,6 +196,10 @@ export default function FacturaModal({
   }
 
   const conError = filas.some((fila) => cantidadError(fila) !== '')
+  const unidades = filas.reduce((total, fila) => {
+    const value = Number(fila.cantidad)
+    return total + (Number.isInteger(value) && value > 0 ? value : 0)
+  }, 0)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -164,6 +208,30 @@ export default function FacturaModal({
 
     if (!Number(idObra)) {
       setLocalError('Selecciona la obra.')
+      return
+    }
+
+    if (!fechaInicio) {
+      setLocalError('Indica la fecha de inicio.')
+      return
+    }
+
+    if (fechaInicio < hoyDia()) {
+      setLocalError('La fecha de inicio no puede ser anterior a hoy.')
+      return
+    }
+
+    if (!fechaFin) {
+      setLocalError(
+        tipo === 'devolutivo'
+          ? 'Indica la fecha de devolución que propones.'
+          : 'Indica para cuándo lo necesitas.',
+      )
+      return
+    }
+
+    if (fechaFin < fechaInicio) {
+      setLocalError('Esa fecha no puede ser anterior al inicio.')
       return
     }
 
@@ -185,6 +253,10 @@ export default function FacturaModal({
         tipo,
         ...(ficha.trim() ? { ficha: ficha.trim() } : {}),
         ...(observacion.trim() ? { observacion: observacion.trim() } : {}),
+        fechaInicio,
+        ...(tipo === 'devolutivo'
+          ? { fechaDevolucionPropuesta: fechaFin }
+          : { fechaEntregaRequerida: fechaFin }),
         elementos: filas.map((fila) => ({
           idElemento: fila.elemento.id,
           cantidad: Number(fila.cantidad),
@@ -219,10 +291,15 @@ export default function FacturaModal({
       onClose={onClose}
       wide
     >
-      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-7" noValidate>
         {localError ? (
           <ErrorBanner message={localError} onClose={() => setLocalError('')} />
         ) : null}
+
+        <section aria-labelledby="factura-datos" className="space-y-4">
+          <h3 id="factura-datos" className="text-sm font-semibold text-sena-text">
+            Datos de la solicitud
+          </h3>
 
         {solicitante ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sena-line bg-white/65 px-4 py-3">
@@ -280,7 +357,7 @@ export default function FacturaModal({
           </fieldset>
         ) : null}
 
-        <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_12rem]">
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem]">
           <Field label="Obra" required>
             <select
               value={idObra}
@@ -309,10 +386,96 @@ export default function FacturaModal({
           </Field>
         </div>
 
-        <section aria-labelledby="factura-elementos" className="space-y-3">
+        <div className="grid gap-4 md:grid-cols-2 md:items-end">
+          <Field label="Fecha de inicio" required>
+            <input
+              type="date"
+              value={fechaInicio}
+              onChange={(event) => {
+                const valor = event.target.value
+                setFechaInicio(valor)
+                if (fechaFin && valor && fechaFin < valor) setFechaFin('')
+              }}
+              min={hoyDia()}
+              className={intentado && !fechaInicio ? inputErrorClass : inputClass}
+              required
+            />
+          </Field>
+
+          <Field
+            label={
+              tipo === 'devolutivo'
+                ? mostrador
+                  ? 'Fecha límite de devolución'
+                  : 'Devolución propuesta'
+                : 'Para cuándo lo necesitas'
+            }
+            required
+            hint={
+              tipo === 'devolutivo'
+                ? mostrador
+                  ? 'Desde ese día, si algo sigue afuera, se avisa a diario'
+                  : 'Bodega la confirma o la ajusta al entregar'
+                : 'Lo último que puede esperar la obra'
+            }
+          >
+            <input
+              type="date"
+              value={fechaFin}
+              onChange={(event) => setFechaFin(event.target.value)}
+              min={fechaInicio || hoyDia()}
+              className={intentado && !fechaFin ? inputErrorClass : inputClass}
+              required
+            />
+          </Field>
+        </div>
+
+        {fechaInicio && fechaFin ? (
+          <p className="text-xs text-sena-text-soft">
+            {tipo === 'devolutivo'
+              ? `Lo pides del ${formatFechaDia(fechaInicio)} al ${formatFechaDia(fechaFin)}.`
+              : `Lo necesitas entre el ${formatFechaDia(fechaInicio)} y el ${formatFechaDia(fechaFin)}.`}
+          </p>
+        ) : null}
+
+        <Field label="Observación general" hint="Opcional. Se copia en las filas que no tengan la suya">
+          <textarea
+            value={observacion}
+            onChange={(event) => setObservacion(event.target.value)}
+            rows={2}
+            placeholder="Indica para qué se necesita..."
+            className={`${inputClass} min-h-20 resize-y py-3`}
+          />
+        </Field>
+        </section>
+
+        <section aria-labelledby="factura-agregar" className="space-y-3">
+          <div>
+            <h3 id="factura-agregar" className="text-sm font-semibold text-sena-text">
+              Agregar elementos <span className="text-sena">*</span>
+            </h3>
+            <p className="mt-1 text-xs text-sena-text-soft">
+              Filtra por clasificación y busca por nombre, código o clasificación. Se suman abajo.
+            </p>
+          </div>
+
+          <ElementoCombobox
+            elementos={elegibles}
+            clasificaciones={clasificaciones}
+            value={null}
+            onChange={agregar}
+            availableOf={availableOf}
+            label="Agregar elemento"
+            placeholder={`Busca por nombre, código o clasificación, ${actual.ejemplo}`}
+            inputClassName={inputClass}
+          />
+
+        </section>
+
+        <section aria-labelledby="factura-lista" className="space-y-3">
           <div className="flex items-baseline justify-between gap-3">
-            <h3 id="factura-elementos" className="text-sm font-semibold text-sena-text">
-              Elementos <span className="text-sena">*</span>
+            <h3 id="factura-lista" className="text-sm font-semibold text-sena-text">
+              Elementos de la solicitud
             </h3>
             {filas.length ? (
               <p className="text-xs text-sena-text-soft tabular-nums">
@@ -320,27 +483,19 @@ export default function FacturaModal({
               </p>
             ) : null}
           </div>
-
-          <ElementoCombobox
-            elementos={elegibles}
-            value={null}
-            onChange={agregar}
-            availableOf={mostrador ? availableOf : undefined}
-            label="Agregar elemento"
-            placeholder={`Busca por nombre o código para agregarlo, ${actual.ejemplo}`}
-            inputClassName={inputClass}
-          />
-
           {filas.length === 0 ? (
             <p
               className={cn(
-                'rounded-2xl border border-dashed px-5 py-6 text-center text-sm',
+                'rounded-2xl border border-dashed px-5 py-8 text-center text-sm leading-6',
                 intentado
                   ? 'border-sena-danger-line text-sena-danger-text'
                   : 'border-sena-line text-sena-text-soft',
               )}
             >
-              Todavía no hay elementos. Búscalos arriba y se van sumando aquí.
+              Todavía no hay elementos.
+              <span className="mt-1 block text-xs">
+                Búscalos arriba y se van sumando aquí.
+              </span>
             </p>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-sena-line bg-white/65">
@@ -357,25 +512,46 @@ export default function FacturaModal({
               <ul className="divide-y divide-sena-hairline">
                 {filas.map((fila) => {
                   const error = cantidadError(fila)
-                  const aviso = entregaAviso(fila)
+                  const aviso = entregaAviso(fila, mostrador)
                   const unidad = fila.elemento.unidadMedida?.abreviatura ?? ''
                   const ayudaId = `factura-cantidad-${fila.elemento.id}`
+                  const tipoFila = caracterOf(fila.elemento)
 
                   return (
                     <li
                       key={fila.elemento.id}
-                      className="grid grid-cols-[6.5rem_minmax(0,1fr)_2.5rem] items-start gap-x-3 gap-y-2 px-4 py-3 [grid-template-areas:'nombre_nombre_quitar'_'cantidad_obs_obs'] sm:grid-cols-[minmax(0,1fr)_6.5rem_minmax(0,14rem)_2.5rem] sm:[grid-template-areas:'nombre_cantidad_obs_quitar']"
+                      className={cn(
+                        'grid grid-cols-[6.5rem_minmax(0,1fr)_2.5rem] items-start gap-x-3 gap-y-2 px-4 py-3.5 sm:grid-cols-[minmax(0,1fr)_6.5rem_minmax(0,14rem)_2.5rem]',
+                        error || aviso
+                          ? "[grid-template-areas:'nombre_nombre_quitar'_'cantidad_obs_obs'_'aviso_aviso_aviso'] sm:[grid-template-areas:'nombre_cantidad_obs_quitar'_'aviso_aviso_aviso_aviso']"
+                          : "[grid-template-areas:'nombre_nombre_quitar'_'cantidad_obs_obs'] sm:[grid-template-areas:'nombre_cantidad_obs_quitar']",
+                      )}
                     >
                       <div className="min-w-0 pt-1.5 [grid-area:nombre]">
-                        <p className="truncate text-sm font-semibold text-sena-text">
-                          {fila.elemento.nombre}
+                        <p className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-sena-text">
+                            {fila.elemento.nombre}
+                          </span>
+                          {tipoFila ? (
+                            <span
+                              className={cn(
+                                'shrink-0 rounded-full px-2 py-px text-[11px] font-semibold',
+                                tipoFila === 'devolutivo'
+                                  ? 'bg-sena-active-soft text-sena-ok-text'
+                                  : 'bg-sena-warn-soft text-sena-warn-text',
+                              )}
+                            >
+                              {CARACTER_LABEL[tipoFila]}
+                            </span>
+                          ) : null}
                         </p>
                         <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-sena-text-soft">
                           <span className="truncate">{fila.elemento.codigo}</span>
-                          {fila.disponible !== null ? (
+                          {fila.disponible !== null && !aviso ? (
                             <span className="tabular-nums">
-                              {fila.disponible}
-                              {unidad ? ` ${unidad}` : ''} disp.
+                              {mostrador
+                                ? `${fila.disponible}${unidad ? ` ${unidad}` : ''} disp.`
+                                : hayDisponibles(fila.disponible)}
                             </span>
                           ) : null}
                         </p>
@@ -412,21 +588,6 @@ export default function FacturaModal({
                               'px-3 py-2.5 text-center tabular-nums',
                             )}
                           />
-                          {error ? (
-                            <span
-                              id={ayudaId}
-                              className="mt-1.5 block text-[11px] leading-4 font-semibold text-sena-danger-text"
-                            >
-                              {error}
-                            </span>
-                          ) : aviso ? (
-                            <span
-                              id={ayudaId}
-                              className="mt-1.5 block text-[11px] leading-4 font-semibold text-sena-strong"
-                            >
-                              {aviso}
-                            </span>
-                          ) : null}
                       </div>
 
                       <input
@@ -438,6 +599,20 @@ export default function FacturaModal({
                         placeholder="Observación (opcional)"
                         className={cn(inputClass, 'px-3 py-2.5 [grid-area:obs]')}
                       />
+
+                      {error || aviso ? (
+                        <p
+                          id={ayudaId}
+                          className={cn(
+                            'rounded-xl px-3 py-2 text-xs font-semibold leading-5 [grid-area:aviso]',
+                            error
+                              ? 'bg-sena-danger-soft text-sena-danger-text'
+                              : 'bg-sena-warn-soft text-sena-warn-text',
+                          )}
+                        >
+                          {error || aviso}
+                        </p>
+                      ) : null}
                     </li>
                   )
                 })}
@@ -446,23 +621,13 @@ export default function FacturaModal({
           )}
         </section>
 
-        <Field label="Observación general" hint="Opcional. Se copia en las filas que no tengan la suya">
-          <textarea
-            value={observacion}
-            onChange={(event) => setObservacion(event.target.value)}
-            rows={2}
-            placeholder="Indica para qué se necesita..."
-            className={`${inputClass} min-h-20 resize-y py-3`}
-          />
-        </Field>
-
-        <div className="flex flex-col-reverse gap-4 border-t border-sena-hairline pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-sena-text-soft tabular-nums">
+        <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 flex flex-col gap-3 border-t border-sena-hairline bg-glass-strong px-6 py-4 backdrop-blur-glass sm:-bottom-8 sm:-mx-8 sm:-mb-8 sm:flex-row sm:items-center sm:justify-end sm:px-8">
+          <p className="text-sm text-sena-text-soft tabular-nums sm:mr-auto">
             {filas.length === 0
               ? mostrador
                 ? 'Nada sale de bodega hasta que registres la solicitud.'
                 : 'Nada queda reservado hasta que registres la solicitud.'
-              : actual.cuenta(filas.length)}
+              : `${actual.cuenta(filas.length)} · ${unidades} ${unidades === 1 ? 'unidad' : 'unidades'}`}
           </p>
 
           <div className="flex justify-end gap-3">

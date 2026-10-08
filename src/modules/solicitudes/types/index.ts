@@ -1,6 +1,9 @@
+import type { SolicitudPendienteApi } from '@/modules/inventario/types/elemento'
+
 export type SolicitudKind = 'equipo' | 'material'
 
-export type SolicitudEstado = 'pendiente' | 'entregado' | 'devuelto'
+/* `parcial`: ya salió una parte y lo demás sigue pendiente de entrega. */
+export type SolicitudEstado = 'pendiente' | 'parcial' | 'entregado' | 'devuelto'
 
 /* `cantidad` es la existencia en bodega: solo llega a quien entrega. */
 type ElementoFilaApi = {
@@ -26,6 +29,11 @@ export type SolicitudItemApi = {
   idUsuario: number
   idUsuarioEntrega: number | null
   cantidad: number
+  cantidadEntregada: number
+  cantidadPendiente: number
+  /* Solo equipo: lo devuelto y lo que sigue afuera. En material llega null. */
+  cantidadDevuelta?: number | null
+  cantidadAfuera?: number | null
   ficha: string | null
   estado: SolicitudEstado
   estadoElemento?: 'bueno' | 'danado' | 'perdido' | 'en_reparacion' | null
@@ -51,7 +59,7 @@ export type SolicitudItemApi = {
     apellidos: string
     email: string
   } | null
-}
+} & FechasSolicitud
 
 export type CrearSolicitudPayload = {
   codigoSolicitud: string
@@ -83,12 +91,34 @@ export type FacturaFilaApi = {
   cantidad: number
   cantidadEntregada: number
   cantidadPendiente: number
+  /* Solo equipo: lo devuelto y lo que sigue afuera. En material llega null. */
+  cantidadDevuelta?: number | null
+  cantidadAfuera?: number | null
   estado: SolicitudEstado
   estadoElemento: 'bueno' | 'danado' | 'perdido' | 'en_reparacion' | null
   observacion: string | null
   fechaEntrega: string | null
   fechaDevolucion: string | null
   usuarioEntrega: Persona | null
+} & FechasSolicitud
+
+/*
+ * Cómo va el plazo de devolución de lo que sigue afuera (solo equipo).
+ * null: no hay nada afuera.
+ */
+export type EstadoPlazo = 'sin_fecha' | 'al_dia' | 'vence_hoy' | 'vencido'
+
+/*
+ * Días de calendario `YYYY-MM-DD`. Equipo: inicio del préstamo, devolución
+ * que propuso el instructor y fecha límite que confirmó bodega. Consumo:
+ * inicio de la actividad y para cuándo lo necesita.
+ */
+export type FechasSolicitud = {
+  fechaInicio?: string | null
+  fechaDevolucionPropuesta?: string | null
+  fechaDevolucionLimite?: string | null
+  fechaEntregaRequerida?: string | null
+  plazo?: EstadoPlazo | null
 }
 
 /* Una solicitud es toda de consumo o toda devolutiva. */
@@ -113,14 +143,16 @@ export type FacturaApi = {
   totales: {
     lineas: number
     pendientes: number
+    parciales: number
     entregadas: number
     devueltas: number
     cantidad: number
     cantidadEntregada: number
     cantidadPendiente: number
+    cantidadAfuera: number
   }
   detalle: FacturaFilaApi[]
-}
+} & FechasSolicitud
 
 /* La persona que bodega atiende en el mostrador, buscada por documento. */
 export type SolicitanteApi = {
@@ -141,6 +173,11 @@ export type CrearFacturaPayload = {
   tipo: FacturaTipo
   ficha?: string
   observacion?: string
+  fechaInicio?: string
+  /* Solo devolutivo. */
+  fechaDevolucionPropuesta?: string
+  /* Solo consumo. */
+  fechaEntregaRequerida?: string
   elementos: {
     idElemento: number
     cantidad: number
@@ -149,3 +186,8 @@ export type CrearFacturaPayload = {
 }
 
 export type RegistrarEnBodegaPayload = CrearFacturaPayload & { numeroDocumento: string }
+
+/* Respuesta de devolver: si volvió equipo bueno, las solicitudes que puede servir. */
+export type SolicitudDevueltaApi = SolicitudItemApi & {
+  solicitudesPendientes?: SolicitudPendienteApi[]
+}

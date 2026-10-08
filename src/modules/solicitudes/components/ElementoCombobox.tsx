@@ -10,7 +10,12 @@ import {
 import { CloseIcon, SearchIcon } from '@/shared/components/icons/AppIcons'
 import { cn } from '@/shared/lib/cn'
 
-import type { ElementoApi } from '@/modules/inventario/types/elemento'
+import { CARACTER_LABEL } from '@/modules/inventario/lib/caracter'
+import { caracterOf } from '@/modules/solicitudes/lib/presentacion'
+import type {
+  ClasificacionElementoApi,
+  ElementoApi,
+} from '@/modules/inventario/types/elemento'
 
 /*
  * Pintar cientos de opciones vuelve lenta la lista y nadie las revisa todas:
@@ -33,22 +38,26 @@ function normalize(value: string) {
 }
 
 /*
- * Cada palabra escrita tiene que aparecer en el nombre o el código.
- * Pesa más lo que empieza igual que lo que solo lo contiene.
+ * Cada palabra escrita tiene que aparecer en el nombre, el código o la
+ * clasificación. Pesa más lo que empieza igual que lo que solo lo contiene, y
+ * el nombre más que la clasificación.
  */
 function scoreOf(elemento: ElementoApi, words: string[]) {
   if (words.length === 0) return 1
 
   const name = normalize(elemento.nombre)
   const code = normalize(elemento.codigo)
+  const clase = normalize(elemento.clasificacion?.nombre ?? '')
   const nameWords = name.split(/\s+/)
+  const claseWords = clase.split(/\s+/)
   let score = 0
 
   for (const word of words) {
     if (name.startsWith(word)) score += 4
     else if (nameWords.some((part) => part.startsWith(word))) score += 3
     else if (code.startsWith(word)) score += 3
-    else if (name.includes(word) || code.includes(word)) score += 1
+    else if (claseWords.some((part) => part.startsWith(word))) score += 2
+    else if (name.includes(word) || code.includes(word) || clase.includes(word)) score += 1
     else return 0
   }
 
@@ -94,11 +103,16 @@ function Highlight({ text, words }: { text: string; words: string[] }) {
 }
 
 /*
- * Sin `availableOf` no se muestra la existencia: el instructor no la ve.
- * Con ella, lo agotado se puede elegir igual y queda pendiente.
+ * Con `availableOf` muestra cuánto hay disponible para pedir (bodega y también
+ * el instructor). Lo agotado se puede elegir igual y queda pendiente.
+ *
+ * Arriba un select de clasificación (todas las activas del catálogo; por
+ * defecto 'Todas las clasificaciones'). El texto sigue buscando por nombre,
+ * código o clasificación.
  */
 export default function ElementoCombobox({
   elementos,
+  clasificaciones,
   value,
   onChange,
   availableOf,
@@ -107,6 +121,7 @@ export default function ElementoCombobox({
   inputClassName,
 }: {
   elementos: ElementoApi[]
+  clasificaciones: ClasificacionElementoApi[]
   value: ElementoApi | null
   onChange: (elemento: ElementoApi | null) => void
   availableOf?: (elemento: ElementoApi) => number
@@ -121,6 +136,11 @@ export default function ElementoCombobox({
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
+  const [filtro, setFiltro] = useState(0)
+
+  // Si el catálogo cambió y la elegida ya no está, vuelve a 'Todas'.
+  const clasificacionId = clasificaciones.some((row) => row.id === filtro) ? filtro : 0
+  const clasificacionNombre = clasificaciones.find((row) => row.id === clasificacionId)?.nombre
 
   const words = useMemo(
     () => normalize(query).split(/\s+/).filter(Boolean),
@@ -131,6 +151,7 @@ export default function ElementoCombobox({
     const found: Match[] = []
 
     for (const elemento of elementos) {
+      if (clasificacionId && elemento.clasificacion?.id !== clasificacionId) continue
       const score = scoreOf(elemento, words)
       if (score > 0) {
         found.push({ elemento, disponible: availableOf ? availableOf(elemento) : null, score })
@@ -143,7 +164,7 @@ export default function ElementoCombobox({
         right.score - left.score ||
         left.elemento.nombre.localeCompare(right.elemento.nombre, 'es'),
     )
-  }, [availableOf, elementos, words])
+  }, [availableOf, clasificacionId, elementos, words])
 
   const visible = matches.slice(0, MAX_RESULTS)
 
@@ -191,12 +212,39 @@ export default function ElementoCombobox({
     elemento.unidadMedida?.abreviatura ?? ''
 
   return (
-    <div>
+    <div className="grid items-end gap-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
+      <div>
+        <label htmlFor={`${listId}-clasificacion`} className="mb-2 block text-sm font-semibold text-sena-text">
+          Clasificación
+        </label>
+        <select
+          id={`${listId}-clasificacion`}
+          value={clasificacionId}
+          onChange={(event) => {
+            setFiltro(Number(event.target.value) || 0)
+            setActive(0)
+          }}
+          className={inputClassName}
+        >
+          <option value={0}>Todas las clasificaciones</option>
+          {clasificaciones.map((row) => (
+            <option key={row.id} value={row.id}>
+              {row.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor={`${listId}-buscar`} className="mb-2 block text-sm font-semibold text-sena-text">
+          {label}
+        </label>
       <div className="relative">
         <SearchIcon className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-sena-text-soft" />
 
         <input
           ref={inputRef}
+          id={`${listId}-buscar`}
           type="text"
           role="combobox"
           aria-label={label}
@@ -234,13 +282,17 @@ export default function ElementoCombobox({
           </button>
         ) : null}
       </div>
+      </div>
 
       {open ? (
-        <div className="mt-2 overflow-hidden rounded-2xl border border-sena-line bg-white shadow-[0_12px_32px_-12px_rgba(16,64,40,0.28)]">
+        <div className="mt-2 overflow-hidden rounded-2xl border border-sena-line bg-white shadow-[0_12px_32px_-12px_rgba(16,64,40,0.28)] sm:col-span-2">
           {visible.length === 0 ? (
             <p className="px-4 py-5 text-sm text-sena-text-soft">
-              Ningún elemento coincide con “{query.trim()}”. Prueba con otra
-              palabra o con el código.
+              {query.trim()
+                ? `Ningún elemento${clasificacionNombre ? ` de ${clasificacionNombre}` : ''} coincide con “${query.trim()}”. Prueba con otra palabra o con el código.`
+                : clasificacionNombre
+                  ? `No hay elementos de ${clasificacionNombre} para este tipo de solicitud.`
+                  : 'No hay elementos para esta solicitud.'}
             </p>
           ) : (
             <ul
@@ -254,6 +306,7 @@ export default function ElementoCombobox({
                 const { elemento, disponible } = match
                 const agotado = disponible !== null && disponible <= 0
                 const selected = value?.id === elemento.id
+                const tipo = caracterOf(elemento)
 
                 return (
                   <li
@@ -274,8 +327,28 @@ export default function ElementoCombobox({
                       <p className="truncate text-sm font-semibold text-sena-text">
                         <Highlight text={elemento.nombre} words={words} />
                       </p>
-                      <p className="mt-0.5 truncate text-xs text-sena-text-soft">
-                        <Highlight text={elemento.codigo} words={words} />
+                      <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-sena-text-soft">
+                        <span className="truncate">
+                          <Highlight text={elemento.codigo} words={words} />
+                          {elemento.clasificacion ? (
+                            <>
+                              {' · '}
+                              <Highlight text={elemento.clasificacion.nombre} words={words} />
+                            </>
+                          ) : null}
+                        </span>
+                        {tipo ? (
+                          <span
+                            className={cn(
+                              'shrink-0 rounded-full px-2 py-px text-[11px] font-semibold',
+                              tipo === 'devolutivo'
+                                ? 'bg-sena-active-soft text-sena-ok-text'
+                                : 'bg-sena-warn-soft text-sena-warn-text',
+                            )}
+                          >
+                            {CARACTER_LABEL[tipo]}
+                          </span>
+                        ) : null}
                       </p>
                     </div>
 
