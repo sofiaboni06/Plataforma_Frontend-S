@@ -8,7 +8,6 @@ import Toast from '@/shared/components/ui/Toast'
 import {
   ActionButton,
   ErrorBanner,
-  FilterCard,
   FilterGroup,
   PageHeader,
   RowActions,
@@ -20,15 +19,15 @@ import {
   TablePagination,
   TableRow,
   tableClass,
-  tableColumns,
 } from '@/shared/components/DataTable'
 import { StatusPill } from '@/shared/components/ResourceBoard'
-import { EyeIcon, InventoryIcon } from '@/shared/components/icons/AppIcons'
+import { CalendarIcon, DeliverIcon, EyeIcon, InventoryIcon } from '@/shared/components/icons/AppIcons'
 import { filterSelectClass, usePagination } from '@/shared/lib/table'
 
 import { useAuth } from '@/modules/auth/context/auth'
 import { useNotifications } from '@/modules/notificaciones/context/notifications'
 
+import { TituloSeccion } from '@/modules/solicitudes/components/BarraVista'
 import FacturaDetail from '@/modules/solicitudes/components/FacturaDetail'
 import FacturaModal from '@/modules/solicitudes/components/FacturaModal'
 import SolicitanteModal from '@/modules/solicitudes/components/SolicitanteModal'
@@ -43,6 +42,7 @@ import {
   CARACTER_LABEL,
   FACTURA_LABEL,
   facturaTone,
+  filasPorEntregar,
   formatDay,
   personName,
 } from '@/modules/solicitudes/lib/presentacion'
@@ -93,6 +93,11 @@ export default function SolicitudesHomePage() {
     ...(canEntregarMaterial ? (['consumo'] as const) : []),
     ...(canEntregarEquipo ? (['devolutivo'] as const) : []),
   ]
+  // Entregas y devoluciones: quién tiene equipo afuera y qué está vencido.
+  const canPrestamos =
+    !isAdmin &&
+    (permissions.includes('solicitud_equipo.devolver') ||
+      permissions.includes('solicitud_equipo.entregar'))
   const canVer =
     !isAdmin &&
     (permissions.includes('solicitud_equipo.ver') || permissions.includes('solicitud_material.ver'))
@@ -243,38 +248,70 @@ export default function SolicitudesHomePage() {
 
   const { pageRows, totalPages, currentPage, from, to, total } = usePagination(filtered, page)
 
+  const tarjetas = [
+    ...options.map((option) => ({
+      code: option.code,
+      title: option.title,
+      description: option.description,
+      to: option.to,
+      icon: option.code === 'equipo' ? <InventoryIcon /> : <DeliverIcon />,
+    })),
+    ...(canPrestamos
+      ? [
+          {
+            code: 'prestamos',
+            title: 'Entregas y devoluciones',
+            description: 'Quién tiene equipo afuera, qué ya volvió y qué está vencido, por persona.',
+            to: '/inventario/solicitudes/prestamos',
+            icon: <CalendarIcon />,
+          },
+        ]
+      : []),
+  ]
+
   const cards = options.length ? (
-    <section aria-labelledby={canVer ? 'solicitudes-por-tipo' : undefined} className="space-y-3">
+    <section aria-labelledby={canVer ? 'solicitudes-por-tipo' : undefined} className={canRequest ? 'mt-10' : 'mb-10 pt-4'}>
       {canVer ? (
-        <div>
-          <h2 id="solicitudes-por-tipo" className="text-base font-bold text-sena-dark">
-            Por tipo
-          </h2>
-          <p className="mt-1 text-sm text-sena-text-soft">
-            {canRequest
+        <TituloSeccion
+          id="solicitudes-por-tipo"
+          titulo="Por tipo"
+          descripcion={
+            canRequest
               ? 'Cada elemento de tus solicitudes, separado en equipo y material.'
-              : 'Entrega y recibe fila por fila: el equipo devolutivo y el material de consumo se manejan por separado.'}
-          </p>
-        </div>
+              : 'Entrega y recibe por solicitud: cada pedido llega completo, con todos sus elementos. El equipo devolutivo y el material de consumo van por separado.'
+          }
+        />
       ) : null}
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        {options.map((option) => (
+      <div className={tarjetas.length > 2 ? 'grid gap-6 sm:grid-cols-2 xl:grid-cols-3' : 'grid gap-6 sm:grid-cols-2'}>
+        {tarjetas.map((tarjeta) => (
           <article
-            key={option.code}
-            className="group flex flex-col rounded-[20px] border border-white/70 bg-white/85 p-6 shadow-surface backdrop-blur-glass transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover"
+            key={tarjeta.code}
+            className="group flex flex-col rounded-[22px] border border-white/70 bg-white/85 p-6 shadow-surface backdrop-blur-glass transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover sm:p-7"
           >
-            <h3 className="text-base font-bold text-sena-dark">{option.title}</h3>
-            <p className="mt-2 flex-1 text-sm leading-6 text-sena-text-soft">{option.description}</p>
-            <Link
-              to={option.to}
-              className="mt-5 inline-flex h-11 w-fit items-center gap-2 rounded-[14px] border border-white/70 bg-sena-veil/85 px-5 text-sm font-semibold text-sena-strong backdrop-blur-glass-sm transition duration-150 group-hover:border-transparent group-hover:bg-sena group-hover:text-white group-hover:shadow-brand"
-            >
-              Abrir
-              <span aria-hidden="true" className="grid size-6 place-items-center rounded-lg">
-                →
+            <div className="flex items-start gap-4">
+              <span
+                aria-hidden="true"
+                className="grid size-12 shrink-0 place-items-center rounded-2xl bg-sena-soft text-sena [&>svg]:size-6"
+              >
+                {tarjeta.icon}
               </span>
-            </Link>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-sena-dark">{tarjeta.title}</h3>
+                <p className="mt-1.5 text-sm leading-6 text-sena-text-soft">{tarjeta.description}</p>
+              </div>
+            </div>
+            <div className="mt-auto pt-6">
+              <Link
+                to={tarjeta.to}
+                className="inline-flex h-11 w-fit items-center gap-2 rounded-[14px] border border-white/70 bg-sena-veil/85 px-5 text-sm font-semibold text-sena-strong backdrop-blur-glass-sm transition duration-150 group-hover:border-transparent group-hover:bg-sena group-hover:text-white group-hover:shadow-brand"
+              >
+                Abrir
+                <span aria-hidden="true" className="grid size-6 place-items-center rounded-lg">
+                  →
+                </span>
+              </Link>
+            </div>
           </article>
         ))}
       </div>
@@ -283,29 +320,38 @@ export default function SolicitudesHomePage() {
 
   const tabla = canVer ? (
     <>
-      <FilterCard>
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Buscar por código, obra, ficha o elemento..."
+      {canRequest ? null : (
+        <TituloSeccion
+          titulo="Todas las solicitudes"
+          descripcion="Lo que han pedido los instructores y lo que se registró en el mostrador."
         />
-        <FilterGroup label="Estado">
-          <select
-            value={estado}
-            onChange={(event) => {
-              setEstado(event.target.value as EstadoFiltro)
-              setPage(1)
-            }}
-            className={`${filterSelectClass} lg:w-52`}
-          >
-            <option value="todas">Todas</option>
-            <option value="pendiente">{FACTURA_LABEL.pendiente}</option>
-            <option value="parcial">{FACTURA_LABEL.parcial}</option>
-            <option value="entregado">{FACTURA_LABEL.entregado}</option>
-            <option value="cerrado">{FACTURA_LABEL.cerrado}</option>
-          </select>
-        </FilterGroup>
-      </FilterCard>
+      )}
+
+      <section className="mb-6 rounded-[26px] border border-glass-line bg-glass px-6 pt-6 pb-5 shadow-surface backdrop-blur-glass sm:px-7">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar por código, obra, ficha o elemento..."
+          />
+          <FilterGroup label="Estado">
+            <select
+              value={estado}
+              onChange={(event) => {
+                setEstado(event.target.value as EstadoFiltro)
+                setPage(1)
+              }}
+              className={`${filterSelectClass} lg:w-52`}
+            >
+              <option value="todas">Todas</option>
+              <option value="pendiente">{FACTURA_LABEL.pendiente}</option>
+              <option value="parcial">{FACTURA_LABEL.parcial}</option>
+              <option value="entregado">{FACTURA_LABEL.entregado}</option>
+              <option value="cerrado">{FACTURA_LABEL.cerrado}</option>
+            </select>
+          </FilterGroup>
+        </div>
+      </section>
 
       <TableCard>
         {loading ? (
@@ -317,14 +363,14 @@ export default function SolicitudesHomePage() {
                 <thead>
                   <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
                     <TableHeader width="w-[22%]">Solicitud</TableHeader>
-                    <TableHeader width="w-[30%]">{canRequest ? 'Obra' : 'Solicitante'}</TableHeader>
-                    <TableHeader align="center" width="w-[16%]">
+                    <TableHeader width="w-[26%]">{canRequest ? 'Obra' : 'Solicitante'}</TableHeader>
+                    <TableHeader align="center" width="w-[14%]">
                       Elementos
                     </TableHeader>
-                    <TableHeader align="center" width={tableColumns.status}>
+                    <TableHeader align="center" width="w-[22%]">
                       Estado
                     </TableHeader>
-                    <TableHeader align="center" width={tableColumns.actions}>
+                    <TableHeader align="center" width="w-[16%]">
                       Acciones
                     </TableHeader>
                   </tr>
@@ -341,38 +387,38 @@ export default function SolicitudesHomePage() {
                   ) : (
                     pageRows.map((row) => (
                       <TableRow key={row.codigoSolicitud}>
-                        <td className="px-5 py-4">
+                        <td className="px-6 py-5">
                           <p className="truncate font-semibold text-sena-text">{row.codigoSolicitud}</p>
-                          <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                          <p className="mt-1 truncate text-xs text-sena-text-soft">
                             {CARACTER_LABEL[row.tipo]} · {row.ficha ? `Ficha ${row.ficha}` : 'Sin ficha'}
                           </p>
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-6 py-5">
                           {canRequest ? (
                             <p className="truncate text-sena-text">{row.obra?.nombre ?? '—'}</p>
                           ) : (
                             <>
                               <p className="truncate text-sena-text">{personName(row.usuario)}</p>
-                              <p className="mt-0.5 truncate text-xs text-sena-text/45">
+                              <p className="mt-1 truncate text-xs text-sena-text-soft">
                                 {row.obra ? `para ${row.obra.nombre}` : '—'}
                                 {row.registradaEnBodega ? ' · en mostrador' : ''}
                               </p>
                             </>
                           )}
                         </td>
-                        <td className="px-5 py-4 text-center">
+                        <td className="px-6 py-5 text-center">
                           <p className="font-semibold tabular-nums text-sena-text">{row.totales.lineas}</p>
-                          <p className="mt-0.5 text-xs text-sena-text/45 tabular-nums">
-                            {row.totales.pendientes
-                              ? `${row.totales.pendientes} por entregar`
+                          <p className="mt-1 text-xs text-sena-text-soft tabular-nums">
+                            {filasPorEntregar(row.totales)
+                              ? `${filasPorEntregar(row.totales)} por entregar`
                               : 'todo entregado'}
                           </p>
                         </td>
-                        <td className="px-5 py-4 text-center">
+                        <td className="px-6 py-5 text-center whitespace-nowrap">
                           <StatusPill tone={facturaTone(row.estado)}>{FACTURA_LABEL[row.estado]}</StatusPill>
-                          <p className="mt-1 text-[11px] text-sena-text/45">{formatDay(row.fecha)}</p>
+                          <p className="mt-1.5 text-[11px] text-sena-text-soft">{formatDay(row.fecha)}</p>
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-6 py-5">
                           <RowActions>
                             <ActionButton title="Ver solicitud" onClick={() => setDetalle(row)}>
                               <EyeIcon className="size-[18px]" />

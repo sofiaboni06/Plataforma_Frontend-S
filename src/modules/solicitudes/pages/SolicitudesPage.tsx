@@ -6,7 +6,13 @@ import {
   useState,
   type FormEvent,
 } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import {
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom'
 
 import { ApiError } from '@/shared/lib/api'
 
@@ -18,7 +24,6 @@ import Toast from '@/shared/components/ui/Toast'
 import {
   ActionButton,
   ErrorBanner,
-  FilterCard,
   FilterGroup,
   PageHeader,
   RowActions,
@@ -46,37 +51,132 @@ import { useNotifications } from '@/modules/notificaciones/context/notifications
 
 import {
   getElementos,
+  getFacturas,
   getObras,
   getSolicitudes,
   createFactura,
+  entregarFactura,
   entregarSolicitud,
   devolverSolicitud,
   type DevolverSolicitudPayload,
+  type EstadoDevolucion,
 } from '@/modules/solicitudes/data/solicitudes'
 import {
   formatDate,
   formatDay,
   inputClass,
   personName,
+  porEntregar,
   requestLabel,
   requestTone,
+  rutaEntregar,
+  saldria,
+  tieneAfuera,
 } from '@/modules/solicitudes/lib/presentacion'
 
 import type {
   CrearFacturaPayload,
+  FacturaApi,
+  FacturaEstado,
+  FacturaFilaApi,
+  FacturaTipo,
   ObraApi,
   SolicitudItemApi,
   SolicitudKind,
 } from '@/modules/solicitudes/types'
 
-import type { ElementoApi } from '@/modules/inventario/types/elemento'
+import type {
+  ElementoApi,
+  SolicitudPendienteApi,
+} from '@/modules/inventario/types/elemento'
 
+import FacturaDetail from '@/modules/solicitudes/components/FacturaDetail'
 import FacturaModal from '@/modules/solicitudes/components/FacturaModal'
+import FacturasBodega from '@/modules/solicitudes/components/FacturasBodega'
+import CampoPlazo from '@/modules/solicitudes/components/CampoPlazo'
+import { plazoInicial } from '@/modules/solicitudes/lib/presentacion'
+import StockPendienteBanner from '@/modules/solicitudes/components/StockPendienteBanner'
+import BarraVista from '@/modules/solicitudes/components/BarraVista'
 
-type DeliveryFilter = 'pendiente' | 'entregado' | 'devuelto' | 'todas'
+/*
+ * "Por entregar" junta las que no tienen nada entregado y las que quedaron
+ * en entrega parcial: a las dos les falta algo por salir de bodega.
+ */
+type DeliveryFilter =
+  | 'por_entregar'
+  | 'pendiente'
+  | 'parcial'
+  | 'entregado'
+  | 'devuelto'
+  | 'todas'
+
+/*
+ * Bodega ve pedidos completos: el filtro va por el estado del pedido. Material
+ * entregado completo queda `cerrado`; equipo entregado con unidades afuera
+ * queda `entregado` y pasa a `cerrado` cuando vuelve todo.
+ */
+function estadosFactura(filter: DeliveryFilter, kind: SolicitudKind): FacturaEstado[] | undefined {
+  if (filter === 'por_entregar') return ['pendiente', 'parcial']
+  if (filter === 'pendiente') return ['pendiente']
+  if (filter === 'parcial') return ['parcial']
+  if (filter === 'entregado') return kind === 'equipo' ? ['entregado'] : ['entregado', 'cerrado']
+  if (filter === 'devuelto') return ['cerrado']
+  return undefined
+}
+
+const TIPO_FACTURA: Record<SolicitudKind, FacturaTipo> = {
+  equipo: 'devolutivo',
+  material: 'consumo',
+}
+
+/* Una fila del pedido con los datos del encabezado: lo que usan los modales de entregar y devolver. */
+function filaComoItem(factura: FacturaApi, fila: FacturaFilaApi): SolicitudItemApi {
+  return {
+    id: fila.id,
+    codigoSolicitud: factura.codigoSolicitud,
+    idObra: factura.idObra,
+    idElemento: fila.idElemento,
+    idUsuario: factura.idUsuario,
+    idUsuarioEntrega: fila.usuarioEntrega?.id ?? null,
+    cantidad: fila.cantidad,
+    cantidadEntregada: fila.cantidadEntregada,
+    cantidadPendiente: fila.cantidadPendiente,
+    cantidadDevuelta: fila.cantidadDevuelta ?? null,
+    cantidadAfuera: fila.cantidadAfuera ?? null,
+    ficha: factura.ficha,
+    estado: fila.estado,
+    estadoElemento: fila.estadoElemento,
+    fecha: factura.fecha ?? '',
+    fechaEntrega: fila.fechaEntrega,
+    fechaDevolucion: fila.fechaDevolucion,
+    fechaInicio: fila.fechaInicio ?? null,
+    fechaDevolucionPropuesta: fila.fechaDevolucionPropuesta ?? null,
+    fechaDevolucionLimite: fila.fechaDevolucionLimite ?? null,
+    plazo: fila.plazo ?? null,
+    observacion: fila.observacion,
+    obra: factura.obra,
+    elemento: fila.elemento,
+    usuario: factura.usuario,
+    usuarioEntrega: fila.usuarioEntrega,
+  }
+}
+
+function textoFactura(factura: FacturaApi) {
+  return [
+    factura.codigoSolicitud,
+    factura.ficha ?? '',
+    factura.obra?.nombre ?? '',
+    personName(factura.usuario),
+    ...factura.detalle.map((fila) => `${fila.elemento?.nombre ?? ''} ${fila.elemento?.codigo ?? ''}`),
+  ]
+    .join(' ')
+    .toLowerCase()
+}
 
 const DELIVERY_EMPTY: Record<DeliveryFilter, string> = {
-  pendiente: 'No hay solicitudes pendientes para entregar.',
+  por_entregar: 'No hay solicitudes pendientes ni parciales para entregar.',
+  pendiente: 'No hay solicitudes sin entregar.',
+  parcial: 'No hay solicitudes con entrega parcial.',
   entregado: 'Todavía no hay solicitudes entregadas.',
   devuelto: 'Todavía no hay equipos devueltos.',
   todas: 'Todavía no hay solicitudes.',
@@ -101,6 +201,10 @@ const RETURN_STATUS_OPTIONS = [
   { value: 'en_reparacion', label: 'En reparación' },
 ] as const
 
+const RETURN_STATUS_LABEL = Object.fromEntries(
+  RETURN_STATUS_OPTIONS.map((option) => [option.value, option.label]),
+) as Record<EstadoDevolucion, string>
+
 function allows(
   userPermissions: string[] | undefined,
   code: string,
@@ -112,17 +216,22 @@ function allows(
 
 export default function SolicitudesPage() {
   const { tipo } = useParams()
+  const { search } = useLocation()
 
   if (tipo !== 'equipo' && tipo !== 'material') {
     return <Navigate to="/inventario/solicitudes" replace />
   }
 
-  return <SolicitudKindPage kind={tipo} />
+  // `?vista=entregar&buscar=...` llega de un aviso o de Elementos: se vuelve a montar con ese filtro.
+  return <SolicitudKindPage key={`${tipo}${search}`} kind={tipo} />
 }
 
 function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   const { user, isAdmin } = useAuth()
   const { lastArrival } = useNotifications()
+  const [searchParams] = useSearchParams()
+  const vistaPedida = searchParams.get('vista')
+  const navigate = useNavigate()
 
   const permissions = user?.permissions
 
@@ -136,17 +245,23 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   const canDeliverCurrent = kind === 'equipo' ? canDeliverEquipo : canDeliverMaterial
   const canReturnCurrent = kind === 'equipo' && canReturnEquipo
 
-  const [view, setView] = useState<'solicitar' | 'entregar' | 'devolver'>(
-    canCreateCurrent ? 'solicitar' : 'entregar',
-  )
+  const [view, setView] = useState<'solicitar' | 'entregar' | 'devolver'>(() => {
+    if (vistaPedida === 'entregar' && canDeliverCurrent) return 'entregar'
+    if (vistaPedida === 'devolver' && canReturnCurrent) return 'devolver'
+    return canCreateCurrent ? 'solicitar' : 'entregar'
+  })
 
   const [obras, setObras] = useState<ObraApi[]>([])
   const [elementos, setElementos] = useState<ElementoApi[]>([])
   const [solicitudes, setSolicitudes] = useState<SolicitudItemApi[]>([])
+  // Entregar y Devolver: un pedido por fila, con sus elementos adentro.
+  const [facturas, setFacturas] = useState<FacturaApi[]>([])
+  const [facturaDetalle, setFacturaDetalle] = useState<FacturaApi | null>(null)
+  const [entregaTodo, setEntregaTodo] = useState<string | null>(null)
 
-  const [search, setSearchValue] = useState('')
+  const [search, setSearchValue] = useState(() => searchParams.get('buscar') ?? '')
   const [page, setPage] = useState(1)
-  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>('pendiente')
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>('por_entregar')
   const [detail, setDetail] = useState<SolicitudItemApi | null>(null)
 
   const setSearch = (value: string) => {
@@ -158,6 +273,11 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
 
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
+  const [stockPendiente, setStockPendiente] = useState<{
+    titulo: string
+    codigo: string
+    filas: SolicitudPendienteApi[]
+  } | null>(null)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [deliveryId, setDeliveryId] = useState<number | null>(null)
@@ -223,17 +343,15 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
           : canDeliverMaterial
 
       if (!canDeliverCurrent) {
-        setSolicitudes([])
+        setFacturas([])
         return
       }
 
-      const rows = await getSolicitudes(
-        kind,
-        deliveryFilter === 'todas' ? undefined : deliveryFilter,
-      )
+      // El filtro de estado se aplica en pantalla sobre el estado del pedido.
+      const rows = await getFacturas()
 
       if (ticket !== lastLoad.current) return
-      setSolicitudes(rows)
+      setFacturas(rows.filter((row) => row.tipo === TIPO_FACTURA[kind]))
     } catch (cause) {
       if (ticket !== lastLoad.current) return
       setError(
@@ -247,12 +365,12 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   }, [
     canDeliverEquipo,
     canDeliverMaterial,
-    deliveryFilter,
     kind,
   ])
 
   /*
-   * Carga los equipos entregados que bodega todavía no ha recibido de vuelta.
+   * Carga el equipo que sigue afuera, esté la fila entregada o en entrega
+   * parcial: todo lo que bodega todavía puede recibir de vuelta.
    */
   const loadReturnable = useCallback(async () => {
     const ticket = ++lastLoad.current
@@ -261,14 +379,16 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
 
     try {
       if (!canReturnCurrent) {
-        setSolicitudes([])
+        setFacturas([])
         return
       }
 
-      const rows = await getSolicitudes('equipo', 'entregado')
+      const rows = await getFacturas()
 
       if (ticket !== lastLoad.current) return
-      setSolicitudes(rows)
+      setFacturas(
+        rows.filter((row) => row.tipo === 'devolutivo' && row.totales.cantidadAfuera > 0),
+      )
     } catch (cause) {
       if (ticket !== lastLoad.current) return
       setError(
@@ -374,15 +494,49 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
     total,
   } = usePagination(filteredRequests, page)
 
-  const deliveryRow =
-    deliveryId === null
-      ? null
-      : solicitudes.find((row) => row.id === deliveryId) ?? null
+  const facturasVisibles = useMemo(() => {
+    const estados = view === 'entregar' ? estadosFactura(deliveryFilter, kind) : undefined
+    const needle = search.trim().toLowerCase()
 
-  const returnRow =
-    returnId === null
+    return facturas.filter(
+      (row) =>
+        (!estados || estados.includes(row.estado)) &&
+        (!needle || textoFactura(row).includes(needle)),
+    )
+  }, [deliveryFilter, facturas, kind, search, view])
+
+  const facturaPage = usePagination(facturasVisibles, page)
+
+  const filasFactura = useMemo(
+    () => facturas.flatMap((factura) => factura.detalle.map((fila) => filaComoItem(factura, fila))),
+    [facturas],
+  )
+
+  const buscarFila = (id: number | null) =>
+    id === null
       ? null
-      : solicitudes.find((row) => row.id === returnId) ?? null
+      : filasFactura.find((row) => row.id === id) ??
+        solicitudes.find((row) => row.id === id) ??
+        null
+
+  const deliveryRow = buscarFila(deliveryId)
+  const returnRow = buscarFila(returnId)
+
+  // Plazo que bodega confirma al entregar equipo: el que ya tenía o el propuesto.
+  const [plazoEditado, setPlazoEditado] = useState<{ id: number | null; valor: string }>({
+    id: null,
+    valor: '',
+  })
+  const plazoEntrega =
+    plazoEditado.id === deliveryId
+      ? plazoEditado.valor
+      : plazoInicial(deliveryRow?.fechaDevolucionLimite, deliveryRow?.fechaDevolucionPropuesta)
+  const [plazoIntentado, setPlazoIntentado] = useState(false)
+
+  const entregaTodoFactura =
+    entregaTodo === null
+      ? null
+      : facturas.find((row) => row.codigoSolicitud === entregaTodo) ?? null
 
   /*
    * Abre el formulario.
@@ -415,7 +569,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   }
 
   /*
-   * Entrega una solicitud pendiente.
+   * Entrega una solicitud pendiente o lo que falta de una parcial.
    *
    * El backend es quien descuenta el stock.
    */
@@ -424,22 +578,28 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
       return
     }
 
+    if (kind === 'equipo' && !plazoEntrega) {
+      setPlazoIntentado(true)
+      return
+    }
+
     setSaving(true)
     setError('')
 
     try {
-      await entregarSolicitud(
+      const antes = deliveryRow
+      const actualizada = await entregarSolicitud(
         kind,
         deliveryId,
+        kind === 'equipo' ? { fechaDevolucionLimite: plazoEntrega } : {},
       )
+      setPlazoIntentado(false)
 
       setDeliveryId(null)
 
-      setToast(
-        `${KIND_LABEL[kind]} entregado correctamente. El stock se actualizó.`,
-      )
+      setToast(deliveryMessage(kind, antes, actualizada))
 
-      await loadPending()
+      await (view === 'devolver' ? loadReturnable() : loadPending())
     } catch (cause) {
       setError(
         cause instanceof ApiError
@@ -452,29 +612,76 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
   }
 
   /*
-   * Registra la devolución de un equipo entregado.
+   * "Entregar todo lo disponible" del pedido: el backend saca lo que haya de
+   * cada elemento pendiente y avisa al instructor una sola vez.
+   */
+  const deliverAll = async (fechaDevolucionLimite?: string) => {
+    if (!entregaTodoFactura) return
+
+    setSaving(true)
+    setError('')
+
+    try {
+      const antes = entregaTodoFactura
+      const despues = await entregarFactura(
+        antes.codigoSolicitud,
+        fechaDevolucionLimite ? { fechaDevolucionLimite } : {},
+      )
+
+      setEntregaTodo(null)
+      setToast(entregaTodoMessage(antes, despues))
+
+      await loadPending()
+    } catch (cause) {
+      setEntregaTodo(null)
+      setError(
+        cause instanceof ApiError
+          ? cause.message
+          : 'No se pudo entregar la solicitud.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  /*
+   * Registra la devolución, completa o parcial, del equipo que está afuera.
    *
    * Si vuelve en buen estado, el backend lo suma al stock.
    */
   const devolver = async (
-    estadoElemento: DevolverSolicitudPayload['estadoElemento'],
+    detalle: DevolverSolicitudPayload['detalle'],
     observacion: string,
   ) => {
     if (returnId === null) return
 
     setSaving(true)
     setError('')
+    setStockPendiente(null)
 
     try {
-      await devolverSolicitud(returnId, {
-        estadoElemento,
+      const actualizada = await devolverSolicitud(returnId, {
+        detalle,
         ...(observacion.trim()
           ? { observacion: observacion.trim() }
           : {}),
       })
+      const pendientes = actualizada.solicitudesPendientes ?? []
 
       setReturnId(null)
-      setToast('Devolución registrada correctamente.')
+
+      // Lo que volvió bueno puede servir solicitudes que esperan ese elemento.
+      if (pendientes.length) {
+        setStockPendiente({
+          titulo: `${returnMessage(detalle, actualizada)} Las unidades en buen estado ya están en bodega y hay solicitudes pendientes de ${
+            actualizada.elemento?.nombre ?? 'ese elemento'
+          }.`,
+          codigo: actualizada.elemento?.codigo ?? '',
+          filas: pendientes,
+        })
+      } else {
+        setToast(returnMessage(detalle, actualizada))
+      }
 
       await (view === 'devolver' ? loadReturnable() : loadPending())
     } catch (cause) {
@@ -486,6 +693,27 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
     } finally {
       setSaving(false)
     }
+  }
+
+  /*
+   * "Ir a entregar" del aviso de devolución: si las pendientes son de este
+   * tipo, cambia a Entregar filtrado por el elemento sin salir de la página.
+   */
+  const irAEntregar = () => {
+    if (!stockPendiente) return
+
+    const { codigo, filas } = stockPendiente
+    setStockPendiente(null)
+
+    if (canDeliverCurrent && filas.every((fila) => fila.tipo === kind)) {
+      setView('entregar')
+      setSearch(codigo)
+      setDeliveryFilter('por_entregar')
+      setError('')
+      return
+    }
+
+    navigate(rutaEntregar(codigo, filas))
   }
 
   const availableViews = [
@@ -509,8 +737,8 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
           view === 'solicitar'
             ? KIND_DESCRIPTION[kind]
             : view === 'devolver'
-              ? 'Recibe los equipos que vuelven a bodega y registra en qué estado llegaron.'
-              : `Entrega las solicitudes pendientes de ${KIND_LABEL[kind].toLowerCase()}.`
+              ? 'Recibe el equipo que vuelve a bodega, todo o una parte de lo que está afuera, y registra en qué estado llegó.'
+              : 'Cada solicitud llega completa, con todos sus elementos. Ábrela para entregar elemento por elemento o entrega de una vez todo lo disponible.'
         }
         action={
           view === 'solicitar' &&
@@ -532,44 +760,29 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
         />
       ) : null}
 
-      {availableViews.length > 1 ? (
-        <FilterCard>
-          <div className="flex flex-wrap gap-2">
-            {availableViews.map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => {
-                  setView(id)
-                  setSearch('')
-                  setError('')
-                }}
-                className={
-                  id === view
-                    ? 'h-13 rounded-2xl bg-sena px-5 text-sm font-semibold text-white shadow-brand'
-                    : 'h-13 rounded-2xl border border-sena-line bg-glass-strong px-5 text-sm font-semibold text-sena-dark'
-                }
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </FilterCard>
+      {stockPendiente ? (
+        <StockPendienteBanner
+          titulo={stockPendiente.titulo}
+          filas={stockPendiente.filas}
+          onEntregar={irAEntregar}
+          onClose={() => setStockPendiente(null)}
+        />
       ) : null}
 
-      <FilterCard>
-        <Link
-          to="/inventario/solicitudes"
-          className="inline-flex w-fit text-sm font-semibold text-sena-strong"
-        >
-          ← Solicitudes
-        </Link>
-
+      <BarraVista
+        pestanas={availableViews}
+        activa={view}
+        onCambiar={(id) => {
+          setView(id)
+          setSearch('')
+          setError('')
+        }}
+      >
         {view !== 'solicitar' || canCreateCurrent ? (
           <SearchInput
             value={search}
             onChange={setSearch}
-            placeholder="Buscar solicitud..."
+            placeholder="Buscar por código, persona, obra o elemento..."
           />
         ) : null}
 
@@ -581,9 +794,11 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
                 setDeliveryFilter(event.target.value as DeliveryFilter)
                 setPage(1)
               }}
-              className={`${filterSelectClass} lg:w-44`}
+              className={`${filterSelectClass} lg:w-52`}
             >
-              <option value="pendiente">Pendientes</option>
+              <option value="por_entregar">Por entregar</option>
+              <option value="pendiente">Sin entregar</option>
+              <option value="parcial">Entrega parcial</option>
               <option value="entregado">Entregadas</option>
               {kind === 'equipo' ? (
                 <option value="devuelto">Devueltas</option>
@@ -592,7 +807,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
             </select>
           </FilterGroup>
         ) : null}
-      </FilterCard>
+      </BarraVista>
 
       {/*
        * VISTA PARA SOLICITAR
@@ -612,14 +827,16 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
                 <InfoCard
                   title="Pendientes de entrega"
                   value={String(
-                    solicitudes.filter((row) => row.estado === 'pendiente').length,
+                    solicitudes.filter((row) => porEntregar(row.estado)).length,
                   )}
                 />
 
                 <InfoCard
                   title={kind === 'equipo' ? 'Equipos por devolver' : 'Entregadas'}
                   value={String(
-                    solicitudes.filter((row) => row.estado === 'entregado').length,
+                    solicitudes.filter((row) =>
+                      kind === 'equipo' ? tieneAfuera(row) : row.estado === 'entregado',
+                    ).length,
                   )}
                 />
               </div>
@@ -663,28 +880,30 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
             <TableLoading label="Cargando solicitudes..." />
           ) : (
             <>
-              <RequestsTable
+              <FacturasBodega
                 mode="deliver"
-                rows={pageRows}
+                facturas={facturaPage.pageRows}
+                abrirTodas={search.trim() !== ''}
                 emptyLabel={
                   search.trim()
                     ? 'No se encontraron solicitudes.'
                     : DELIVERY_EMPTY[deliveryFilter]
                 }
                 saving={saving}
-                onView={setDetail}
-                onDeliver={(row) => setDeliveryId(row.id)}
-                onReturn={
-                  canReturnCurrent ? (row) => setReturnId(row.id) : undefined
+                onView={setFacturaDetalle}
+                onDeliverLine={(_, fila) => setDeliveryId(fila.id)}
+                onDeliverAll={(factura) => setEntregaTodo(factura.codigoSolicitud)}
+                onReturnLine={
+                  canReturnCurrent ? (_, fila) => setReturnId(fila.id) : undefined
                 }
               />
               <TablePagination
-                page={currentPage}
-                totalPages={totalPages}
+                page={facturaPage.currentPage}
+                totalPages={facturaPage.totalPages}
                 onPageChange={setPage}
-                from={from}
-                to={to}
-                total={total}
+                from={facturaPage.from}
+                to={facturaPage.to}
+                total={facturaPage.total}
                 noun="solicitudes"
               />
             </>
@@ -699,25 +918,26 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
             <TableLoading label="Cargando equipos pendientes de devolución..." />
           ) : (
             <>
-              <RequestsTable
-                mode="deliver"
-                rows={pageRows}
+              <FacturasBodega
+                mode="return"
+                facturas={facturaPage.pageRows}
+                abrirTodas={search.trim() !== ''}
                 emptyLabel={
                   search.trim()
                     ? 'No se encontraron solicitudes.'
                     : 'No hay equipos pendientes de devolución.'
                 }
                 saving={saving}
-                onView={setDetail}
-                onReturn={(row) => setReturnId(row.id)}
+                onView={setFacturaDetalle}
+                onReturnLine={(_, fila) => setReturnId(fila.id)}
               />
               <TablePagination
-                page={currentPage}
-                totalPages={totalPages}
+                page={facturaPage.currentPage}
+                totalPages={facturaPage.totalPages}
                 onPageChange={setPage}
-                from={from}
-                to={to}
-                total={total}
+                from={facturaPage.from}
+                to={facturaPage.to}
+                total={facturaPage.total}
                 noun="solicitudes"
               />
             </>
@@ -740,9 +960,11 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
        */}
       {deliveryId !== null ? (
         <Modal
-          title={`Entregar ${KIND_LABEL[
-            kind
-          ].toLowerCase()}`}
+          title={
+            deliveryRow?.estado === 'parcial'
+              ? 'Entregar lo pendiente'
+              : `Entregar ${KIND_LABEL[kind].toLowerCase()}`
+          }
           description="Confirma la entrega. El backend descontará la cantidad del stock en ese momento."
           onClose={() => setDeliveryId(null)}
         >
@@ -751,7 +973,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
               <p className="rounded-2xl bg-sena-soft px-4 py-3 text-sm leading-6 text-sena-dark">
                 Vas a entregar{' '}
                 <strong>
-                  {deliveryRow.cantidad} de{' '}
+                  {deliveryRow.cantidadPendiente} de{' '}
                   {deliveryRow.elemento?.nombre ?? 'este elemento'}
                 </strong>{' '}
                 a {personName(deliveryRow.usuario)}
@@ -759,24 +981,43 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
                   ? ` para ${deliveryRow.obra.nombre}`
                   : ''}
                 .
+                {deliveryRow.estado === 'parcial' ? (
+                  <>
+                    {' '}
+                    Ya se entregaron {deliveryRow.cantidadEntregada} de{' '}
+                    {deliveryRow.cantidad}; esta entrega actualiza la
+                    solicitud {deliveryRow.codigoSolicitud}.
+                  </>
+                ) : null}
               </p>
             ) : null}
 
+            {kind === 'equipo' ? (
+              <CampoPlazo
+                id="entrega-plazo"
+                value={plazoEntrega}
+                onChange={(valor) => setPlazoEditado({ id: deliveryId, valor })}
+                propuesta={deliveryRow?.fechaDevolucionPropuesta}
+                invalido={plazoIntentado && !plazoEntrega}
+              />
+            ) : null}
+
             <p className="text-sm leading-6 text-sena-strong">
-              Esta acción cambiará la solicitud de{' '}
-              <strong>pendiente</strong> a{' '}
-              <strong>entregado</strong>. Si la cantidad
-              ya no está disponible, el backend rechazará
-              la entrega y el stock no se modificará.
+              Sale lo que haya en el estante hasta completar lo
+              pendiente. Si no alcanza, la solicitud queda en{' '}
+              <strong>entrega parcial</strong> y el resto se
+              entrega después. Si no hay existencia, el backend
+              rechazará la entrega y el stock no se modificará.
             </p>
 
             <div className="flex justify-end gap-3">
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() =>
+                onClick={() => {
                   setDeliveryId(null)
-                }
+                  setPlazoIntentado(false)
+                }}
                 disabled={saving}
               >
                 Cancelar
@@ -796,6 +1037,19 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
         </Modal>
       ) : null}
 
+      {entregaTodoFactura ? (
+        <EntregaTodoModal
+          factura={entregaTodoFactura}
+          saving={saving}
+          onClose={() => setEntregaTodo(null)}
+          onConfirm={(fecha) => void deliverAll(fecha)}
+        />
+      ) : null}
+
+      {facturaDetalle ? (
+        <FacturaDetail factura={facturaDetalle} onClose={() => setFacturaDetalle(null)} />
+      ) : null}
+
       {detail ? (
         <SolicitudDetail
           kind={kind}
@@ -803,13 +1057,13 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
           canDeliver={
             view === 'entregar' &&
             canDeliverCurrent &&
-            detail.estado === 'pendiente'
+            porEntregar(detail.estado)
           }
           onDeliver={() => {
             setDeliveryId(detail.id)
             setDetail(null)
           }}
-          canReturn={canReturnCurrent && detail.estado === 'entregado'}
+          canReturn={canReturnCurrent && tieneAfuera(detail)}
           onReturn={() => {
             setReturnId(detail.id)
             setDetail(null)
@@ -838,7 +1092,134 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
 }
 
 /*
- * Modal para registrar la devolución de un equipo.
+ * Confirmación de "Entregar todo lo disponible": qué sale de cada elemento con
+ * la existencia de ahora y qué queda pendiente.
+ */
+function EntregaTodoModal({
+  factura,
+  saving,
+  onClose,
+  onConfirm,
+}: {
+  factura: FacturaApi
+  saving: boolean
+  onClose: () => void
+  onConfirm: (fechaDevolucionLimite?: string) => void
+}) {
+  const filas = factura.detalle.filter((fila) => porEntregar(fila.estado))
+  const total = filas.reduce((suma, fila) => suma + saldria(fila), 0)
+  const equipo = factura.tipo === 'devolutivo'
+  const [plazo, setPlazo] = useState(() =>
+    plazoInicial(factura.fechaDevolucionLimite, factura.fechaDevolucionPropuesta),
+  )
+  const [intentado, setIntentado] = useState(false)
+
+  return (
+    <Modal
+      title="Entregar todo lo disponible"
+      description={`Solicitud ${factura.codigoSolicitud} de ${personName(factura.usuario)}${
+        factura.obra ? ` para ${factura.obra.nombre}` : ''
+      }.`}
+      onClose={onClose}
+    >
+      <div className="space-y-5">
+        <ul className="divide-y divide-sena-hairline overflow-hidden rounded-2xl border border-sena-line bg-white/70">
+          {filas.map((fila) => {
+            const sale = saldria(fila)
+            const queda = fila.cantidadPendiente - sale
+
+            return (
+              <li
+                key={`${fila.tipo}-${fila.id}`}
+                className="flex items-start justify-between gap-4 px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-sena-text">
+                    {fila.elemento?.nombre ?? '—'}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-sena-text-soft">
+                    {fila.elemento?.codigo ?? '—'}
+                  </p>
+                </div>
+                <p
+                  className={
+                    sale > 0
+                      ? 'shrink-0 text-right text-sm font-semibold text-sena-strong tabular-nums'
+                      : 'shrink-0 text-right text-sm font-semibold text-sena-warn-text tabular-nums'
+                  }
+                >
+                  {sale > 0 ? `Salen ${sale} de ${fila.cantidadPendiente}` : 'Sin existencia'}
+                  {queda > 0 ? (
+                    <span className="block text-xs font-normal text-sena-text-soft">
+                      {queda} {queda === 1 ? 'queda pendiente' : 'quedan pendientes'}
+                    </span>
+                  ) : null}
+                </p>
+              </li>
+            )
+          })}
+        </ul>
+
+        {equipo ? (
+          <CampoPlazo
+            id="entrega-todo-plazo"
+            value={plazo}
+            onChange={setPlazo}
+            propuesta={factura.fechaDevolucionPropuesta}
+            invalido={intentado && !plazo}
+          />
+        ) : null}
+
+        <p className="text-sm leading-6 text-sena-strong">
+          El backend descuenta del stock lo que salga. Si la existencia cambió,
+          sale lo que haya en ese momento y el resto queda pendiente. El
+          instructor recibe un solo aviso con todo lo entregado.
+        </p>
+
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" size="sm" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              if (equipo && !plazo) {
+                setIntentado(true)
+                return
+              }
+              onConfirm(equipo ? plazo : undefined)
+            }}
+            disabled={saving || total <= 0}
+          >
+            {saving ? 'Entregando...' : `Entregar ${total} ${total === 1 ? 'unidad' : 'unidades'}`}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+/* Toast después de entregar todo lo disponible de un pedido. */
+function entregaTodoMessage(antes: FacturaApi, despues: FacturaApi) {
+  const salieron = despues.totales.cantidadEntregada - antes.totales.cantidadEntregada
+  const elementos = despues.detalle.filter((fila) => {
+    const previa = antes.detalle.find((row) => row.tipo === fila.tipo && row.id === fila.id)
+    return previa !== undefined && fila.cantidadEntregada > previa.cantidadEntregada
+  }).length
+  const quedan = despues.totales.cantidadPendiente
+
+  return `Solicitud ${despues.codigoSolicitud}: ${salieron === 1 ? 'se entregó' : 'se entregaron'} ${salieron} ${
+    salieron === 1 ? 'unidad' : 'unidades'
+  } de ${elementos} ${elementos === 1 ? 'elemento' : 'elementos'}.${
+    quedan > 0 ? ` ${quedan === 1 ? 'Queda' : 'Quedan'} ${quedan} pendientes.` : ' Quedó completa.'
+  } El stock se actualizó.`
+}
+
+type CantidadesDevolucion = Record<EstadoDevolucion, string>
+
+/*
+ * Modal para registrar la devolución de un equipo. Bodega puede recibir todo
+ * lo que está afuera o solo una parte, repartido por el estado en que volvió.
  */
 function DevolucionModal({
   row,
@@ -850,31 +1231,63 @@ function DevolucionModal({
   saving: boolean
   onClose: () => void
   onSubmit: (
-    estadoElemento: (typeof RETURN_STATUS_OPTIONS)[number]['value'],
+    detalle: DevolverSolicitudPayload['detalle'],
     observacion: string,
   ) => Promise<void>
 }) {
-  const [estadoElemento, setEstadoElemento] =
-    useState<(typeof RETURN_STATUS_OPTIONS)[number]['value'] | ''>('')
+  const afuera = row?.cantidadAfuera ?? 0
+  const [cantidades, setCantidades] = useState<CantidadesDevolucion>({
+    bueno: afuera > 0 ? String(afuera) : '',
+    danado: '',
+    perdido: '',
+    en_reparacion: '',
+  })
   const [observacion, setObservacion] = useState('')
   const [localError, setLocalError] = useState('')
+
+  const valores = RETURN_STATUS_OPTIONS.map((option) => ({
+    estadoElemento: option.value,
+    cantidad: Number(cantidades[option.value] || 0),
+  }))
+  const total = valores.reduce(
+    (suma, linea) =>
+      suma + (Number.isFinite(linea.cantidad) ? linea.cantidad : 0),
+    0,
+  )
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setLocalError('')
 
-    if (!estadoElemento) {
-      setLocalError('Selecciona el estado del elemento.')
+    if (
+      valores.some(
+        (linea) => !Number.isInteger(linea.cantidad) || linea.cantidad < 0,
+      )
+    ) {
+      setLocalError('Las cantidades deben ser números enteros, sin negativos.')
       return
     }
 
-    await onSubmit(estadoElemento, observacion)
+    if (total <= 0) {
+      setLocalError('Indica cuántas unidades vuelven a bodega.')
+      return
+    }
+
+    if (total > afuera) {
+      setLocalError(`Solo hay ${afuera} afuera para recibir.`)
+      return
+    }
+
+    await onSubmit(
+      valores.filter((linea) => linea.cantidad > 0),
+      observacion,
+    )
   }
 
   return (
     <Modal
       title="Registrar devolución"
-      description="Revisa el equipo que llega a bodega, indica en qué estado volvió y registra cualquier novedad."
+      description="Revisa el equipo que llega a bodega, indica cuántas unidades vuelven en cada estado y registra cualquier novedad."
       onClose={onClose}
     >
       <form
@@ -890,45 +1303,64 @@ function DevolucionModal({
 
         {row ? (
           <p className="rounded-2xl bg-sena-soft px-4 py-3 text-sm leading-6 text-sena-dark">
-            Vas a recibir{' '}
+            {personName(row.usuario)} tiene afuera{' '}
             <strong>
-              {row.cantidad} de {row.elemento?.nombre ?? 'este elemento'}
-            </strong>{' '}
-            que tenía {personName(row.usuario)}
+              {afuera} de {row.elemento?.nombre ?? 'este elemento'}
+            </strong>
             {row.obra ? ` para ${row.obra.nombre}` : ''}.
+            {row.cantidadDevuelta
+              ? ` Ya devolvió ${row.cantidadDevuelta}.`
+              : ''}
+            {row.cantidadPendiente > 0
+              ? ` Faltan ${row.cantidadPendiente} por entregar.`
+              : ''}
           </p>
         ) : null}
 
-        <div>
-          <label
-            htmlFor="estado-elemento"
-            className="mb-2 block text-sm font-semibold text-sena-strong"
-          >
-            Estado del elemento
-          </label>
+        <fieldset className="space-y-3">
+          <legend className="mb-2 block text-sm font-semibold text-sena-strong">
+            Cantidad por estado
+          </legend>
 
-          <select
-            id="estado-elemento"
-            value={estadoElemento}
-            onChange={(event) => {
-              const value = event.target.value
-              const option = RETURN_STATUS_OPTIONS.find(
-                (item) => item.value === value,
-              )
-              if (value === '') setEstadoElemento('')
-              else if (option) setEstadoElemento(option.value)
-            }}
-            className={`${inputClass} w-full`}
-            disabled={saving}
-          >
-            <option value="">Selecciona un estado</option>
+          <div className="grid gap-3 sm:grid-cols-2">
             {RETURN_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
+              <label
+                key={option.value}
+                htmlFor={`devolucion-${option.value}`}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-sena-line bg-white/65 px-4 py-2"
+              >
+                <span className="text-sm font-semibold text-sena-text">
+                  {option.label}
+                </span>
+                <input
+                  id={`devolucion-${option.value}`}
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={afuera}
+                  step={1}
+                  value={cantidades[option.value]}
+                  onChange={(event) =>
+                    setCantidades((actual) => ({
+                      ...actual,
+                      [option.value]: event.target.value,
+                    }))
+                  }
+                  placeholder="0"
+                  className={`${inputClass} w-24 text-right tabular-nums`}
+                  disabled={saving}
+                />
+              </label>
             ))}
-          </select>
-        </div>
+          </div>
+
+          <p className="text-sm text-sena-text-soft tabular-nums">
+            Vas a recibir <strong>{total}</strong> de {afuera}
+            {total > 0 && total < afuera
+              ? `; quedarán ${afuera - total} afuera.`
+              : '.'}
+          </p>
+        </fieldset>
 
         <div>
           <label
@@ -950,8 +1382,8 @@ function DevolucionModal({
         </div>
 
         <p className="text-sm leading-6 text-sena-text-soft">
-          Si el elemento se devuelve en buen estado, el backend lo reincorporará
-          al stock. Los demás estados no aumentan el stock disponible.
+          Lo que vuelve en buen estado el backend lo reincorpora al stock. Los
+          demás estados no aumentan el stock disponible.
         </p>
 
         <div className="flex justify-end gap-3">
@@ -975,8 +1407,39 @@ function DevolucionModal({
 }
 
 /*
+ * Mensaje del toast después de recibir equipo: cuánto volvió, en qué estado,
+ * cuánto sigue afuera y si todavía falta entregar algo.
+ */
+function returnMessage(
+  detalle: DevolverSolicitudPayload['detalle'],
+  despues: SolicitudItemApi,
+) {
+  const total = detalle.reduce((suma, linea) => suma + linea.cantidad, 0)
+  const partes = detalle
+    .map(
+      (linea) =>
+        `${linea.cantidad} ${RETURN_STATUS_LABEL[linea.estadoElemento].toLowerCase()}`,
+    )
+    .join(', ')
+  const afuera = despues.cantidadAfuera ?? 0
+  const resto =
+    afuera > 0
+      ? ` ${afuera === 1 ? 'Queda' : 'Quedan'} ${afuera} afuera.`
+      : ' Ya no queda equipo afuera.'
+  const porEntregar =
+    despues.cantidadPendiente > 0
+      ? ` Faltan ${despues.cantidadPendiente} por entregar.`
+      : ''
+
+  return `Devolución registrada: volvieron ${total} de ${
+    despues.elemento?.nombre ?? 'el elemento'
+  } (${partes}).${resto}${porEntregar}`
+}
+
+/*
  * Tabla de solicitudes: pocas columnas y el detalle completo en el ojo.
- * "mine" es lo que pidió el instructor; "deliver" es la vista de bodega.
+ * "mine" es lo que pidió el instructor; "deliver" es la vista de bodega;
+ * "return" es lo que bodega puede recibir de vuelta.
  */
 function RequestsTable({
   mode,
@@ -987,7 +1450,7 @@ function RequestsTable({
   onDeliver,
   onReturn,
 }: {
-  mode: 'mine' | 'deliver'
+  mode: 'mine' | 'deliver' | 'return'
   rows: SolicitudItemApi[]
   emptyLabel: string
   saving?: boolean
@@ -1048,8 +1511,26 @@ function RequestsTable({
                   )}
                 </td>
 
-                <td className="px-5 py-4 text-center font-semibold tabular-nums text-sena-text">
-                  {row.cantidad}
+                <td className="px-5 py-4 text-center tabular-nums">
+                  <p className="font-semibold text-sena-text">
+                    {row.cantidad}
+                  </p>
+                  {mode === 'return' ? (
+                    <p className="mt-0.5 text-[11px] text-sena-text/45">
+                      {row.cantidadAfuera ?? 0} afuera
+                      {row.cantidadDevuelta
+                        ? ` · ${row.cantidadDevuelta} devueltos`
+                        : ''}
+                      {row.cantidadPendiente > 0
+                        ? ` · ${row.cantidadPendiente} por entregar`
+                        : ''}
+                    </p>
+                  ) : row.estado === 'parcial' ? (
+                    <p className="mt-0.5 text-[11px] text-sena-text/45">
+                      {row.cantidadEntregada} entregados ·{' '}
+                      {row.cantidadPendiente} pendientes
+                    </p>
+                  ) : null}
                 </td>
 
                 <td className="px-5 py-4 text-center">
@@ -1076,9 +1557,13 @@ function RequestsTable({
 
                     {mode === 'deliver' &&
                     onDeliver &&
-                    row.estado === 'pendiente' ? (
+                    porEntregar(row.estado) ? (
                       <ActionButton
-                        title="Entregar"
+                        title={
+                          row.estado === 'parcial'
+                            ? 'Entregar lo pendiente'
+                            : 'Entregar'
+                        }
                         disabled={saving}
                         onClick={() => onDeliver(row)}
                       >
@@ -1086,7 +1571,7 @@ function RequestsTable({
                       </ActionButton>
                     ) : null}
 
-                    {onReturn && row.estado === 'entregado' ? (
+                    {onReturn && tieneAfuera(row) ? (
                       <ActionButton
                         title="Devolver"
                         disabled={saving}
@@ -1104,6 +1589,40 @@ function RequestsTable({
       </table>
     </div>
   )
+}
+
+function unidades(cantidad: number, palabra: string) {
+  return `${cantidad} ${palabra}${cantidad === 1 ? '' : 's'}`
+}
+
+/*
+ * Mensaje del toast después de entregar. Si la fila ya era parcial, deja
+ * claro que la solicitud se actualizó con lo que faltaba.
+ */
+function deliveryMessage(
+  kind: SolicitudKind,
+  antes: SolicitudItemApi | null,
+  despues: SolicitudItemApi,
+) {
+  const elemento = despues.elemento?.nombre ?? 'el elemento'
+  const quedan =
+    despues.cantidadPendiente > 0
+      ? ` ${despues.cantidadPendiente === 1 ? 'Queda' : 'Quedan'} ${unidades(despues.cantidadPendiente, 'pendiente')}.`
+      : ''
+
+  if (antes && antes.cantidadEntregada > 0) {
+    const salio = despues.cantidadEntregada - antes.cantidadEntregada
+
+    return `Solicitud ${despues.codigoSolicitud} actualizada: ${
+      salio === 1 ? 'se entregó' : 'se entregaron'
+    } ${unidades(salio, 'pendiente')} de ${elemento}.${quedan || ' Quedó completa.'}`
+  }
+
+  if (despues.cantidadPendiente > 0) {
+    return `Se entregaron ${despues.cantidadEntregada} de ${despues.cantidad} de ${elemento}.${quedan} El stock se actualizó.`
+  }
+
+  return `${KIND_LABEL[kind]} entregado correctamente. El stock se actualizó.`
 }
 
 const ESTADO_ELEMENTO_LABEL: Record<
@@ -1163,6 +1682,14 @@ function SolicitudDetail({
 
         <dl className="grid gap-x-6 gap-y-4 rounded-2xl border border-sena-line bg-white/65 px-5 py-4 sm:grid-cols-2">
           <DetailField term="Cantidad" value={String(row.cantidad)} />
+          <DetailField
+            term="Entregado"
+            value={`${row.cantidadEntregada} de ${row.cantidad}${
+              row.cantidadPendiente > 0
+                ? ` · ${row.cantidadPendiente} pendientes`
+                : ''
+            }`}
+          />
           <DetailField term="Ficha" value={row.ficha || '—'} />
           <DetailField
             term="Obra"
@@ -1184,15 +1711,21 @@ function SolicitudDetail({
           />
           {kind === 'equipo' ? (
             <DetailField
-              term={devuelto ? 'Fecha de devolución' : 'Devolución'}
+              term="Afuera / devuelto"
+              value={`${row.cantidadAfuera ?? 0} afuera · ${row.cantidadDevuelta ?? 0} devueltos`}
+            />
+          ) : null}
+          {kind === 'equipo' ? (
+            <DetailField
+              term={devuelto ? 'Fecha de devolución' : 'Última devolución'}
               value={
-                devuelto
-                  ? formatDate(row.fechaDevolucion ?? null)
+                row.fechaDevolucion
+                  ? formatDate(row.fechaDevolucion)
                   : 'Todavía no se devuelve'
               }
             />
           ) : null}
-          {devuelto && row.estadoElemento ? (
+          {row.estadoElemento ? (
             <DetailField
               term="Cómo volvió"
               value={ESTADO_ELEMENTO_LABEL[row.estadoElemento]}
@@ -1213,7 +1746,7 @@ function SolicitudDetail({
 
           {canDeliver ? (
             <Button size="sm" onClick={onDeliver}>
-              Entregar
+              {row.estado === 'parcial' ? 'Entregar lo pendiente' : 'Entregar'}
             </Button>
           ) : null}
 

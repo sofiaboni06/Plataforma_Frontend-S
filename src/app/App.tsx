@@ -50,6 +50,7 @@ import Dashboard from '@/modules/landing/pages/Dashboard'
 import LoginPage from '@/modules/auth/pages/LoginPage'
 import SolicitudesHomePage from '@/modules/solicitudes/pages/SolicitudesHomePage'
 import SolicitudesPage from '@/modules/solicitudes/pages/SolicitudesPage'
+import PrestamosPage from '@/modules/solicitudes/pages/PrestamosPage'
 import ProfilePage from '@/modules/perfil/pages/ProfilePage'
 import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
@@ -174,6 +175,7 @@ function App() {
             <Route path="stands/:id" element={<ViewStandPage />} />
             <Route path="obras" element={<ObrasPage />} />
             <Route path="solicitudes" element={<SolicitudesHomePage />} />
+            <Route path="solicitudes/prestamos" element={<PrestamosPage />} />
             <Route path="solicitudes/:tipo" element={<SolicitudesPage />} />
             <Route path="alertas" element={<AlertsPage />} />
           </Route>

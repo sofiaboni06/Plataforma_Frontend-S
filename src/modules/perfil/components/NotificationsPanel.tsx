@@ -31,7 +31,7 @@ export default function NotificationsPanel() {
       ) : (
         <ul className="divide-y divide-sena-dark/8 overflow-hidden rounded-xl border border-sena-dark/10">
           {items.map((notification) => {
-            const mark = notificationMark(notification.tipo)
+            const mark = notificationMark(notification.tipo, notification.titulo)
             const path = notificationPath(notification)
             return (
               <li key={notification.id}>

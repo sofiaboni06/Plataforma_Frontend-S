@@ -28,9 +28,13 @@ export type ElementoApi = {
   cantidad: number
   gramaje: number | null
   idClasificacion: number | null
+  /* Cómo se pide: devolutivo (equipo) o consumo (material). Null en elementos viejos sin tipo. */
+  caracter: CaracterElemento | null
+  /* `caracter` de la clasificación: solo la sugerencia al crear el elemento. */
   clasificacion: {
     id: number
     nombre: string
+    caracter?: CaracterElemento
   } | null
   valorUnitarioPromedio: number | null
   porcentajeAumento: number | null
@@ -77,7 +81,26 @@ export type ElementoApi = {
   } | null
 }
 
+/* Solicitud que espera unidades del elemento al que bodega acaba de subirle stock. */
+export type SolicitudPendienteApi = {
+  tipo: 'material' | 'equipo'
+  id: number
+  codigoSolicitud: string
+  solicitante: string
+  estado: 'pendiente' | 'parcial'
+  cantidad: number
+  cantidadEntregada: number
+  pendiente: number
+}
+
+/* Respuesta de editar un elemento: si la cantidad subió, las solicitudes que puede servir. */
+export type ElementoGuardadoApi = ElementoApi & {
+  solicitudesPendientes?: SolicitudPendienteApi[]
+}
+
 export type CreateElementoPayload = {
+  /* Propio del elemento: es el que busca el instructor. No sale del ítem. */
+  nombre: string
   idItem: number
   idStand: number
   cantidad: number
@@ -88,7 +111,8 @@ export type CreateElementoPayload = {
   descripcion?: string | null
   marca?: string | null
   color?: string | null
-  idClasificacion?: number | null
+  idClasificacion: number
+  caracter: CaracterElemento
   valorUnitarioPromedio?: number | null
   porcentajeAumento?: number | null
   idCodigoEstandar?: number | null
