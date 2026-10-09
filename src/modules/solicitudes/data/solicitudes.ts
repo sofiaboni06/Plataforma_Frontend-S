@@ -130,9 +130,16 @@ export function getEquiposAfuera(): Promise<SolicitudItemApi[]> {
 
 export type EstadoDevolucion = 'bueno' | 'danado' | 'perdido' | 'en_reparacion'
 
-/* `detalle` reparte lo que vuelve por estado: 2 bueno, 1 dañado. */
+/* Una unidad que vuelve, con su novedad y su observación. */
+export type UnidadDevolucion = { estadoElemento: EstadoDevolucion; observacion?: string }
+
+/*
+ * `unidades`: una por unidad que vuelve; el backend guarda cada una aparte.
+ * `detalle` (por estado: 2 bueno, 1 dañado) sigue aceptándose.
+ */
 export type DevolverSolicitudPayload = {
-  detalle: { estadoElemento: EstadoDevolucion; cantidad: number }[]
+  unidades?: UnidadDevolucion[]
+  detalle?: { estadoElemento: EstadoDevolucion; cantidad: number }[]
   observacion?: string
 }
 

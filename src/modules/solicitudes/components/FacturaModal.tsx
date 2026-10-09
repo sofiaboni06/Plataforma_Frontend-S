@@ -118,7 +118,8 @@ export default function FacturaModal({
   const [idObra, setIdObra] = useState('')
   const [ficha, setFicha] = useState('')
   const [observacion, setObservacion] = useState('')
-  // Equipo: inicio del préstamo y hasta cuándo lo pide. Consumo: inicio y para cuándo lo necesita.
+  // Solo el devolutivo lleva fechas: inicio del préstamo y hasta cuándo lo pide.
+  // El consumo se entrega y ya, sin fechas.
   const [fechaInicio, setFechaInicio] = useState(hoyDia)
   const [fechaFin, setFechaFin] = useState('')
   const [filas, setFilas] = useState<Fila[]>([])
@@ -196,6 +197,7 @@ export default function FacturaModal({
   }
 
   const conError = filas.some((fila) => cantidadError(fila) !== '')
+  const devolutivo = tipo === 'devolutivo'
   const unidades = filas.reduce((total, fila) => {
     const value = Number(fila.cantidad)
     return total + (Number.isInteger(value) && value > 0 ? value : 0)
@@ -211,27 +213,23 @@ export default function FacturaModal({
       return
     }
 
-    if (!fechaInicio) {
+    if (devolutivo && !fechaInicio) {
       setLocalError('Indica la fecha de inicio.')
       return
     }
 
-    if (fechaInicio < hoyDia()) {
+    if (devolutivo && fechaInicio < hoyDia()) {
       setLocalError('La fecha de inicio no puede ser anterior a hoy.')
       return
     }
 
-    if (!fechaFin) {
-      setLocalError(
-        tipo === 'devolutivo'
-          ? 'Indica la fecha de devolución que propones.'
-          : 'Indica para cuándo lo necesitas.',
-      )
+    if (devolutivo && !fechaFin) {
+      setLocalError('Indica la fecha de devolución que propones.')
       return
     }
 
-    if (fechaFin < fechaInicio) {
-      setLocalError('Esa fecha no puede ser anterior al inicio.')
+    if (devolutivo && fechaFin < fechaInicio) {
+      setLocalError('La devolución no puede ser anterior al inicio.')
       return
     }
 
@@ -253,10 +251,7 @@ export default function FacturaModal({
         tipo,
         ...(ficha.trim() ? { ficha: ficha.trim() } : {}),
         ...(observacion.trim() ? { observacion: observacion.trim() } : {}),
-        fechaInicio,
-        ...(tipo === 'devolutivo'
-          ? { fechaDevolucionPropuesta: fechaFin }
-          : { fechaEntregaRequerida: fechaFin }),
+        ...(devolutivo ? { fechaInicio, fechaDevolucionPropuesta: fechaFin } : {}),
         elementos: filas.map((fila) => ({
           idElemento: fila.elemento.id,
           cantidad: Number(fila.cantidad),
@@ -386,56 +381,50 @@ export default function FacturaModal({
           </Field>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 md:items-end">
-          <Field label="Fecha de inicio" required>
-            <input
-              type="date"
-              value={fechaInicio}
-              onChange={(event) => {
-                const valor = event.target.value
-                setFechaInicio(valor)
-                if (fechaFin && valor && fechaFin < valor) setFechaFin('')
-              }}
-              min={hoyDia()}
-              className={intentado && !fechaInicio ? inputErrorClass : inputClass}
-              required
-            />
-          </Field>
+        {devolutivo ? (
+          <>
+            <div className="grid gap-4 md:grid-cols-2 md:items-end">
+              <Field label="Fecha de inicio" required>
+                <input
+                  type="date"
+                  value={fechaInicio}
+                  onChange={(event) => {
+                    const valor = event.target.value
+                    setFechaInicio(valor)
+                    if (fechaFin && valor && fechaFin < valor) setFechaFin('')
+                  }}
+                  min={hoyDia()}
+                  className={intentado && !fechaInicio ? inputErrorClass : inputClass}
+                  required
+                />
+              </Field>
 
-          <Field
-            label={
-              tipo === 'devolutivo'
-                ? mostrador
-                  ? 'Fecha límite de devolución'
-                  : 'Devolución propuesta'
-                : 'Para cuándo lo necesitas'
-            }
-            required
-            hint={
-              tipo === 'devolutivo'
-                ? mostrador
-                  ? 'Desde ese día, si algo sigue afuera, se avisa a diario'
-                  : 'Bodega la confirma o la ajusta al entregar'
-                : 'Lo último que puede esperar la obra'
-            }
-          >
-            <input
-              type="date"
-              value={fechaFin}
-              onChange={(event) => setFechaFin(event.target.value)}
-              min={fechaInicio || hoyDia()}
-              className={intentado && !fechaFin ? inputErrorClass : inputClass}
-              required
-            />
-          </Field>
-        </div>
+              <Field
+                label={mostrador ? 'Fecha límite de devolución' : 'Devolución propuesta'}
+                required
+                hint={
+                  mostrador
+                    ? 'Desde ese día, si algo sigue afuera, se avisa a diario'
+                    : 'Bodega la confirma o la ajusta al entregar'
+                }
+              >
+                <input
+                  type="date"
+                  value={fechaFin}
+                  onChange={(event) => setFechaFin(event.target.value)}
+                  min={fechaInicio || hoyDia()}
+                  className={intentado && !fechaFin ? inputErrorClass : inputClass}
+                  required
+                />
+              </Field>
+            </div>
 
-        {fechaInicio && fechaFin ? (
-          <p className="text-xs text-sena-text-soft">
-            {tipo === 'devolutivo'
-              ? `Lo pides del ${formatFechaDia(fechaInicio)} al ${formatFechaDia(fechaFin)}.`
-              : `Lo necesitas entre el ${formatFechaDia(fechaInicio)} y el ${formatFechaDia(fechaFin)}.`}
-          </p>
+            {fechaInicio && fechaFin ? (
+              <p className="text-xs text-sena-text-soft">
+                Lo pides del {formatFechaDia(fechaInicio)} al {formatFechaDia(fechaFin)}.
+              </p>
+            ) : null}
+          </>
         ) : null}
 
         <Field label="Observación general" hint="Opcional. Se copia en las filas que no tengan la suya">

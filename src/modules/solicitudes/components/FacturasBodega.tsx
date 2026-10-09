@@ -284,20 +284,16 @@ export default function FacturasBodega({
   )
 }
 
-/* Fechas que bodega necesita ver al abrir el pedido, según la vista. */
+/* Fechas del préstamo que bodega necesita ver al abrir el pedido. El consumo no lleva. */
 function fechasDe(factura: FacturaApi, mode: 'deliver' | 'return'): [string, string][] {
-  const filas: [string, string | null | undefined][] =
-    factura.tipo === 'devolutivo'
-      ? [
-          ['Inicio', factura.fechaInicio],
-          mode === 'return' || factura.fechaDevolucionLimite
-            ? ['Debe volver', factura.fechaDevolucionLimite ?? factura.fechaDevolucionPropuesta]
-            : ['Propone devolver', factura.fechaDevolucionPropuesta],
-        ]
-      : [
-          ['Inicio', factura.fechaInicio],
-          ['Lo necesita', factura.fechaEntregaRequerida],
-        ]
+  if (factura.tipo !== 'devolutivo') return []
+
+  const filas: [string, string | null | undefined][] = [
+    ['Inicio', factura.fechaInicio],
+    mode === 'return' || factura.fechaDevolucionLimite
+      ? ['Debe volver', factura.fechaDevolucionLimite ?? factura.fechaDevolucionPropuesta]
+      : ['Propone devolver', factura.fechaDevolucionPropuesta],
+  ]
 
   return filas
     .filter((fila): fila is [string, string] => Boolean(fila[1]))

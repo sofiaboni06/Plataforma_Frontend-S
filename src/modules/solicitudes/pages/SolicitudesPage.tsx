@@ -58,7 +58,7 @@ import {
   entregarFactura,
   entregarSolicitud,
   devolverSolicitud,
-  type DevolverSolicitudPayload,
+  type UnidadDevolucion,
   type EstadoDevolucion,
 } from '@/modules/solicitudes/data/solicitudes'
 import {
@@ -649,10 +649,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
    *
    * Si vuelve en buen estado, el backend lo suma al stock.
    */
-  const devolver = async (
-    detalle: DevolverSolicitudPayload['detalle'],
-    observacion: string,
-  ) => {
+  const devolver = async (unidades: UnidadDevolucion[]) => {
     if (returnId === null) return
 
     setSaving(true)
@@ -660,12 +657,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
     setStockPendiente(null)
 
     try {
-      const actualizada = await devolverSolicitud(returnId, {
-        detalle,
-        ...(observacion.trim()
-          ? { observacion: observacion.trim() }
-          : {}),
-      })
+      const actualizada = await devolverSolicitud(returnId, { unidades })
       const pendientes = actualizada.solicitudesPendientes ?? []
 
       setReturnId(null)
@@ -673,14 +665,14 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
       // Lo que volvió bueno puede servir solicitudes que esperan ese elemento.
       if (pendientes.length) {
         setStockPendiente({
-          titulo: `${returnMessage(detalle, actualizada)} Las unidades en buen estado ya están en bodega y hay solicitudes pendientes de ${
+          titulo: `${returnMessage(unidades, actualizada)} Las unidades en buen estado ya están en bodega y hay solicitudes pendientes de ${
             actualizada.elemento?.nombre ?? 'ese elemento'
           }.`,
           codigo: actualizada.elemento?.codigo ?? '',
           filas: pendientes,
         })
       } else {
-        setToast(returnMessage(detalle, actualizada))
+        setToast(returnMessage(unidades, actualizada))
       }
 
       await (view === 'devolver' ? loadReturnable() : loadPending())
@@ -1074,6 +1066,7 @@ function SolicitudKindPage({ kind }: { kind: SolicitudKind }) {
 
       {returnId !== null ? (
         <DevolucionModal
+          key={`${returnId}-${returnRow?.cantidadAfuera ?? 0}`}
           row={returnRow}
           saving={saving}
           onClose={() => setReturnId(null)}
@@ -1215,11 +1208,27 @@ function entregaTodoMessage(antes: FacturaApi, despues: FacturaApi) {
   } El stock se actualizó.`
 }
 
-type CantidadesDevolucion = Record<EstadoDevolucion, string>
+/* Lo que bodega marca en cada unidad: el estado en que volvió o que sigue afuera. */
+type NovedadUnidad = EstadoDevolucion | 'afuera'
+
+/* Cuántas unidades vuelven en cada estado, en el orden de las opciones. */
+function contarPorEstado(unidades: { estadoElemento: EstadoDevolucion }[]) {
+  return RETURN_STATUS_OPTIONS.map((option) => ({
+    estadoElemento: option.value,
+    cantidad: unidades.filter((unidad) => unidad.estadoElemento === option.value).length,
+  })).filter((linea) => linea.cantidad > 0)
+}
+
+const NOVEDAD_OPTIONS: { value: NovedadUnidad; label: string }[] = [
+  ...RETURN_STATUS_OPTIONS,
+  { value: 'afuera', label: 'Sigue afuera' },
+]
 
 /*
- * Modal para registrar la devolución de un equipo. Bodega puede recibir todo
- * lo que está afuera o solo una parte, repartido por el estado en que volvió.
+ * Modal para registrar la devolución de un equipo. Cada unidad que está afuera
+ * es una fila con su novedad (bueno, dañado, perdido, en reparación) o "Sigue
+ * afuera" para recibir solo una parte, y su propia observación. Cada unidad
+ * que vuelve se guarda aparte, con su novedad y su observación.
  */
 function DevolucionModal({
   row,
@@ -1230,69 +1239,53 @@ function DevolucionModal({
   row: SolicitudItemApi | null
   saving: boolean
   onClose: () => void
-  onSubmit: (
-    detalle: DevolverSolicitudPayload['detalle'],
-    observacion: string,
-  ) => Promise<void>
+  onSubmit: (unidades: UnidadDevolucion[]) => Promise<void>
 }) {
   const afuera = row?.cantidadAfuera ?? 0
-  const [cantidades, setCantidades] = useState<CantidadesDevolucion>({
-    bueno: afuera > 0 ? String(afuera) : '',
-    danado: '',
-    perdido: '',
-    en_reparacion: '',
-  })
-  const [observacion, setObservacion] = useState('')
+  // Las unidades se numeran seguido de lo que ya devolvió antes.
+  const yaDevueltas = row?.cantidadDevuelta ?? 0
+  const [unidades, setUnidades] = useState<NovedadUnidad[]>(() =>
+    Array.from({ length: afuera }, () => 'bueno'),
+  )
+  const [notas, setNotas] = useState<string[]>(() => Array.from({ length: afuera }, () => ''))
   const [localError, setLocalError] = useState('')
 
-  const valores = RETURN_STATUS_OPTIONS.map((option) => ({
-    estadoElemento: option.value,
-    cantidad: Number(cantidades[option.value] || 0),
-  }))
-  const total = valores.reduce(
-    (suma, linea) =>
-      suma + (Number.isFinite(linea.cantidad) ? linea.cantidad : 0),
-    0,
-  )
+  const vuelven: UnidadDevolucion[] = unidades.flatMap((unidad, indice) => {
+    if (unidad === 'afuera') return []
+    const nota = notas[indice].trim()
+    return [{ estadoElemento: unidad, ...(nota ? { observacion: nota } : {}) }]
+  })
+  const valores = contarPorEstado(vuelven)
+  const total = vuelven.length
+  const todasIguales = unidades.every((unidad) => unidad === unidades[0])
+
+  const cambiar = (indice: number, novedad: NovedadUnidad) =>
+    setUnidades((actual) => actual.map((unidad, i) => (i === indice ? novedad : unidad)))
+
+  const anotar = (indice: number, nota: string) =>
+    setNotas((actual) => actual.map((valor, i) => (i === indice ? nota : valor)))
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setLocalError('')
 
-    if (
-      valores.some(
-        (linea) => !Number.isInteger(linea.cantidad) || linea.cantidad < 0,
-      )
-    ) {
-      setLocalError('Las cantidades deben ser números enteros, sin negativos.')
-      return
-    }
-
     if (total <= 0) {
-      setLocalError('Indica cuántas unidades vuelven a bodega.')
+      setLocalError('Marca la novedad de al menos una unidad que vuelve a bodega.')
       return
     }
 
-    if (total > afuera) {
-      setLocalError(`Solo hay ${afuera} afuera para recibir.`)
-      return
-    }
-
-    await onSubmit(
-      valores.filter((linea) => linea.cantidad > 0),
-      observacion,
-    )
+    await onSubmit(vuelven)
   }
 
   return (
     <Modal
       title="Registrar devolución"
-      description="Revisa el equipo que llega a bodega, indica cuántas unidades vuelven en cada estado y registra cualquier novedad."
+      description="Revisa cada unidad que llega a bodega, marca su novedad y, si hace falta, anota su observación. Si alguna no vuelve todavía, márcala como «Sigue afuera»."
       onClose={onClose}
     >
       <form
         onSubmit={handleSubmit}
-        className="space-y-5"
+        className="space-y-6"
       >
         {localError ? (
           <ErrorBanner
@@ -1318,75 +1311,107 @@ function DevolucionModal({
         ) : null}
 
         <fieldset className="space-y-3">
-          <legend className="mb-2 block text-sm font-semibold text-sena-strong">
-            Cantidad por estado
-          </legend>
+          <legend className="sr-only">Novedad de cada unidad</legend>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-sena-strong">Novedad</p>
+              <p className="mt-0.5 text-xs text-sena-text-soft">
+                Una fila por unidad, cada una con su observación. Lo que vuelve en buen estado regresa al stock.
+              </p>
+            </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            {RETURN_STATUS_OPTIONS.map((option) => (
-              <label
-                key={option.value}
-                htmlFor={`devolucion-${option.value}`}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-sena-line bg-white/65 px-4 py-2"
-              >
-                <span className="text-sm font-semibold text-sena-text">
-                  {option.label}
-                </span>
-                <input
-                  id={`devolucion-${option.value}`}
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={afuera}
-                  step={1}
-                  value={cantidades[option.value]}
-                  onChange={(event) =>
-                    setCantidades((actual) => ({
-                      ...actual,
-                      [option.value]: event.target.value,
-                    }))
-                  }
-                  placeholder="0"
-                  className={`${inputClass} w-24 text-right tabular-nums`}
+            {afuera > 1 ? (
+              <label className="flex items-center gap-2 text-xs font-semibold text-sena-text-soft">
+                Todas
+                <select
+                  aria-label="Marcar todas las unidades"
+                  value={todasIguales ? unidades[0] : ''}
+                  onChange={(event) => {
+                    const novedad = event.target.value as NovedadUnidad
+                    if (novedad) setUnidades((actual) => actual.map(() => novedad))
+                  }}
+                  className={`${inputClass} w-auto py-2 pr-8`}
                   disabled={saving}
-                />
+                >
+                  {todasIguales ? null : <option value="">Mixto</option>}
+                  {NOVEDAD_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </label>
-            ))}
+            ) : null}
           </div>
 
+          <ul className="max-h-[24rem] space-y-2.5 overflow-y-auto pr-1">
+            {unidades.map((unidad, indice) => {
+              const numero = yaDevueltas + indice + 1
+              const sigueAfuera = unidad === 'afuera'
+
+              return (
+                <li
+                  key={indice}
+                  className={
+                    sigueAfuera
+                      ? 'grid gap-2 rounded-2xl border border-dashed border-sena-line bg-sena-muted/40 px-4 py-2.5 sm:grid-cols-[5.5rem_11rem_minmax(0,1fr)] sm:items-center sm:gap-3'
+                      : 'grid gap-2 rounded-2xl border border-sena-line bg-white/70 px-4 py-2.5 sm:grid-cols-[5.5rem_11rem_minmax(0,1fr)] sm:items-center sm:gap-3'
+                  }
+                >
+                  <label
+                    htmlFor={`novedad-${indice}`}
+                    className="text-sm font-semibold whitespace-nowrap text-sena-text tabular-nums"
+                  >
+                    Unidad {numero}
+                  </label>
+                  <select
+                    id={`novedad-${indice}`}
+                    value={unidad}
+                    onChange={(event) => cambiar(indice, event.target.value as NovedadUnidad)}
+                    className={`${inputClass} w-full py-2 ${
+                      unidad === 'bueno'
+                        ? 'text-sena-ok-text'
+                        : sigueAfuera
+                          ? 'text-sena-text-soft'
+                          : 'text-sena-warn-text'
+                    }`}
+                    disabled={saving}
+                  >
+                    {NOVEDAD_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    id={`observacion-${indice}`}
+                    type="text"
+                    aria-label={`Observación de la unidad ${numero}`}
+                    value={notas[indice]}
+                    onChange={(event) => anotar(indice, event.target.value)}
+                    maxLength={500}
+                    placeholder={sigueAfuera ? 'No vuelve todavía' : 'Observación (opcional)'}
+                    className={`${inputClass} w-full py-2`}
+                    disabled={saving || sigueAfuera}
+                  />
+                </li>
+              )
+            })}
+          </ul>
+
           <p className="text-sm text-sena-text-soft tabular-nums">
-            Vas a recibir <strong>{total}</strong> de {afuera}
-            {total > 0 && total < afuera
-              ? `; quedarán ${afuera - total} afuera.`
-              : '.'}
+            Vas a recibir <strong className="text-sena-text">{total}</strong> de {afuera}
+            {total > 0
+              ? ` (${valores
+                  .map((linea) => `${linea.cantidad} ${RETURN_STATUS_LABEL[linea.estadoElemento].toLowerCase()}`)
+                  .join(', ')})`
+              : ''}
+            {total < afuera ? `; ${afuera - total === 1 ? 'queda 1' : `quedan ${afuera - total}`} afuera.` : '.'}
           </p>
         </fieldset>
 
-        <div>
-          <label
-            htmlFor="observacion-devolucion"
-            className="mb-2 block text-sm font-semibold text-sena-strong"
-          >
-            Novedad / observación
-          </label>
 
-          <textarea
-            id="observacion-devolucion"
-            value={observacion}
-            onChange={(event) => setObservacion(event.target.value)}
-            rows={4}
-            placeholder="Describe cualquier novedad del elemento..."
-            className={`${inputClass} w-full resize-none`}
-            disabled={saving}
-          />
-        </div>
-
-        <p className="text-sm leading-6 text-sena-text-soft">
-          Lo que vuelve en buen estado el backend lo reincorpora al stock. Los
-          demás estados no aumentan el stock disponible.
-        </p>
-
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3 border-t border-sena-hairline pt-5">
           <Button
             type="button"
             variant="secondary"
@@ -1397,7 +1422,7 @@ function DevolucionModal({
             Cancelar
           </Button>
 
-          <Button type="submit" size="sm" disabled={saving}>
+          <Button type="submit" size="sm" disabled={saving || total <= 0}>
             {saving ? 'Registrando...' : 'Registrar devolución'}
           </Button>
         </div>
@@ -1410,12 +1435,9 @@ function DevolucionModal({
  * Mensaje del toast después de recibir equipo: cuánto volvió, en qué estado,
  * cuánto sigue afuera y si todavía falta entregar algo.
  */
-function returnMessage(
-  detalle: DevolverSolicitudPayload['detalle'],
-  despues: SolicitudItemApi,
-) {
-  const total = detalle.reduce((suma, linea) => suma + linea.cantidad, 0)
-  const partes = detalle
+function returnMessage(unidades: UnidadDevolucion[], despues: SolicitudItemApi) {
+  const total = unidades.length
+  const partes = contarPorEstado(unidades)
     .map(
       (linea) =>
         `${linea.cantidad} ${RETURN_STATUS_LABEL[linea.estadoElemento].toLowerCase()}`,

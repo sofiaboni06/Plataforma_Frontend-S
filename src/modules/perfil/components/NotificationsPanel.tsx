@@ -56,7 +56,7 @@ export default function NotificationsPanel() {
                         <span className="size-2 rounded-full bg-red-500" aria-label="No leída" />
                       ) : null}
                     </span>
-                    <span className="mt-0.5 block text-sm text-sena-text/75">{notification.mensaje}</span>
+                    <span className="mt-0.5 block text-sm whitespace-pre-line text-sena-text/75">{notification.mensaje}</span>
                     <span className="mt-1 block text-xs text-sena-text/50">{timeAgo(notification.fecha)}</span>
                   </span>
                 </button>
