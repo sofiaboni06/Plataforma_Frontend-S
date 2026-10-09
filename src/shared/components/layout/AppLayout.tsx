@@ -257,7 +257,7 @@ export default function AppLayout({
                                         <span className="size-1.5 rounded-full bg-red-500" aria-label="No leída" />
                                       ) : null}
                                     </span>
-                                    <span className="mt-0.5 block text-[9px] leading-[1.35] text-sena-text">
+                                    <span className="mt-0.5 block text-[9px] leading-[1.35] whitespace-pre-line text-sena-text">
                                       {notification.mensaje}
                                     </span>
                                     <span className="mt-1 block text-[8px] text-sena-text-soft">

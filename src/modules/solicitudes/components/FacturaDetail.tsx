@@ -16,13 +16,20 @@ import {
   requestTone,
 } from '@/modules/solicitudes/lib/presentacion'
 
-import type { FacturaApi } from '@/modules/solicitudes/types'
+import type { DevolucionApi, FacturaApi } from '@/modules/solicitudes/types'
 
 const ESTADO_ELEMENTO_LABEL = {
   bueno: 'volvió bueno',
   danado: 'volvió dañado',
   perdido: 'se perdió',
   en_reparacion: 'en reparación',
+} as const
+
+const NOVEDAD_LABEL = {
+  bueno: 'Bueno',
+  danado: 'Dañado',
+  perdido: 'Perdido',
+  en_reparacion: 'En reparación',
 } as const
 
 /*
@@ -73,12 +80,12 @@ export default function FacturaDetail({
           <DetailField term="Solicitante" value={personName(factura.usuario)} />
           <DetailField term="Ficha" value={factura.ficha || '—'} />
           <DetailField term="Fecha de solicitud" value={formatDate(factura.fecha)} />
-          <DetailField
-            term={factura.tipo === 'devolutivo' ? 'Inicio del préstamo' : 'Fecha de inicio'}
-            value={formatFechaDia(factura.fechaInicio) || '—'}
-          />
           {factura.tipo === 'devolutivo' ? (
             <>
+              <DetailField
+                term="Inicio del préstamo"
+                value={formatFechaDia(factura.fechaInicio) || '—'}
+              />
               <DetailField
                 term="Devolución propuesta"
                 value={formatFechaDia(factura.fechaDevolucionPropuesta) || '—'}
@@ -88,12 +95,7 @@ export default function FacturaDetail({
                 value={formatFechaDia(factura.fechaDevolucionLimite) || 'Se confirma al entregar'}
               />
             </>
-          ) : (
-            <DetailField
-              term="Para cuándo lo necesita"
-              value={formatFechaDia(factura.fechaEntregaRequerida) || '—'}
-            />
-          )}
+          ) : null}
           {factura.registradaEnBodega ? (
             <DetailField
               term="Registrada en el mostrador por"
@@ -132,6 +134,9 @@ export default function FacturaDetail({
                         {fila.observacion}
                       </p>
                     ) : null}
+                    {fila.devoluciones?.length ? (
+                      <HistorialDevoluciones devoluciones={fila.devoluciones} />
+                    ) : null}
                   </td>
                   <td className="px-4 py-3 text-center tabular-nums">
                     <p className="font-semibold text-sena-text">{fila.cantidad}</p>
@@ -162,6 +167,50 @@ export default function FacturaDetail({
         </div>
       </div>
     </Modal>
+  )
+}
+
+/*
+ * Lo que ha vuelto de una fila, unidad por unidad: "Unidad 1: Dañado — pantalla
+ * rota". Un registro viejo con varias unidades sale como "Unidades 1–3".
+ */
+function HistorialDevoluciones({ devoluciones }: { devoluciones: DevolucionApi[] }) {
+  // Dónde empieza cada registro: la suma de las unidades anteriores, más uno.
+  const desdes = devoluciones.reduce<number[]>(
+    (lista, _devolucion, i) => [...lista, i === 0 ? 1 : lista[i - 1] + devoluciones[i - 1].cantidad],
+    [],
+  )
+
+  return (
+    <div className="mt-2 rounded-xl bg-sena-muted/45 px-3 py-2">
+      <p className="text-[11px] font-semibold text-sena-text-soft">Devoluciones</p>
+      <ul className="mt-1 space-y-0.5 text-xs leading-5 text-sena-text">
+        {devoluciones.map((devolucion, i) => {
+          const desde = desdes[i]
+          const unidades =
+            devolucion.cantidad === 1
+              ? `Unidad ${desde}`
+              : `Unidades ${desde}–${desde + devolucion.cantidad - 1}`
+
+          return (
+            <li key={devolucion.id} className="break-words">
+              <span className="font-semibold">{unidades}:</span>{' '}
+              <span
+                className={
+                  devolucion.estadoElemento === 'bueno' ? 'text-sena-ok-text' : 'text-sena-warn-text'
+                }
+              >
+                {NOVEDAD_LABEL[devolucion.estadoElemento]}
+              </span>
+              {devolucion.observacion ? ` — ${devolucion.observacion}` : ''}
+              {devolucion.fecha ? (
+                <span className="text-sena-text-soft"> · {formatDay(devolucion.fecha)}</span>
+              ) : null}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }
 

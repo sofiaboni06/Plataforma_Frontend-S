@@ -100,7 +100,23 @@ export type FacturaFilaApi = {
   fechaEntrega: string | null
   fechaDevolucion: string | null
   usuarioEntrega: Persona | null
+  /* Solo equipo: lo que ha vuelto, en orden. Cada unidad trae su novedad. */
+  devoluciones?: DevolucionApi[]
 } & FechasSolicitud
+
+/*
+ * Un registro de devolución. Desde la devolución por unidad, cada fila es una
+ * unidad (cantidad 1) con su novedad y su observación; las de antes pueden
+ * agrupar varias unidades con el mismo estado.
+ */
+export type DevolucionApi = {
+  id: number
+  cantidad: number
+  estadoElemento: 'bueno' | 'danado' | 'perdido' | 'en_reparacion'
+  fecha: string | null
+  observacion: string | null
+  recibidoPor: Persona | null
+}
 
 /*
  * Cómo va el plazo de devolución de lo que sigue afuera (solo equipo).
@@ -109,15 +125,14 @@ export type FacturaFilaApi = {
 export type EstadoPlazo = 'sin_fecha' | 'al_dia' | 'vence_hoy' | 'vencido'
 
 /*
- * Días de calendario `YYYY-MM-DD`. Equipo: inicio del préstamo, devolución
- * que propuso el instructor y fecha límite que confirmó bodega. Consumo:
- * inicio de la actividad y para cuándo lo necesita.
+ * Días de calendario `YYYY-MM-DD`, solo del equipo devolutivo: inicio del
+ * préstamo, devolución que propuso el instructor y fecha límite que confirmó
+ * bodega. El consumo se entrega y ya: siempre llegan en null.
  */
 export type FechasSolicitud = {
   fechaInicio?: string | null
   fechaDevolucionPropuesta?: string | null
   fechaDevolucionLimite?: string | null
-  fechaEntregaRequerida?: string | null
   plazo?: EstadoPlazo | null
 }
 
@@ -173,11 +188,9 @@ export type CrearFacturaPayload = {
   tipo: FacturaTipo
   ficha?: string
   observacion?: string
+  /* Solo devolutivo: el consumo no lleva fechas. */
   fechaInicio?: string
-  /* Solo devolutivo. */
   fechaDevolucionPropuesta?: string
-  /* Solo consumo. */
-  fechaEntregaRequerida?: string
   elementos: {
     idElemento: number
     cantidad: number
