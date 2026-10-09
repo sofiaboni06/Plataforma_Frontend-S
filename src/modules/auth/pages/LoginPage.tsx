@@ -1,21 +1,9 @@
+
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-
-import {
-  EyeIcon,
-  EyeOffIcon,
-} from '@/shared/components/icons/AppIcons'
-
-import {
-  ApiError,
-  shouldRememberSession,
-} from '@/shared/lib/api'
-
+import { EyeIcon, EyeOffIcon } from '@/shared/components/icons/AppIcons'
+import { ApiError, shouldRememberSession } from '@/shared/lib/api'
 import { useAuth } from '@/modules/auth/context/auth'
-
-/* ============================================================
-   ERRORES DE LOGIN
-============================================================ */
 
 function loginError(error: unknown) {
   if (error instanceof ApiError) {
@@ -33,156 +21,27 @@ function loginError(error: unknown) {
   return 'No se pudo conectar con el servidor. Revisa que el API esté encendido.'
 }
 
-/* ============================================================
-   ICONO USUARIO
-============================================================ */
-
 function UserIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <circle
-        cx="12"
-        cy="8"
-        r="3.2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.7" />
       <path
         d="M5.5 19c.8-3.4 3-5.2 6.5-5.2s5.7 1.8 6.5 5.2"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.7"
         strokeLinecap="round"
       />
     </svg>
   )
 }
-
-/* ============================================================
-   ICONO CANDADO
-============================================================ */
 
 function LockIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <rect
-        x="5"
-        y="10"
-        width="14"
-        height="10"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.7" />
       <path
         d="M8 10V7a4 4 0 0 1 8 0v3"
         stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-/* ============================================================
-   ICONO CHECK
-============================================================ */
-
-function CheckIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <circle
-        cx="12"
-        cy="12"
-        r="9"
-        fill="currentColor"
-      />
-
-      <path
-        d="m8 12 2.5 2.5L16 9"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-/* ============================================================
-   ICONO UBICACIÓN
-============================================================ */
-
-function LocationIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <path
-        d="M20 10.5c0 5.2-8 10-8 10s-8-4.8-8-10a8 8 0 1 1 16 0Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-
-      <circle
-        cx="12"
-        cy="10.5"
-        r="2.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-    </svg>
-  )
-}
-
-/* ============================================================
-   ICONO GRADUACIÓN
-============================================================ */
-
-function GraduationIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <path
-        d="M3 9.5 12 5l9 4.5-9 4.5L3 9.5Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-
-      <path
-        d="M6.5 11.5V16c2.5 2.2 8.5 2.2 11 0v-4.5"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-
-      <path
-        d="M21 10v5"
-        stroke="currentColor"
         strokeWidth="1.7"
         strokeLinecap="round"
       />
@@ -190,94 +49,9 @@ function GraduationIcon() {
   )
 }
 
-/* ============================================================
-   PATRÓN DE PUNTOS
-============================================================ */
-
-function DotPattern({
-  className = '',
-}: {
-  className?: string
-}) {
-  return (
-    <div
-      className={`grid grid-cols-5 gap-2 ${className}`}
-      aria-hidden="true"
-    >
-      {Array.from({ length: 25 }).map((_, index) => (
-        <span
-          key={index}
-          className="h-1 w-1 rounded-full bg-[#19C66B]"
-        />
-      ))}
-    </div>
-  )
-}
-
-/* ============================================================
-   ONDAS DECORATIVAS
-============================================================ */
-
-function WaveLines() {
-  return (
-    <svg
-      viewBox="0 0 520 220"
-      className="pointer-events-none absolute bottom-0 right-0 h-42.5 w-97.5 opacity-40 xl:h-52.5 xl:w-125"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M120 220C120 150 180 100 250 100s130 50 130 120"
-        stroke="#00A651"
-        strokeWidth="1.5"
-      />
-
-      <path
-        d="M95 220C95 135 170 78 250 78s155 57 155 142"
-        stroke="#00A651"
-        strokeWidth="1.5"
-      />
-
-      <path
-        d="M70 220C70 120 155 55 250 55s180 65 180 165"
-        stroke="#00A651"
-        strokeWidth="1.5"
-      />
-
-      <path
-        d="M45 220C45 105 140 32 250 32s205 73 205 188"
-        stroke="#00A651"
-        strokeWidth="1.5"
-      />
-
-      <path
-        d="M20 220C20 90 125 10 250 10s230 80 230 210"
-        stroke="#00A651"
-        strokeWidth="1.5"
-      />
-
-      <path
-        d="M-5 220C-5 75 110-15 250-15s255 90 255 235"
-        stroke="#00A651"
-        strokeWidth="1.5"
-      />
-
-      <path
-        d="M-30 220C-30 60 95-40 250-40s280 100 280 260"
-        stroke="#00A651"
-        strokeWidth="1.5"
-      />
-    </svg>
-  )
-}
-
-/* ============================================================
-   LOGIN
-============================================================ */
 
 export default function LoginPage() {
   const { login, token, isReady } = useAuth()
-
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -290,50 +64,42 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-
-  /* ==========================================================
-     TÍTULO
-  =========================================================== */
+  const [showHelp, setShowHelp] = useState(false)
 
   useEffect(() => {
     const previousTitle = document.title
-
-    document.title = 'Iniciar sesión | SENA'
+    document.title = 'Iniciar sesión | GlasmoFimos'
 
     return () => {
       document.title = previousTitle
     }
   }, [])
 
-  /* ==========================================================
-     CARGANDO SESIÓN
-  =========================================================== */
+  useEffect(() => {
+    if (!showHelp) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowHelp(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showHelp])
 
   if (!isReady) {
     return (
-      <div className="grid min-h-svh place-items-center bg-[#F3F8F5] text-sm text-[#56766A]">
+      <div className="grid min-h-svh place-items-center bg-emerald-950 text-sm text-white">
         Cargando sesión…
       </div>
     )
   }
 
-  /* ==========================================================
-     USUARIO YA AUTENTICADO
-  =========================================================== */
-
   if (token) {
     return <Navigate to={nextPath} replace />
   }
 
-  /* ==========================================================
-     ENVIAR FORMULARIO
-  =========================================================== */
-
-  const handleSubmit = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-
     setSaving(true)
     setError(null)
 
@@ -353,335 +119,249 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-svh bg-[#F1F8F4] lg:h-svh lg:overflow-hidden">
-
-      <div className="grid min-h-svh lg:h-full lg:grid-cols-2">
-
-        {/* ====================================================
-            PANEL IZQUIERDO
-        ===================================================== */}
-
-        <section className="relative hidden min-h-svh overflow-hidden bg-[#003D29] lg:block">
-
-          {/* FOTO */}
-
-          <img
-            src="/img/imageninicio.jpg"
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-
-          {/* OVERLAY */}
-
-          <div className="absolute inset-0 bg-[#003D29]/76" />
-
-          <div className="absolute inset-0 bg-linear-to-br from-[#003B28]/95 via-[#005C3D]/72 to-[#00A651]/25" />
-
-          {/* ==================================================
-              DECORACIONES SUPERIORES
-          =================================================== */}
-
-          <div className="absolute -left-28 -top-28 h-64 w-64 rounded-full bg-sena/25" />
-
-          <div className="absolute -left-20 -top-20 h-48 w-48 rounded-full border border-[#5FE36A]/15" />
-
-          <div className="absolute -right-32 top-[26%] h-72 w-72 rounded-full bg-sena/10 blur-3xl" />
-
-          {/* ==================================================
-              CONTENIDO
-          =================================================== */}
-
-          <div className="relative z-10 flex h-full min-h-svh flex-col px-9 py-7 xl:px-14 xl:py-9">
-
-            {/* ==================================================
-                LOGO
-            =================================================== */}
-
-            <Link
-              to="/"
-              className="inline-flex w-fit items-center gap-4 text-white"
-            >
-              <img
-                src="/img/logo-sena.svg"
-                alt="SENA"
-                className="h-14 w-auto brightness-0 invert xl:h-16"
-              />
-
-              <span className="h-10 w-px bg-white/45 xl:h-12" />
-
-              <span className="max-w-47.5 text-[14px] font-semibold leading-snug tracking-wide xl:text-[16px]">
-                Servicio Nacional
-                <br />
-                de Aprendizaje
-              </span>
-            </Link>
-
-            {/* ==================================================
-                HERO
-            =================================================== */}
-
-            <div className="mt-auto pb-5 pt-8 xl:pb-12 xl:pt-12">
-
-              <h1 className="text-[48px] font-extrabold leading-[0.98] tracking-tight text-white xl:text-[64px]">
-                Bienvenido
-                <br />
-                al{' '}
-                <span className="text-[#5FE36A]">
-                  SENA
-                </span>
-              </h1>
-
-              <p className="mt-5 max-w-127.5 text-[18px] leading-snug text-white/95 xl:mt-6 xl:text-[23px]">
-                Formación que{' '}
-                <span className="font-bold text-[#5FE36A]">
-                  transforma vidas
-                </span>{' '}
-                y abre nuevas oportunidades.
-              </p>
-
-              {/* Línea naranja */}
-
-              <div className="mt-6 h-1 w-16 rounded-full bg-[#FF8C00]" />
-
-              {/* ==================================================
-                  TARJETAS
-              =================================================== */}
-
-              <div className="relative mt-8 h-33.75 max-w-125 xl:mt-11 xl:h-43.75">
-
-                {/* TARJETA 1 */}
-
-                <div className="absolute left-0 top-0 flex items-center gap-3 rounded-2xl border border-white/40 bg-white/95 px-3 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.18)] backdrop-blur-md xl:px-4 xl:py-3.5">
-
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sena text-white xl:h-11 xl:w-11">
-                    <CheckIcon />
-                  </span>
-
-                  <span className="text-[13px] font-semibold leading-tight text-[#073C31] xl:text-[15px]">
-                    Formación
-                    <br />
-                    de calidad
-                  </span>
-                </div>
-
-                {/* TARJETA 2 */}
-
-                <div className="absolute left-51.25 top-10 flex items-center gap-3 rounded-2xl border border-white/40 bg-white/95 px-3 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.18)] backdrop-blur-md xl:left-61.25 xl:top-11.25 xl:px-4 xl:py-3.5">
-
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sena text-white xl:h-11 xl:w-11">
-                    <GraduationIcon />
-                  </span>
-
-                  <span className="text-[13px] font-semibold leading-tight text-[#073C31] xl:text-[15px]">
-                    Miles de
-                    <br />
-                    oportunidades
-                  </span>
-                </div>
-
-                {/* TARJETA 3 */}
-
-                <div className="absolute left-11.25 top-22.5 flex items-center gap-3 rounded-2xl border border-white/40 bg-white/95 px-3 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.18)] backdrop-blur-md xl:left-14.5 xl:top-31.25 xl:px-4 xl:py-3.5">
-
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sena text-white xl:h-11 xl:w-11">
-                    <LocationIcon />
-                  </span>
-
-                  <span className="text-[13px] font-semibold leading-tight text-[#073C31] xl:text-[15px]">
-                    Presencia
-                    <br />
-                    en Colombia
-                  </span>
-                </div>
-
-              </div>
-            </div>
-
-            {/* ==================================================
-                PUNTOS
-            =================================================== */}
-
-            <DotPattern className="absolute bottom-16 left-7 opacity-60 xl:bottom-20 xl:left-8" />
-
-            {/* ==================================================
-                ONDAS
-            =================================================== */}
-
-            <WaveLines />
-
-            {/* ==================================================
-                ARCOS
-            =================================================== */}
-
-            <div className="absolute -bottom-32 -left-32 h-64 w-64 rounded-full border-[3px] border-[#FF8C00]" />
-
-            <div className="absolute -bottom-28 -left-24 h-52 w-52 rounded-full border-2 border-sena/70" />
-
-          </div>
-        </section>
-
-        {/* ====================================================
-            PANEL DERECHO
-        ===================================================== */}
-
-        <section className="relative flex min-h-svh items-center justify-center overflow-hidden px-4 py-4 sm:px-6 lg:h-full lg:min-h-0 lg:px-8 lg:py-3">
-
-          {/* ==================================================
-              FONDO
-          =================================================== */}
-
-          <div className="pointer-events-none absolute inset-0 bg-[#F2F8F5]" />
-
-          {/* Círculo derecho */}
-
-          <div className="pointer-events-none absolute -right-28 top-[18%] h-72 w-72 rounded-full bg-[#DDEFE6]" />
-
-          <div className="pointer-events-none absolute -right-16 top-[25%] h-56 w-56 rounded-full bg-[#E8F5EE]" />
-
-          {/* Círculo inferior */}
-
-          <div className="pointer-events-none absolute -bottom-40 -left-28 h-80 w-80 rounded-full bg-[#E3F1E9]" />
-
-          {/* ==================================================
-              ARCOS NARANJAS
-          =================================================== */}
-
-          <div className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full border-2 border-[#FF8C00]" />
-
-          <div className="pointer-events-none absolute -bottom-20 -right-12 h-40 w-40 rounded-full border-2 border-[#FF8C00]" />
-
-          {/* ==================================================
-              PUNTOS
-          =================================================== */}
-
-          <DotPattern className="pointer-events-none absolute right-8 top-7 opacity-60" />
-
-          <DotPattern className="pointer-events-none absolute bottom-7 right-8 opacity-60" />
-
-          {/* ==================================================
-              CONTENEDOR
-          =================================================== */}
-
-          <div className="relative z-10 w-full max-w-137.5">
-
-            {/* ==================================================
-                TARJETA LOGIN
-            =================================================== */}
-
-            <div className="rounded-[28px] border border-[#CDE5D9] bg-white/95 px-6 py-5 shadow-[0_20px_60px_rgba(0,90,60,0.12)] backdrop-blur-sm sm:px-8 sm:py-6">
-
-              {/* ==================================================
-                  LOGO
-              =================================================== */}
-
-              <div className="flex justify-center">
-
-                <img
-                  src="/img/logo-sena.svg"
-                  alt="SENA"
-                  className="h-13.5 w-auto sm:h-15"
-                />
-
-              </div>
-
-              {/* ==================================================
-                  TÍTULO
-              =================================================== */}
-
-              <div className="mt-2 text-center">
-
-                <h2 className="text-[28px] font-extrabold tracking-tight text-[#073C31] sm:text-[30px]">
+    <main className="relative isolate min-h-svh overflow-hidden bg-[#073d2b]">
+      {/* Fondo fotográfico con desenfoque */}
+      <img
+        src="/img/imageninicio.jpg"
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full scale-105 object-cover object-center blur-[3px]"
+      />
+
+      {/* Capas verdes para mejorar la lectura */}
+      <div className="absolute inset-0 bg-linear-to-br from-[#003b27]/85 via-[#087b45]/55 to-[#9cde9c]/40" />
+      <div className="absolute inset-0 bg-emerald-950/10 backdrop-blur-[2px]" />
+
+      {/* Luces decorativas */}
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-lime-300/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 left-1/3 h-96 w-96 rounded-full bg-green-300/20 blur-3xl" />
+      <div className="pointer-events-none absolute -right-32 top-1/4 h-96 w-96 rounded-full bg-emerald-300/20 blur-3xl" />
+
+      <div className="relative z-10 mx-auto grid min-h-svh w-full max-w-360 grid-cols-1 items-center gap-8 px-5 py-8 sm:px-10 lg:grid-cols-[1fr_0.9fr] lg:gap-12 lg:px-16 xl:px-24">
+       
+{/* Marca y presentación GESNOVA */}
+<section className="relative flex flex-col items-center justify-center text-center text-white lg:px-6 lg:scale-90">
+
+  {/* Logotipo original */}
+  <div className="mb-5 flex justify-center">
+   <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-md sm:h-20 sm:w-20">
+      <div className="absolute inset-2 rounded-3xl bg-linear-to-br from-sky-400/20 to-lime-400/20 blur-xl" />
+
+      <svg
+        viewBox="0 0 100 100"
+        className="relative h-14 w-14 sm:h-16 sm:w-16"
+        fill="none"
+        role="img"
+        aria-label="Logotipo de GESNOVA"
+      >
+        <defs>
+          <linearGradient id="gesnova-blue" x1="15" y1="10" x2="55" y2="65" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#38BDF8" />
+            <stop offset="1" stopColor="#0759D6" />
+          </linearGradient>
+          <linearGradient id="gesnova-green" x1="45" y1="25" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#BEF264" />
+            <stop offset="1" stopColor="#16A34A" />
+          </linearGradient>
+        </defs>
+
+        <path
+          d="M75 21A36 36 0 1 0 80 64"
+          stroke="url(#gesnova-blue)"
+          strokeWidth="13"
+          strokeLinecap="round"
+        />
+        <path
+          d="M79 39A26 26 0 0 0 42 36"
+          stroke="url(#gesnova-green)"
+          strokeWidth="11"
+          strokeLinecap="round"
+        />
+        <path
+          d="M78 42L52 62L38 50"
+          stroke="url(#gesnova-green)"
+          strokeWidth="10"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  </div>
+
+  {/* Nombre con degradados independientes */}
+  <h1 className="text-4xl font-black leading-none tracking-tight sm:text-5xl xl:text-6xl">
+    <span className="bg-linear-to-r from-sky-300 via-blue-400 to-cyan-300 bg-clip-text text-transparent">
+      GES
+    </span>
+    <span className="bg-linear-to-r from-lime-300 via-green-300 to-emerald-400 bg-clip-text text-transparent">
+      NOVA
+    </span>
+  </h1>
+
+  {/* Descriptor */}
+  <div className="mt-4 flex items-center justify-center gap-3">
+    <span className="h-px w-8 bg-white/60 sm:w-12" />
+    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/90 sm:text-sm">
+      Plataforma de gestión
+    </p>
+    <span className="h-px w-8 bg-white/60 sm:w-12" />
+  </div>
+
+  {/* Eslogan */}
+  <p className="mt-6 max-w-md text-xl font-medium leading-relaxed text-white sm:text-2xl">
+    Una plataforma,
+    <span className="block font-bold text-lime-300">
+      múltiples soluciones.
+    </span>
+  </p>
+
+  <p className="mt-3 max-w-sm text-sm leading-6 text-white/80 sm:text-base">
+    Conectamos procesos, optimizamos la gestión y transformamos el futuro de la institución.
+  </p>
+
+  {/* Beneficios */}
+  <div className="mt-5 grid w-full max-w-md grid-cols-3 divide-x divide-white/25">
+    <div className="px-2 py-2">
+      <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-lime-300">
+        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+          <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" stroke="currentColor" strokeWidth="1.7" />
+          <path d="m19 13 2-1-2-1-.5-2 1-2-2-2-2 1-2-.5-1-2-2 2-.5 2-2 1-2-1-2 2 1 2-.5 2-2 1 2 1 .5 2-1 2 2 2 2-1 2 .5 1 2 2-2 .5-2 2-1 2 1 2-2-1-2 .5-2Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <p className="mt-3 text-xs font-semibold leading-relaxed text-white/90 sm:text-sm">
+        Procesos
+        <br />
+        más ágiles
+      </p>
+    </div>
+
+    <div className="px-2 py-2">
+      <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-lime-300">
+        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+          <path d="M12 3 20 6v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+          <path d="m8.5 12 2.3 2.3 4.7-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <p className="mt-3 text-xs font-semibold leading-relaxed text-white/90 sm:text-sm">
+        Gestión
+        <br />
+        segura
+      </p>
+    </div>
+
+    <div className="px-2 py-2">
+      <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-lime-300">
+        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+          <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.7" />
+          <circle cx="17" cy="9" r="2.3" stroke="currentColor" strokeWidth="1.7" />
+          <path d="M3 19v-1.5A5.5 5.5 0 0 1 8.5 12h1A5.5 5.5 0 0 1 15 17.5V19H3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+          <path d="M16 13h1a4 4 0 0 1 4 4v1h-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </svg>
+      </span>
+      <p className="mt-3 text-xs font-semibold leading-relaxed text-white/90 sm:text-sm">
+        Mejores
+        <br />
+        resultados
+      </p>
+    </div>
+  </div>
+
+  {/* Identidad institucional */}
+  <div className="mt-6 flex flex-col items-center">
+    <img
+      src="/img/logo-sena.svg"
+      alt="SENA"
+      className="h-14 w-auto brightness-0 invert sm:h-16"
+    />
+    <div className="mt-3 flex items-center gap-3">
+      <span className="h-px w-7 bg-white/50" />
+      <p className="text-sm font-medium tracking-wide text-white/90 sm:text-base">
+        SENA que transforma
+      </p>
+      <span className="h-px w-7 bg-white/50" />
+    </div>
+  </div>
+</section>
+        {/* Formulario de acceso */}
+        <section className="flex w-full items-center justify-center">
+          <div className="w-full max-w-107.5">
+            <div className="rounded-[26px] border border-white/60 bg-white/85 p-6 shadow-[0_24px_80px_rgba(0,45,25,0.25)] backdrop-blur-2xl sm:p-9">
+              <div className="mb-6">
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
+                  Acceso a la plataforma
+                </p>
+
+                <h2 className="text-3xl font-extrabold tracking-tight text-[#073c2b]">
                   Iniciar sesión
                 </h2>
 
-                <p className="mt-1 text-[14px] leading-relaxed text-[#607D72] sm:text-[15px]">
-                  Accede a tu cuenta para continuar en la plataforma.
+                <p className="mt-2 text-sm leading-relaxed text-[#577568]">
+                  Ingresa tus credenciales para continuar.
                 </p>
-
               </div>
 
-              {/* ==================================================
-                  FORMULARIO
-              =================================================== */}
-
-              <form
-                className="mt-5 space-y-3.5"
-                onSubmit={handleSubmit}
-              >
-
-                {/* USUARIO */}
-
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Usuario */}
                 <div>
-
                   <label
                     htmlFor="usuario"
-                    className="mb-1.5 block text-[14px] font-medium text-[#073C31]"
+                    className="mb-2 block text-sm font-semibold text-[#174b37]"
                   >
-                    Correo electrónico o número de documento
+                    Usuario
                   </label>
 
                   <div className="group relative">
-
-                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#66877B] transition group-focus-within:text-sena">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#648477] transition-colors group-focus-within:text-emerald-700">
                       <UserIcon />
                     </span>
 
                     <input
                       id="usuario"
+                      name="usuario"
+                      type="text"
                       value={usuario}
-                      onChange={(event) =>
-                        setUsuario(event.target.value)
-                      }
+                      onChange={(event) => setUsuario(event.target.value)}
                       autoComplete="username"
+                      autoCapitalize="none"
+                      spellCheck={false}
                       required
-                      placeholder="Ingresa tu correo o documento"
-                      className="h-12.5 w-full rounded-xl border border-[#D4E0DC] bg-white pl-11 pr-4 text-[14px] text-[#073C31] outline-none transition placeholder:text-[#9AAFA8] hover:border-[#B9D5C9] focus:border-sena focus:ring-4 focus:ring-[#00A651]/10"
+                      placeholder="Correo o número de documento"
+                      className="h-12 w-full rounded-xl border border-[#d1e3d8] bg-white/75 pl-12 pr-4 text-sm text-[#123e2d] outline-none transition placeholder:text-[#8aa397] hover:border-[#9fcab0] focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10"
                     />
-
                   </div>
                 </div>
 
-                {/* CONTRASEÑA */}
-
+                {/* Contraseña */}
                 <div>
-
                   <label
                     htmlFor="password"
-                    className="mb-1.5 block text-[14px] font-medium text-[#073C31]"
+                    className="mb-2 block text-sm font-semibold text-[#174b37]"
                   >
                     Contraseña
                   </label>
 
                   <div className="group relative">
-
-                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#66877B] transition group-focus-within:text-sena">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#648477] transition-colors group-focus-within:text-emerald-700">
                       <LockIcon />
                     </span>
 
                     <input
                       id="password"
+                      name="password"
                       type={showPassword ? 'text' : 'password'}
                       value={password}
-                      onChange={(event) =>
-                        setPassword(event.target.value)
-                      }
+                      onChange={(event) => setPassword(event.target.value)}
                       autoComplete="current-password"
                       required
                       placeholder="Ingresa tu contraseña"
-                      className="h-12.5 w-full rounded-xl border border-[#D4E0DC] bg-white pl-11 pr-11 text-[14px] text-[#073C31] outline-none transition placeholder:text-[#9AAFA8] hover:border-[#B9D5C9] focus:border-sena focus:ring-4 focus:ring-[#00A651]/10"
+                      className="h-12 w-full rounded-xl border border-[#d1e3d8] bg-white/75 pl-12 pr-12 text-sm text-[#123e2d] outline-none transition placeholder:text-[#8aa397] hover:border-[#9fcab0] focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10"
                     />
 
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowPassword((value) => !value)
-                      }
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#66877B] transition hover:text-sena"
-                      aria-label={
-                        showPassword
-                          ? 'Ocultar contraseña'
-                          : 'Mostrar contraseña'
-                      }
+                      onClick={() => setShowPassword((value) => !value)}
+                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#648477] transition hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
                     >
                       {showPassword ? (
                         <EyeOffIcon className="h-5 w-5" />
@@ -689,140 +369,174 @@ export default function LoginPage() {
                         <EyeIcon className="h-5 w-5" />
                       )}
                     </button>
-
                   </div>
                 </div>
 
-                {/* ==================================================
-                    RECORDAR / RECUPERAR
-                =================================================== */}
-
-                <div className="flex items-center justify-between gap-3 pt-0.5">
-
-                  <label className="flex cursor-pointer items-center gap-2 text-[14px] text-[#073C31]">
-
+                {/* Recordar sesión y recuperación */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <label className="flex cursor-pointer items-center gap-2 text-xs text-[#426756] sm:text-sm">
                     <input
                       type="checkbox"
                       checked={remember}
-                      onChange={(event) =>
-                        setRemember(event.target.checked)
-                      }
-                      className="h-4.75 w-4.75 cursor-pointer rounded border-[#C6D8D1] accent-sena"
+                      onChange={(event) => setRemember(event.target.checked)}
+                      className="h-4 w-4 cursor-pointer rounded accent-emerald-700"
                     />
-
-                    <span>
-                      Recordar sesión
-                    </span>
-
+                    Recordar sesión
                   </label>
 
                   <Link
                     to="/recuperar"
-                    className="text-[14px] font-semibold text-[#007E4C] transition hover:text-sena hover:underline"
+                    className="text-xs font-semibold text-emerald-800 transition hover:text-emerald-600 hover:underline sm:text-sm"
                   >
                     ¿Olvidaste tu contraseña?
                   </Link>
-
                 </div>
 
-                {/* ERROR */}
-
-                {error ? (
+                {/* Mensaje de error */}
+                {error && (
                   <div
                     role="alert"
-                    className="rounded-xl border border-[#F0CACA] bg-[#FFF4F4] px-3 py-2 text-xs leading-relaxed text-[#A33A3A]"
+                    aria-live="polite"
+                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-800"
                   >
                     {error}
                   </div>
-                ) : null}
+                )}
 
-                {/* ==================================================
-                    BOTÓN
-                =================================================== */}
-
+                {/* Botón de acceso */}
                 <button
                   type="submit"
                   disabled={saving}
-                  className="group flex h-12.75 w-full items-center justify-center gap-3 rounded-xl bg-sena text-[15px] font-bold text-white shadow-[0_8px_20px_rgba(0,166,81,0.23)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#009447] hover:shadow-[0_12px_25px_rgba(0,166,81,0.28)] focus:outline-none focus:ring-4 focus:ring-[#00A651]/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                  className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-[#087b3e] to-[#0a9c4d] px-4 text-sm font-bold text-white shadow-[0_8px_22px_rgba(0,130,60,0.24)] transition duration-200 hover:-translate-y-0.5 hover:from-[#066a35] hover:to-[#078540] hover:shadow-[0_12px_26px_rgba(0,130,60,0.30)] focus:outline-none focus:ring-4 focus:ring-emerald-600/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                 >
-
-                  <span>
-                    {saving
-                      ? 'Iniciando sesión...'
-                      : 'INICIAR SESIÓN'}
-                  </span>
-
-                  {!saving && (
-                    <span className="text-xl leading-none transition-transform group-hover:translate-x-1">
-                      →
-                    </span>
+                  {saving ? (
+                    <>
+                      <svg
+                        className="h-4 w-4 animate-spin"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="9"
+                          stroke="currentColor"
+                          strokeOpacity=".3"
+                          strokeWidth="3"
+                        />
+                        <path
+                          d="M21 12a9 9 0 0 0-9-9"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      Iniciando sesión…
+                    </>
+                  ) : (
+                    <>
+                      Ingresar
+                      <span className="text-lg transition-transform group-hover:translate-x-1">
+                        →
+                      </span>
+                    </>
                   )}
-
                 </button>
-
               </form>
 
-              {/* ==================================================
-                  AYUDA
-              =================================================== */}
+              {/* Centro de ayuda */}
+              <div className="mt-6 border-t border-[#dce9e0] pt-5 text-center">
+                <p className="text-xs text-[#6a8577]">
+                  ¿Tienes problemas para acceder?
+                </p>
 
-              <div className="mt-4 flex items-center gap-3">
-
-                <div className="h-px flex-1 bg-[#DCE7E2]" />
-
-                <span className="whitespace-nowrap text-[11px] font-medium text-[#71877E] sm:text-xs">
-                  ¿Necesitas ayuda para acceder?
-                </span>
-
-                <div className="h-px flex-1 bg-[#DCE7E2]" />
-
-              </div>
-
-              <div className="mt-2 text-center">
-
-                <a
-                  href="#"
-                  className="text-[13px] font-semibold text-[#007E4C] transition hover:text-sena hover:underline"
+                <button
+                  type="button"
+                  onClick={() => setShowHelp(true)}
+                  className="mt-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-600 hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
                 >
                   Centro de ayuda
-                </a>
-
+                </button>
               </div>
-
-              {/* ==================================================
-                  VOLVER
-              =================================================== */}
-
-              <div className="mt-3 border-t border-[#E1EAE6] pt-3 text-center">
-
-                <Link
-                  to="/"
-                  className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#007E4C] transition hover:text-sena"
-                >
-
-                  <span className="text-lg leading-none">
-                    ←
-                  </span>
-
-                  Volver al inicio
-
-                </Link>
-
-              </div>
-
             </div>
 
-            {/* ==================================================
-                TEXTO INFERIOR
-            =================================================== */}
-
-            <p className="mt-2 text-center text-[10px] text-[#71877E]">
+            <p className="mt-4 text-center text-xs text-white/90">
               Servicio Nacional de Aprendizaje · SENA
             </p>
 
+            <p className="mt-1 text-center text-[11px] text-white/70">
+              Gesnova · Gestión de recursos
+            </p>
           </div>
         </section>
       </div>
+
+      {/* Ventana funcional de ayuda */}
+      {showHelp && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-emerald-950/65 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShowHelp(false)
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="help-title"
+            className="w-full max-w-md rounded-2xl border border-white/60 bg-white p-6 shadow-2xl sm:p-8"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-700">
+                  Asistencia
+                </p>
+                <h2 id="help-title" className="mt-2 text-2xl font-extrabold text-[#073c2b]">
+                  Centro de ayuda
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowHelp(false)}
+                aria-label="Cerrar ayuda"
+                className="rounded-lg px-3 py-1 text-2xl leading-none text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="mt-4 text-sm leading-relaxed text-gray-600">
+              Si tienes problemas para ingresar a Gesnova, comprueba tus
+              credenciales y verifica que tu cuenta esté activa.
+            </p>
+
+            <div className="mt-5 rounded-xl bg-emerald-50 p-4">
+              <p className="text-sm font-bold text-emerald-900">
+                ¿No recuerdas tu contraseña?
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-emerald-800">
+                Puedes solicitar un código de recuperación para restablecerla.
+              </p>
+              <Link
+                to="/recuperar"
+                onClick={() => setShowHelp(false)}
+                className="mt-3 inline-flex text-sm font-bold text-emerald-800 underline underline-offset-4 hover:text-emerald-600"
+              >
+                Recuperar mi contraseña
+              </Link>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowHelp(false)}
+              className="mt-6 h-11 w-full rounded-xl bg-emerald-700 text-sm font-bold text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-600/25"
+            >
+              Entendido
+            </button>
+          </section>
+        </div>
+      )}
     </main>
   )
 }
