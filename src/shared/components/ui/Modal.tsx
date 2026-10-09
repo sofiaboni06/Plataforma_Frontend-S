@@ -8,9 +8,18 @@ type ModalProps = {
   onClose: () => void
   children: ReactNode
   wide?: boolean
+  /** Más aire en el encabezado y el cuerpo, para formularios largos. */
+  spacious?: boolean
 }
 
-export default function Modal({ title, description, onClose, children, wide = false }: ModalProps) {
+export default function Modal({
+  title,
+  description,
+  onClose,
+  children,
+  wide = false,
+  spacious = false,
+}: ModalProps) {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -43,13 +52,20 @@ export default function Modal({ title, description, onClose, children, wide = fa
           wide ? 'max-w-3xl' : 'max-w-2xl',
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-sena-hairline bg-glass-strong px-6 py-4 text-sena-dark sm:px-8">
+        <div
+          className={cn(
+            'flex items-start justify-between gap-4 border-b border-sena-hairline bg-glass-strong px-6 text-sena-dark sm:px-8',
+            spacious ? 'py-5 sm:py-6' : 'py-4',
+          )}
+        >
           <div>
             <h2 id="dialog-title" className="text-lg font-bold text-sena-text">
               {title}
             </h2>
             {description ? (
-              <p className="mt-1 text-sm leading-6 text-sena-strong">{description}</p>
+              <p className={cn('text-sm leading-6 text-sena-strong', spacious ? 'mt-2 max-w-xl' : 'mt-1')}>
+                {description}
+              </p>
             ) : null}
           </div>
           <button
@@ -61,7 +77,14 @@ export default function Modal({ title, description, onClose, children, wide = fa
             <CloseIcon className="size-5" />
           </button>
         </div>
-        <div className="mt-5 overflow-y-auto px-6 pb-6 sm:px-8 sm:pb-8">{children}</div>
+        <div
+          className={cn(
+            'overflow-y-auto px-6 pb-6 sm:px-8 sm:pb-8',
+            spacious ? 'pt-6 sm:pt-8' : 'mt-5',
+          )}
+        >
+          {children}
+        </div>
       </section>
     </div>
   )

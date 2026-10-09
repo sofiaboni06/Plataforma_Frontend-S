@@ -7,6 +7,7 @@ import Modal from '@/shared/components/ui/Modal'
 import { ActionButton, ErrorBanner } from '@/shared/components/DataTable'
 import { TrashIcon } from '@/shared/components/icons/AppIcons'
 
+import BuscarSolicitante from '@/modules/solicitudes/components/BuscarSolicitante'
 import ElementoCombobox from '@/modules/solicitudes/components/ElementoCombobox'
 import {
   formatFechaDia,
@@ -16,6 +17,7 @@ import {
   inputClass,
   inputErrorClass,
   personName,
+  tiposDe,
 } from '@/modules/solicitudes/lib/presentacion'
 import { getClasificacionesActivas } from '@/modules/inventario/data/elemento'
 import { CARACTER_LABEL } from '@/modules/inventario/lib/caracter'
@@ -90,31 +92,40 @@ function hayDisponibles(disponible: number) {
 /*
  * La solicitud es una factura: un encabezado (tipo, obra, ficha) y una grilla
  * con lo que se necesita. Es toda de consumo o toda devolutiva, nunca mezclada.
- * `tipos` son los que el usuario puede pedir; con uno solo, queda fijo.
+ * `tipos` son los que se pueden pedir; con uno solo, queda fijo.
  *
- * Con `solicitante` es bodega registrando en el mostrador a nombre de otra
- * persona: entrega lo que haya al registrar. Sin él es el instructor: ve solo
- * cuánto hay disponible y lo que pida de más queda pendiente.
+ * Con `mostrador` es bodega registrando a nombre de quien llegó a la bodega:
+ * primero lo busca por documento (paso 1) y al registrar entrega lo que haya.
+ * Ahí `tipos` son los que esta bodega entrega, y se recortan a lo que esa
+ * persona puede pedir. Sin `mostrador` es el instructor: ve cuánto hay
+ * disponible y lo que pida de más queda pendiente.
  */
 export default function FacturaModal({
   obras,
   elementos,
-  tipos,
-  solicitante = null,
-  onCambiarSolicitante,
+  tipos: tiposBase,
+  mostrador: mostradorConfig,
   onClose,
   onSubmit,
 }: {
   obras: ObraApi[]
   elementos: ElementoApi[]
   tipos: FacturaTipo[]
-  solicitante?: SolicitanteApi | null
-  onCambiarSolicitante?: () => void
+  mostrador?: { idPropio: number | undefined }
   onClose: () => void
-  onSubmit: (payload: Omit<CrearFacturaPayload, 'codigoSolicitud'>) => Promise<void>
+  onSubmit: (
+    payload: Omit<CrearFacturaPayload, 'codigoSolicitud'>,
+    solicitante: SolicitanteApi | null,
+  ) => Promise<void>
 }) {
-  const mostrador = solicitante !== null
-  const [tipo, setTipo] = useState<FacturaTipo>(tipos[0] ?? 'consumo')
+  const mostrador = mostradorConfig !== undefined
+  const [solicitante, setSolicitante] = useState<SolicitanteApi | null>(null)
+  // Documento de la última persona elegida: al cambiarla, la búsqueda arranca con él.
+  const [documentoPrevio, setDocumentoPrevio] = useState('')
+  const tipos = solicitante ? tiposDe(solicitante, tiposBase) : tiposBase
+  // Sin persona en el mostrador no se arma la lista todavía.
+  const bloqueado = mostrador && solicitante === null
+  const [tipo, setTipo] = useState<FacturaTipo>(tiposBase[0] ?? 'consumo')
   const [idObra, setIdObra] = useState('')
   const [ficha, setFicha] = useState('')
   const [observacion, setObservacion] = useState('')
@@ -169,6 +180,15 @@ export default function FacturaModal({
     setLocalError('')
   }
 
+  // Si la persona no puede pedir el tipo elegido, pasa al primero que sí.
+  const elegirSolicitante = (persona: SolicitanteApi) => {
+    const permitidos = tiposDe(persona, tiposBase)
+    setSolicitante(persona)
+    setDocumentoPrevio(persona.numeroDocumento)
+    setLocalError('')
+    if (!permitidos.includes(tipo) && permitidos[0]) cambiarTipo(permitidos[0])
+  }
+
   const agregar = (elemento: ElementoApi | null) => {
     if (!elemento || caracterOf(elemento) !== tipo) return
 
@@ -208,6 +228,11 @@ export default function FacturaModal({
     setIntentado(true)
     setLocalError('')
 
+    if (mostrador && !solicitante) {
+      setLocalError('Busca primero a la persona que recibe.')
+      return
+    }
+
     if (!Number(idObra)) {
       setLocalError('Selecciona la obra.')
       return
@@ -246,7 +271,8 @@ export default function FacturaModal({
     setSaving(true)
 
     try {
-      await onSubmit({
+      await onSubmit(
+        {
         idObra: Number(idObra),
         tipo,
         ...(ficha.trim() ? { ficha: ficha.trim() } : {}),
@@ -257,7 +283,9 @@ export default function FacturaModal({
           cantidad: Number(fila.cantidad),
           ...(fila.observacion.trim() ? { observacion: fila.observacion.trim() } : {}),
         })),
-      })
+        },
+        solicitante,
+      )
     } catch (cause) {
       setLocalError(
         cause instanceof ApiError ? cause.message : 'No se pudo registrar la solicitud.',
@@ -280,50 +308,76 @@ export default function FacturaModal({
       }
       description={
         mostrador
-          ? 'Arma la solicitud de quien está en la bodega. Al registrar se entrega lo que haya y lo que falte queda pendiente a su nombre.'
+          ? 'Para quien llega a la bodega sin entrar a la aplicación. Al registrar se entrega lo que haya y lo que falte queda pendiente a su nombre.'
           : 'Arma la lista de lo que necesitas para la obra. Una solicitud es toda de consumo o toda devolutiva.'
       }
       onClose={onClose}
       wide
+      spacious
     >
-      <form onSubmit={handleSubmit} className="space-y-7" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8" noValidate>
         {localError ? (
           <ErrorBanner message={localError} onClose={() => setLocalError('')} />
         ) : null}
 
-        <section aria-labelledby="factura-datos" className="space-y-4">
-          <h3 id="factura-datos" className="text-sm font-semibold text-sena-text">
-            Datos de la solicitud
-          </h3>
-
-        {solicitante ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sena-line bg-white/65 px-4 py-3">
-            <div className="min-w-0">
-              <p className="text-xs text-sena-text-soft">A nombre de</p>
-              <p className="truncate text-sm font-semibold text-sena-text">
-                {personName(solicitante)}
-              </p>
-              <p className="mt-0.5 truncate text-xs text-sena-text-soft">
-                {solicitante.tipoDocumento ?? 'Documento'} {solicitante.numeroDocumento} ·{' '}
-                {solicitante.email}
-              </p>
-            </div>
-            {onCambiarSolicitante ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onCambiarSolicitante}
+        <Seccion
+          id="factura-datos"
+          numero={1}
+          titulo={mostrador ? 'Quién recibe' : 'Datos de la solicitud'}
+          descripcion={
+            mostrador
+              ? 'Busca por documento a quien está en la bodega y elige para qué obra es.'
+              : 'Para qué obra es y qué tipo de elementos pides.'
+          }
+        >
+          {mostrador ? (
+            solicitante ? (
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-sena-line bg-sena-soft/60 px-4 py-4 sm:px-5">
+                <div className="flex min-w-0 items-center gap-4">
+                  <span
+                    aria-hidden="true"
+                    className="grid size-11 shrink-0 place-items-center rounded-full bg-sena text-sm font-semibold text-white"
+                  >
+                    {iniciales(solicitante)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs text-sena-text-soft">A nombre de</p>
+                    <p className="truncate text-sm font-semibold text-sena-text">
+                      {personName(solicitante)}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-sena-text-soft">
+                      {solicitante.tipoDocumento ?? 'Documento'} {solicitante.numeroDocumento} ·{' '}
+                      {solicitante.email}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setSolicitante(null)}
+                  disabled={saving}
+                >
+                  Cambiar persona
+                </Button>
+              </div>
+            ) : (
+              <BuscarSolicitante
+                tipos={tiposBase}
+                idPropio={mostradorConfig?.idPropio}
+                inicial={documentoPrevio}
+                invalido={intentado}
                 disabled={saving}
-              >
-                Cambiar persona
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
+                onElegir={elegirSolicitante}
+              />
+            )
+          ) : null}
+
+          <fieldset disabled={bloqueado || saving} className="min-w-0 space-y-6 disabled:opacity-55">
+            <legend className="sr-only">Datos de la solicitud</legend>
 
         {tipos.length > 1 ? (
           <fieldset>
-            <legend className="mb-2 text-sm font-semibold text-sena-text">
+            <legend className="mb-2.5 text-sm font-semibold text-sena-text">
               Tipo de solicitud <span className="text-sena">*</span>
             </legend>
             <div className="grid grid-cols-2 gap-1.5 rounded-2xl border border-sena-line bg-white/65 p-1.5">
@@ -338,7 +392,6 @@ export default function FacturaModal({
                     value={opcion}
                     checked={tipo === opcion}
                     onChange={() => cambiarTipo(opcion)}
-                    disabled={saving}
                     className="sr-only"
                   />
                   <span className="block text-sm font-semibold">{TIPO[opcion].label}</span>
@@ -347,12 +400,17 @@ export default function FacturaModal({
               ))}
             </div>
             {filas.length ? (
-              <p className="mt-1.5 text-xs text-sena-text-soft">Si cambias el tipo, la lista se vacía.</p>
+              <p className="mt-2 text-xs text-sena-text-soft">Si cambias el tipo, la lista se vacía.</p>
             ) : null}
           </fieldset>
+        ) : mostrador && solicitante ? (
+          <p className="text-xs text-sena-text-soft">
+            Solicitud de <strong className="text-sena-text">{TIPO[tipo].label.toLowerCase()}</strong>:{' '}
+            {TIPO[tipo].hint.toLowerCase()}.
+          </p>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem]">
+        <div className="grid gap-x-6 gap-y-5 md:grid-cols-[minmax(0,1fr)_12rem]">
           <Field label="Obra" required>
             <select
               value={idObra}
@@ -383,7 +441,7 @@ export default function FacturaModal({
 
         {devolutivo ? (
           <>
-            <div className="grid gap-4 md:grid-cols-2 md:items-end">
+            <div className="grid gap-x-6 gap-y-5 md:grid-cols-2 md:items-end">
               <Field label="Fecha de inicio" required>
                 <input
                   type="date"
@@ -420,7 +478,7 @@ export default function FacturaModal({
             </div>
 
             {fechaInicio && fechaFin ? (
-              <p className="text-xs text-sena-text-soft">
+              <p className="-mt-3 text-xs text-sena-text-soft">
                 Lo pides del {formatFechaDia(fechaInicio)} al {formatFechaDia(fechaFin)}.
               </p>
             ) : null}
@@ -436,18 +494,22 @@ export default function FacturaModal({
             className={`${inputClass} min-h-20 resize-y py-3`}
           />
         </Field>
-        </section>
+          </fieldset>
+        </Seccion>
 
-        <section aria-labelledby="factura-agregar" className="space-y-3">
-          <div>
-            <h3 id="factura-agregar" className="text-sm font-semibold text-sena-text">
-              Agregar elementos <span className="text-sena">*</span>
-            </h3>
-            <p className="mt-1 text-xs text-sena-text-soft">
-              Filtra por clasificación y busca por nombre, código o clasificación. Se suman abajo.
-            </p>
-          </div>
-
+        <Seccion
+          id="factura-agregar"
+          numero={2}
+          titulo="Agregar elementos"
+          requerido
+          descripcion={
+            bloqueado
+              ? 'Primero busca a la persona que recibe.'
+              : 'Filtra por clasificación y busca por nombre o código. Cada uno se suma a la lista.'
+          }
+        >
+          <fieldset disabled={bloqueado || saving} className="min-w-0 disabled:opacity-55">
+            <legend className="sr-only">Agregar elementos</legend>
           <ElementoCombobox
             elementos={elegibles}
             clasificaciones={clasificaciones}
@@ -458,20 +520,21 @@ export default function FacturaModal({
             placeholder={`Busca por nombre, código o clasificación, ${actual.ejemplo}`}
             inputClassName={inputClass}
           />
+          </fieldset>
+        </Seccion>
 
-        </section>
-
-        <section aria-labelledby="factura-lista" className="space-y-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <h3 id="factura-lista" className="text-sm font-semibold text-sena-text">
-              Elementos de la solicitud
-            </h3>
-            {filas.length ? (
-              <p className="text-xs text-sena-text-soft tabular-nums">
+        <Seccion
+          id="factura-lista"
+          numero={3}
+          titulo="Elementos de la solicitud"
+          extra={
+            filas.length ? (
+              <span className="rounded-full bg-sena-soft px-2.5 py-0.5 text-xs font-semibold text-sena-strong tabular-nums">
                 {filas.length} {filas.length === 1 ? 'elemento' : 'elementos'}
-              </p>
-            ) : null}
-          </div>
+              </span>
+            ) : null
+          }
+        >
           {filas.length === 0 ? (
             <p
               className={cn(
@@ -483,16 +546,19 @@ export default function FacturaModal({
             >
               Todavía no hay elementos.
               <span className="mt-1 block text-xs">
-                Búscalos arriba y se van sumando aquí.
+                {bloqueado
+                  ? 'Cuando elijas a la persona, búscalos en el paso 2.'
+                  : 'Búscalos en el paso 2 y se van sumando aquí.'}
               </span>
             </p>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-sena-line bg-white/65">
               <div
                 aria-hidden="true"
-                className="hidden grid-cols-[minmax(0,1fr)_6.5rem_minmax(0,14rem)_2.5rem] gap-3 border-b border-sena-hairline bg-sena-muted/45 px-4 py-2.5 text-xs font-semibold text-sena-text-soft sm:grid"
+                className="hidden grid-cols-[minmax(0,1fr)_4.5rem_6rem_minmax(0,10rem)_2.5rem] gap-4 border-b border-sena-hairline bg-sena-muted/45 px-5 py-3 text-xs font-semibold text-sena-text-soft md:grid"
               >
                 <span>Elemento</span>
+                <span className="text-center">Disponible</span>
                 <span className="text-center">Cantidad</span>
                 <span>Observación</span>
                 <span />
@@ -510,17 +576,17 @@ export default function FacturaModal({
                     <li
                       key={fila.elemento.id}
                       className={cn(
-                        'grid grid-cols-[6.5rem_minmax(0,1fr)_2.5rem] items-start gap-x-3 gap-y-2 px-4 py-3.5 sm:grid-cols-[minmax(0,1fr)_6.5rem_minmax(0,14rem)_2.5rem]',
+                        'grid grid-cols-[6.5rem_minmax(0,1fr)_2.5rem] items-start gap-x-3 gap-y-3 px-4 py-4 sm:px-5 md:gap-x-4 md:grid-cols-[minmax(0,1fr)_4.5rem_6rem_minmax(0,10rem)_2.5rem]',
                         error || aviso
-                          ? "[grid-template-areas:'nombre_nombre_quitar'_'cantidad_obs_obs'_'aviso_aviso_aviso'] sm:[grid-template-areas:'nombre_cantidad_obs_quitar'_'aviso_aviso_aviso_aviso']"
-                          : "[grid-template-areas:'nombre_nombre_quitar'_'cantidad_obs_obs'] sm:[grid-template-areas:'nombre_cantidad_obs_quitar']",
+                          ? "[grid-template-areas:'nombre_nombre_quitar'_'cantidad_obs_obs'_'aviso_aviso_aviso'] md:[grid-template-areas:'nombre_disp_cantidad_obs_quitar'_'aviso_aviso_aviso_aviso_aviso']"
+                          : "[grid-template-areas:'nombre_nombre_quitar'_'cantidad_obs_obs'] md:[grid-template-areas:'nombre_disp_cantidad_obs_quitar']",
                       )}
                     >
                       <div className="min-w-0 pt-1.5 [grid-area:nombre]">
-                        <p className="flex min-w-0 items-center gap-2">
-                          <span className="truncate text-sm font-semibold text-sena-text">
-                            {fila.elemento.nombre}
-                          </span>
+                        <p className="line-clamp-2 text-sm font-semibold leading-5 break-words text-sena-text">
+                          {fila.elemento.nombre}
+                        </p>
+                        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-sena-text-soft">
                           {tipoFila ? (
                             <span
                               className={cn(
@@ -533,18 +599,28 @@ export default function FacturaModal({
                               {CARACTER_LABEL[tipoFila]}
                             </span>
                           ) : null}
-                        </p>
-                        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-sena-text-soft">
                           <span className="truncate">{fila.elemento.codigo}</span>
-                          {fila.disponible !== null && !aviso ? (
-                            <span className="tabular-nums">
-                              {mostrador
-                                ? `${fila.disponible}${unidad ? ` ${unidad}` : ''} disp.`
-                                : hayDisponibles(fila.disponible)}
+                          {fila.disponible !== null ? (
+                            <span className="tabular-nums md:hidden">
+                              {`${fila.disponible}${unidad ? ` ${unidad}` : ''} disp.`}
                             </span>
                           ) : null}
                         </p>
                       </div>
+
+                      <p
+                        className={cn(
+                          'hidden pt-2.5 text-center text-sm tabular-nums [grid-area:disp] md:block',
+                          fila.disponible !== null && fila.disponible <= 0
+                            ? 'font-semibold text-sena-danger-text'
+                            : 'text-sena-text',
+                        )}
+                      >
+                        {fila.disponible === null ? '—' : fila.disponible}
+                        {fila.disponible !== null && unidad ? (
+                          <span className="ml-1 text-xs text-sena-text-soft">{unidad}</span>
+                        ) : null}
+                      </p>
 
                       <div className="flex justify-end pt-0.5 [grid-area:quitar]">
                         <ActionButton
@@ -608,12 +684,19 @@ export default function FacturaModal({
               </ul>
             </div>
           )}
-        </section>
+        </Seccion>
 
-        <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 flex flex-col gap-3 border-t border-sena-hairline bg-glass-strong px-6 py-4 backdrop-blur-glass sm:-bottom-8 sm:-mx-8 sm:-mb-8 sm:flex-row sm:items-center sm:justify-end sm:px-8">
+        <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 flex flex-col gap-4 border-t border-sena-hairline bg-glass-strong px-6 py-4 backdrop-blur-glass sm:-bottom-8 sm:-mx-8 sm:-mb-8 sm:flex-row sm:items-center sm:justify-end sm:gap-6 sm:px-8 sm:py-5">
           <p className="text-sm text-sena-text-soft tabular-nums sm:mr-auto">
+            {mostrador && solicitante && filas.length ? (
+              <span className="block truncate font-semibold text-sena-text">
+                Para {personName(solicitante)}
+              </span>
+            ) : null}
             {filas.length === 0
-              ? mostrador
+              ? bloqueado
+                ? 'Busca a la persona para empezar.'
+                : mostrador
                 ? 'Nada sale de bodega hasta que registres la solicitud.'
                 : 'Nada queda reservado hasta que registres la solicitud.'
               : `${actual.cuenta(filas.length)} · ${unidades} ${unidades === 1 ? 'unidad' : 'unidades'}`}
@@ -623,7 +706,7 @@ export default function FacturaModal({
             <Button variant="secondary" size="sm" onClick={onClose} disabled={saving}>
               Cancelar
             </Button>
-            <Button type="submit" size="sm" disabled={saving || obras.length === 0}>
+            <Button type="submit" size="sm" disabled={saving || bloqueado || obras.length === 0}>
               {saving
                 ? 'Guardando...'
                 : mostrador
@@ -636,6 +719,58 @@ export default function FacturaModal({
         </div>
       </form>
     </Modal>
+  )
+}
+
+function iniciales(persona: SolicitanteApi) {
+  return `${persona.nombres.trim().charAt(0)}${persona.apellidos.trim().charAt(0)}`.toUpperCase()
+}
+
+/* Un paso del formulario: número, título y su contenido en una tarjeta. */
+function Seccion({
+  id,
+  numero,
+  titulo,
+  descripcion,
+  requerido = false,
+  extra,
+  children,
+}: {
+  id: string
+  numero: number
+  titulo: string
+  descripcion?: string
+  requerido?: boolean
+  extra?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <section
+      aria-labelledby={id}
+      className="space-y-5 rounded-[20px] border border-sena-line/80 bg-white/45 p-4 sm:space-y-6 sm:p-6"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3.5">
+          <span
+            aria-hidden="true"
+            className="grid size-8 shrink-0 place-items-center rounded-full bg-sena-soft text-xs font-bold text-sena-strong tabular-nums"
+          >
+            {numero}
+          </span>
+          <div className="min-w-0 pt-1">
+            <h3 id={id} className="text-sm font-semibold text-sena-text">
+              {titulo}
+              {requerido ? <span className="text-sena"> *</span> : null}
+            </h3>
+            {descripcion ? (
+              <p className="mt-1 text-xs leading-5 text-sena-text-soft">{descripcion}</p>
+            ) : null}
+          </div>
+        </div>
+        {extra}
+      </div>
+      {children}
+    </section>
   )
 }
 

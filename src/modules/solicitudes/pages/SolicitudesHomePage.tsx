@@ -30,7 +30,6 @@ import { useNotifications } from '@/modules/notificaciones/context/notifications
 import { TituloSeccion } from '@/modules/solicitudes/components/BarraVista'
 import FacturaDetail from '@/modules/solicitudes/components/FacturaDetail'
 import FacturaModal from '@/modules/solicitudes/components/FacturaModal'
-import SolicitanteModal from '@/modules/solicitudes/components/SolicitanteModal'
 import {
   createFactura,
   getElementos,
@@ -116,11 +115,7 @@ export default function SolicitudesHomePage() {
   const [obras, setObras] = useState<ObraApi[]>([])
   const [elementos, setElementos] = useState<ElementoApi[]>([])
 
-  const [mostrador, setMostrador] = useState<'buscar' | 'armar' | null>(null)
-  const [solicitante, setSolicitante] = useState<{
-    persona: SolicitanteApi
-    tipos: FacturaTipo[]
-  } | null>(null)
+  const [mostrador, setMostrador] = useState(false)
 
   const lastLoad = useRef(0)
 
@@ -187,22 +182,21 @@ export default function SolicitudesHomePage() {
   }
 
   const abrirMostrador = async () => {
-    setSolicitante(null)
-    if (await cargarFormulario()) setMostrador('buscar')
+    if (await cargarFormulario()) setMostrador(true)
   }
 
-  const cerrarMostrador = () => {
-    setMostrador(null)
-    setSolicitante(null)
-  }
+  const cerrarMostrador = () => setMostrador(false)
 
-  const registrarMostrador = async (payload: Omit<CrearFacturaPayload, 'codigoSolicitud'>) => {
+  const registrarMostrador = async (
+    payload: Omit<CrearFacturaPayload, 'codigoSolicitud'>,
+    solicitante: SolicitanteApi | null,
+  ) => {
     if (!solicitante) return
 
     const factura = await registrarEnBodega({
       ...payload,
       codigoSolicitud: `SOL-${Date.now()}`,
-      numeroDocumento: solicitante.persona.numeroDocumento,
+      numeroDocumento: solicitante.numeroDocumento,
     })
     const { cantidadEntregada, cantidadPendiente } = factura.totales
 
@@ -513,26 +507,12 @@ export default function SolicitudesHomePage() {
         />
       ) : null}
 
-      {mostrador === 'buscar' ? (
-        <SolicitanteModal
-          tipos={tiposMostrador}
-          idPropio={user?.id}
-          inicial={solicitante?.persona.numeroDocumento}
-          onClose={cerrarMostrador}
-          onConfirm={(persona, tipos) => {
-            setSolicitante({ persona, tipos })
-            setMostrador('armar')
-          }}
-        />
-      ) : null}
-
-      {mostrador === 'armar' && solicitante ? (
+      {mostrador ? (
         <FacturaModal
           obras={obras}
           elementos={elementos}
-          tipos={solicitante.tipos}
-          solicitante={solicitante.persona}
-          onCambiarSolicitante={() => setMostrador('buscar')}
+          tipos={tiposMostrador}
+          mostrador={{ idPropio: user?.id }}
           onClose={cerrarMostrador}
           onSubmit={registrarMostrador}
         />
