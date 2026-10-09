@@ -8,6 +8,8 @@ import type {
   FacturaApi,
   FacturaEstado,
   FacturaFilaApi,
+  FacturaTipo,
+  SolicitanteApi,
   SolicitudEstado,
 } from '@/modules/solicitudes/types'
 
@@ -212,3 +214,8 @@ export const inputClass =
 
 export const inputErrorClass =
   'w-full rounded-2xl border border-sena-danger-line bg-sena-danger-soft/40 px-4 py-3 text-sm text-sena-text outline-none transition focus:border-sena-danger-text focus:bg-white focus:ring-4 focus:ring-sena-danger-text/10'
+
+/* Mostrador: lo que esa persona puede pedir de lo que esta bodega entrega. */
+export function tiposDe(persona: SolicitanteApi, tipos: FacturaTipo[]) {
+  return tipos.filter((tipo) => (tipo === 'consumo' ? persona.puedeConsumo : persona.puedeDevolutivo))
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 
 import { ApiError } from '@/shared/lib/api'
@@ -13,6 +13,8 @@ import {
   SearchInput,
   TableCard,
   TableLoading,
+  pageButtonClass,
+  paginationBarClass,
 } from '@/shared/components/DataTable'
 import {
   AlertIcon,
@@ -23,6 +25,7 @@ import {
   UserIcon,
 } from '@/shared/components/icons/AppIcons'
 import { cn } from '@/shared/lib/cn'
+import { usePagination } from '@/shared/lib/table'
 import { useAuth } from '@/modules/auth/context/auth'
 import { useNotifications } from '@/modules/notificaciones/context/notifications'
 
@@ -53,6 +56,10 @@ const VACIO: Record<VistaPrestamos, string> = {
   devueltos: 'Todavía no hay préstamos devueltos por completo.',
   todos: 'Todavía no se ha prestado equipo.',
 }
+
+/* Pedidos por página. Se pagina por pedido y no por persona: una persona
+ * puede tener 1 pedido o 20, y así cada página pesa lo mismo. */
+const POR_PAGINA = 5
 
 type Persona = {
   id: number
@@ -129,7 +136,15 @@ function Prestamos({ puedeRecibir, puedeAjustar }: { puedeRecibir: boolean; pued
   const [vista, setVista] = useState<VistaPrestamos>(() =>
     VISTAS.some((row) => row.id === pedida) ? (pedida as VistaPrestamos) : 'afuera',
   )
-  const [search, setSearch] = useState(() => searchParams.get('buscar') ?? '')
+  const [search, setSearchValue] = useState(() => searchParams.get('buscar') ?? '')
+  const [page, setPage] = useState(1)
+  const listaRef = useRef<HTMLDivElement>(null)
+
+  // Buscar o cambiar de pestaña vuelve a la primera página.
+  const setSearch = (value: string) => {
+    setSearchValue(value)
+    setPage(1)
+  }
   const [facturas, setFacturas] = useState<FacturaApi[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -198,6 +213,36 @@ function Prestamos({ puedeRecibir, puedeAjustar }: { puedeRecibir: boolean; pued
     )
   }, [facturas, search])
 
+  // Los pedidos en el orden de la lista (persona por persona) y, de la página
+  // actual, se vuelven a agrupar por persona. Si los pedidos de alguien quedan
+  // repartidos entre dos páginas, el encabezado lo dice.
+  const pedidos = useMemo(
+    () => personas.flatMap((persona) => persona.pedidos.map((factura) => ({ persona, factura }))),
+    [personas],
+  )
+  const pagina = usePagination(pedidos, page, POR_PAGINA)
+  const grupos = useMemo(() => {
+    const lista: { persona: Persona; pedidos: FacturaApi[]; desde: number }[] = []
+
+    for (const { persona, factura } of pagina.pageRows) {
+      const ultimo = lista.at(-1)
+      if (ultimo?.persona.id === persona.id) ultimo.pedidos.push(factura)
+      else
+        lista.push({
+          persona,
+          pedidos: [factura],
+          desde: persona.pedidos.indexOf(factura) + 1,
+        })
+    }
+
+    return lista
+  }, [pagina.pageRows])
+
+  const irAPagina = (siguiente: number) => {
+    setPage(siguiente)
+    listaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const resumen = useMemo(
     () => ({
       personas: personas.filter((row) => row.afuera > 0).length,
@@ -232,6 +277,7 @@ function Prestamos({ puedeRecibir, puedeAjustar }: { puedeRecibir: boolean; pued
         onCambiar={(id) => {
           setLoading(true)
           setVista(id)
+          setPage(1)
         }}
       >
         <SearchInput
@@ -263,9 +309,9 @@ function Prestamos({ puedeRecibir, puedeAjustar }: { puedeRecibir: boolean; pued
           <TableLoading label={search.trim() ? 'No se encontraron préstamos.' : VACIO[vista]} />
         </TableCard>
       ) : (
-        <div className="space-y-6">
-          {personas.map((persona) => (
-            <TableCard key={persona.id}>
+        <div ref={listaRef} className="scroll-mt-6 space-y-6">
+          {grupos.map(({ persona, pedidos: pedidosPagina, desde }) => (
+            <TableCard key={`${persona.id}-${desde}`}>
               <header className="flex flex-col gap-4 border-b border-sena-hairline bg-white/40 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
                 <div className="flex min-w-0 items-center gap-4">
                   <span
@@ -284,6 +330,13 @@ function Prestamos({ puedeRecibir, puedeAjustar }: { puedeRecibir: boolean; pued
                       {persona.email ? `${persona.email} · ` : ''}
                       {persona.pedidos.length === 1 ? '1 pedido' : `${persona.pedidos.length} pedidos`}
                     </p>
+                    {pedidosPagina.length < persona.pedidos.length ? (
+                      <p className="mt-0.5 text-xs font-medium text-sena-dark">
+                        {pedidosPagina.length === 1
+                          ? `En esta página: pedido ${desde} de ${persona.pedidos.length}`
+                          : `En esta página: pedidos ${desde}–${desde + pedidosPagina.length - 1} de ${persona.pedidos.length}`}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
@@ -306,7 +359,7 @@ function Prestamos({ puedeRecibir, puedeAjustar }: { puedeRecibir: boolean; pued
               </header>
 
               <ul className="divide-y divide-sena-hairline">
-                {persona.pedidos.map((factura) => (
+                {pedidosPagina.map((factura) => (
                   <Pedido
                     key={factura.codigoSolicitud}
                     factura={factura}
@@ -319,6 +372,17 @@ function Prestamos({ puedeRecibir, puedeAjustar }: { puedeRecibir: boolean; pued
               </ul>
             </TableCard>
           ))}
+
+          {pagina.totalPages > 1 ? (
+            <Paginacion
+              pagina={pagina.currentPage}
+              total={pagina.totalPages}
+              desde={pagina.from}
+              hasta={pagina.to}
+              cuantos={pagina.total}
+              onCambiar={irAPagina}
+            />
+          ) : null}
         </div>
       )}
 
@@ -564,5 +628,54 @@ function PlazoModal({
         </div>
       </div>
     </Modal>
+  )
+}
+
+/*
+ * Anterior / Siguiente con la página y el rango. Usa los estilos de la
+ * paginación de las tablas (DataTable) para verse igual que el resto.
+ */
+function Paginacion({
+  pagina,
+  total,
+  desde,
+  hasta,
+  cuantos,
+  onCambiar,
+}: {
+  pagina: number
+  total: number
+  desde: number
+  hasta: number
+  cuantos: number
+  onCambiar: (pagina: number) => void
+}) {
+  const boton = cn(pageButtonClass, 'w-auto px-3 text-sm font-semibold whitespace-nowrap sm:px-4')
+
+  return (
+    <TableCard>
+      <nav aria-label="Paginación de pedidos" className={cn(paginationBarClass, 'border-t-0 px-4 sm:px-7')}>
+        <p className="text-sm text-sena-strong tabular-nums" aria-live="polite">
+          Mostrando {desde}–{hasta} de {cuantos} {cuantos === 1 ? 'pedido' : 'pedidos'}
+        </p>
+
+        <div className="flex items-center justify-between gap-2 sm:justify-end sm:gap-3">
+          <button type="button" className={boton} disabled={pagina <= 1} onClick={() => onCambiar(pagina - 1)}>
+            ‹ Anterior
+          </button>
+          <span className="text-sm font-semibold whitespace-nowrap text-sena-text tabular-nums">
+            Página {pagina} de {total}
+          </span>
+          <button
+            type="button"
+            className={boton}
+            disabled={pagina >= total}
+            onClick={() => onCambiar(pagina + 1)}
+          >
+            Siguiente ›
+          </button>
+        </div>
+      </nav>
+    </TableCard>
   )
 }
