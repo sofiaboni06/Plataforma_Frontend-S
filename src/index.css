@@ -291,3 +291,12 @@ img {
     box-shadow: var(--shadow-surface);
   }
 }
+
+/* Paleta de las gráficas (shadcn/ui Charts). */
+:root {
+  --chart-1: #00a651;
+  --chart-2: #f7931e;
+  --chart-3: #2563eb;
+  --chart-4: #d92d20;
+  --chart-5: #8a9a93;
+}

@@ -1,4 +1,5 @@
 import type { AppModule } from '@/shared/types/profile'
+import { esAdminBodega } from '@/modules/inventario/lib/tablero'
 
 export type InventoryScreenCode =
   | 'categorias'
@@ -13,10 +14,13 @@ export type InventoryScreenCode =
   | 'obras'
   | 'solicitudes'
   | 'alertas'
+  | 'tablero'
 
 export type InventoryCaller = {
   isAdmin?: boolean
   permissions?: string[]
+  /* Nombre del perfil: separa Admin bodega de Almacenista. */
+  role?: string
 }
 
 export type InventoryAction = 'list' | 'create' | 'view' | 'edit'
@@ -179,6 +183,7 @@ export function locateInventoryPath(path: string): { screen: InventoryScreenCode
   if (path === '/inventario/stands') return { screen: 'stands', action: 'list' }
   if (path === '/inventario/obras') return { screen: 'obras', action: 'list' }
   if (path === '/inventario/alertas') return { screen: 'alertas', action: 'list' }
+  if (path === '/inventario/tablero') return { screen: 'tablero', action: 'list' }
 
   if (path === '/inventario/solicitudes' || path.startsWith('/inventario/solicitudes/')) {
     return { screen: 'solicitudes', action: 'list' }
@@ -235,7 +240,7 @@ function onlyRequests(access: InventoryCaller) {
   )
 }
 
-const VIEW_CODE: Record<Exclude<InventoryScreenCode, 'solicitudes' | 'alertas'>, string> = {
+const VIEW_CODE: Record<Exclude<InventoryScreenCode, 'solicitudes' | 'alertas' | 'tablero'>, string> = {
   categorias: 'categoria.ver',
   items: 'item.ver',
   elementos: 'elemento.ver',
@@ -257,6 +262,14 @@ const SOLICITUD_CODES = [
   'solicitud_material.crear',
   'solicitud_material.entregar',
 ]
+
+/* Tablero con gráficas: solo Admin bodega (no Almacenista). */
+export const TABLERO_SCREEN: InventoryScreen = {
+  code: 'tablero',
+  label: 'Tablero',
+  description: 'Gráficas de devoluciones, pedidos, entregas, préstamos y stock de tu bodega.',
+  to: '/inventario/tablero',
+}
 
 export const SOLICITUDES_SCREEN: InventoryScreen = {
   code: 'solicitudes',
@@ -320,7 +333,7 @@ export function allowsPermission(
   return permissions?.includes(code) === true
 }
 
-function actionCode(screen: Exclude<InventoryScreenCode, 'solicitudes' | 'alertas'>, action: InventoryAction) {
+function actionCode(screen: Exclude<InventoryScreenCode, 'solicitudes' | 'alertas' | 'tablero'>, action: InventoryAction) {
   if (action === 'list' || action === 'view') return VIEW_CODE[screen]
   return WRITE_CODE[screen]?.[action] ?? VIEW_CODE[screen]
 }
@@ -331,6 +344,9 @@ function canUseAction(screen: InventoryScreenCode, action: InventoryAction, acce
   }
   if (screen === 'alertas') {
     return !access.isAdmin && access.permissions?.includes('alerta.ver') === true
+  }
+  if (screen === 'tablero') {
+    return esAdminBodega(access)
   }
   if (REQUESTER_HIDDEN.has(screen) && onlyRequests(access)) {
     return false
@@ -348,6 +364,7 @@ export function visibleInventoryScreens(access: InventoryCaller = {}) {
         (screen) =>
           screen.code !== 'solicitudes' &&
           screen.code !== 'alertas' &&
+          screen.code !== 'tablero' &&
           !(REQUESTER_HIDDEN.has(screen.code) && onlyRequests(access)) &&
           (access.permissions ?? []).includes(VIEW_CODE[screen.code]),
       )
@@ -361,6 +378,10 @@ export function visibleInventoryScreens(access: InventoryCaller = {}) {
   if (!access.isAdmin && access.permissions?.includes('alerta.ver')) {
     const alertas = INVENTORY_SCREENS.find((screen) => screen.code === 'alertas')
     if (alertas) extra.push(alertas)
+  }
+
+  if (esAdminBodega(access)) {
+    extra.push(TABLERO_SCREEN)
   }
 
   return extra.length ? [...screens, ...extra] : screens
