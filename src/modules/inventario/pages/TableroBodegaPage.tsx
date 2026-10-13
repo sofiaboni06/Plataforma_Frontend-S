@@ -8,6 +8,7 @@ import { useAuth } from '@/modules/auth/context/auth'
 import { getElementos } from '@/modules/inventario/data/elemento'
 import { getFacturas } from '@/modules/solicitudes/data/solicitudes'
 import ChartCard from '@/modules/inventario/components/ChartCard'
+import StockReponerList from '@/modules/inventario/components/StockReponerList'
 import AreaSolicitudesChart from '@/modules/inventario/components/AreaSolicitudesChart'
 import {
   VENTANA_ROTACION_DIAS,
@@ -243,24 +244,9 @@ export default function TableroBodegaPage() {
               tipoInicial="barras"
               unidad="Elementos"
               className="xl:col-span-8"
+              ladoALado
             >
-              {datos.stock.criticos.length > 0 ? (
-                <div className="mt-6 border-t border-sena-line-soft pt-4">
-                  <p className="mb-2 text-sm font-semibold text-sena-text">Para reponer</p>
-                  <ul className="max-h-48 divide-y divide-sena-line-soft overflow-y-auto text-sm">
-                    {datos.stock.criticos.slice(0, 10).map((elemento) => (
-                      <li key={elemento.id} className="flex items-center justify-between gap-4 py-2">
-                        <Link to={`/inventario/elementos/${elemento.id}`} className="truncate text-sena-text hover:text-sena-strong">
-                          {elemento.nombre}
-                        </Link>
-                        <span className={elemento.cantidad <= 0 ? 'shrink-0 font-semibold text-sena-danger-text' : 'shrink-0 font-semibold text-sena-warn-text'}>
-                          {elemento.cantidad} / mín. {elemento.cantidadMinima}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
+              <StockReponerList elementos={datos.stock.criticos} />
             </ChartCard>
           </Seccion>
         </div>

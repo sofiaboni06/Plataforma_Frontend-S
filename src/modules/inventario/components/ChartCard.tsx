@@ -32,6 +32,8 @@ type ChartCardProps = {
   fijo?: boolean
   /* Gráfica propia en lugar de la generada (implica `fijo`). */
   grafica?: ReactNode
+  /* En pantallas anchas, `children` va a la derecha de la gráfica. */
+  ladoALado?: boolean
 }
 
 function colorDe(punto: Punto, index: number) {
@@ -51,6 +53,7 @@ export default function ChartCard({
   altura = 'min-h-80',
   fijo = false,
   grafica,
+  ladoALado = false,
 }: ChartCardProps) {
   const [tipo, setTipo] = useState<TipoGrafica>(tipoInicial)
 
@@ -98,6 +101,8 @@ export default function ChartCard({
         </div>
       </header>
 
+      <div className={`flex min-h-0 flex-1 flex-col gap-6 ${ladoALado ? 'xl:flex-row' : ''}`}>
+      <div className="flex min-w-0 flex-1 flex-col">
       {grafica ? (
         <div className="flex flex-1 items-center">{grafica}</div>
       ) : vacio ? (
@@ -156,7 +161,13 @@ export default function ChartCard({
         </div>
       )}
 
-      {children}
+      </div>
+      {children ? (
+        <div className={ladoALado ? 'border-t border-sena-line-soft pt-5 xl:w-[24rem] xl:shrink-0 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-6' : 'border-t border-sena-line-soft pt-5'}>
+          {children}
+        </div>
+      ) : null}
+      </div>
     </section>
   )
 }
