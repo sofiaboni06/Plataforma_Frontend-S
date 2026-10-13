@@ -3,6 +3,7 @@ import ColombiaMap from '@/modules/landing/components/ColombiaMap'
 import Header from '@/modules/landing/components/Header'
 import Hero from '@/modules/landing/components/Hero'
 import ProgramCard from '@/modules/landing/components/ProgramCard'
+import '@/modules/landing/styles/landing.css'
 
 const categories = [
   { title: 'Formación', description: 'Técnica y Tecnológica', icon: 'training' },
@@ -118,7 +119,7 @@ const footerColumns = [
 
 export default function Dashboard() {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-white font-sans text-[#173e4e]">
+    <main className="lp-root min-h-screen overflow-x-clip font-sans">
       <Header />
       <Hero />
       <Categories />
@@ -136,8 +137,8 @@ export default function Dashboard() {
 
 function Categories() {
   return (
-    <section className="relative z-20 mx-auto -mt-10 max-w-295 px-5 lg:px-8">
-      <div className="grid overflow-hidden rounded-[22px] border border-[#dfe7e2] bg-white shadow-[0_8px_28px_rgba(0,0,0,0.08)] md:grid-cols-4">
+    <section className="lp-cats relative z-20 mx-auto -mt-12 max-w-7xl px-5 lg:px-10">
+      <div className="lp-card lp-cat-band grid overflow-hidden rounded-[26px] md:grid-cols-4">
         {categories.map((category, index) => (
           <CategoryCard
             key={category.title}
@@ -154,11 +155,16 @@ function Categories() {
 
 function Programs() {
   return (
-    <section className="mx-auto max-w-295 px-5 pb-6 pt-10 lg:px-8">
-      <h2 className="mb-6 text-[28px] font-bold tracking-tight text-[#0a4b43]">
-        Nuestros programas destacados
-      </h2>
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+    <section id="programas" className="mx-auto max-w-7xl px-5 pb-16 pt-16 lg:px-10 lg:pt-20">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <h2 className="lp-h2 text-[27px] lg:text-[32px]">Nuestros programas destacados</h2>
+        <a href="#programas" className="lp-section-link mt-2">
+          Ver todos los programas
+          <ArrowGlyph />
+        </a>
+      </div>
+
+      <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         {programs.map((program) => (
           <ProgramCard
             key={program.title}
@@ -175,35 +181,35 @@ function Programs() {
 
 function Colombia() {
   return (
-    <section id="sedes" className="scroll-mt-8 mx-auto max-w-295 px-5 py-14 lg:px-8">
-      <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr_1fr]">
+    <section id="sedes" className="scroll-mt-8 mx-auto max-w-7xl px-5 py-16 lg:px-10 lg:py-20">
+      <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.05fr_1fr]">
         <div>
-          <h2 className="text-[32px] font-bold leading-tight tracking-tight text-[#0a4b43]">
-            El SENA en Colombia
-          </h2>
-          <p className="mt-4 max-w-90 text-[16px] leading-7 text-[#5d6f68]">
+          <h2 className="lp-h2 text-[27px] lg:text-[32px]">El SENA en Colombia</h2>
+          <p className="mt-6 max-w-90 text-[16px] leading-7 text-[#5b7368]">
             Estamos presentes en todo el territorio nacional, llevando formación de calidad
             a cada región del país y contribuyendo al desarrollo de las comunidades.
           </p>
-          <a href="#contacto" className="mt-6 inline-flex items-center text-[15px] font-semibold text-[#0b925f]">
+          <a href="#contacto" className="lp-btn lp-btn-ghost mt-6">
             Conoce más sobre el SENA
-            <span className="ml-2">→</span>
+            <ArrowGlyph />
           </a>
         </div>
 
-        <div className="flex justify-center">
+        {/* Contenedor del mapa. No se aplica ningún estilo a `ColombiaMap`
+            ni a sus elementos internos: solo se decora la caja que lo envuelve. */}
+        <div className="lp-map-card">
           <ColombiaMap className="h-80 w-auto max-w-full lg:h-90" />
         </div>
 
-        <ul className="space-y-5">
+        <ul className="space-y-4">
           {presence.map((item) => (
-            <li key={item.title} className="flex gap-3">
-              <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-[#eef8f1] text-[#0b925f]">
+            <li key={item.title} className="lp-mini-card">
+              <span className="lp-icon-tile size-11 rounded-full">
                 <Glyph name={item.icon} />
               </span>
               <div>
-                <p className="font-bold text-[#0a4b43]">{item.title}</p>
-                <p className="text-[14px] leading-5 text-[#5d6f68]">{item.text}</p>
+                <p className="text-[15px] font-bold text-[#0a4030]">{item.title}</p>
+                <p className="mt-0.5 text-[13px] leading-5 text-[#5b7368]">{item.text}</p>
               </div>
             </li>
           ))}
@@ -215,25 +221,22 @@ function Colombia() {
 
 function FormationOffer() {
   return (
-    <section id="oferta" className="scroll-mt-8 bg-[#f5f8f6] py-16">
-      <div className="mx-auto max-w-295 px-5 lg:px-8">
-        <h2 className="text-center text-[32px] font-bold tracking-tight text-[#0a4b43]">
+    <section id="oferta" className="scroll-mt-8 py-16 lg:py-20">
+      <div className="mx-auto max-w-7xl px-5 lg:px-10">
+        <h2 className="lp-h2 lp-h2-center text-[27px] lg:text-[32px]">
           Conoce nuestra oferta de formación
         </h2>
         <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {offers.map((offer) => (
-            <article
-              key={offer.title}
-              className="rounded-[18px] bg-white px-6 py-7 shadow-[0_4px_18px_rgba(10,34,28,0.06)]"
-            >
-              <span className="grid size-12 place-items-center rounded-2xl bg-[#eef8f1] text-[#0b925f]">
+            <article key={offer.title} className="lp-card flex flex-col px-6 py-7">
+              <span className="lp-icon-tile">
                 <Glyph name={offer.icon} />
               </span>
-              <h3 className="mt-5 text-[20px] font-bold text-[#0a4b43]">{offer.title}</h3>
-              <p className="mt-2 min-h-12t-[14px] leading-6 text-[#5d6f68]">{offer.text}</p>
-              <a href="#buscar" className="mt-5 inline-flex items-center text-[14px] font-semibold text-[#0b925f]">
+              <h3 className="mt-5 text-[18px] font-bold text-[#0a4030]">{offer.title}</h3>
+              <p className="mt-2 mb-6 min-h-12 text-[14px] leading-6 text-[#5b7368]">{offer.text}</p>
+              <a href="#buscar" className="lp-btn lp-btn-primary lp-btn-block mt-auto">
                 Consultar programas
-                <span className="ml-1">→</span>
+                <ArrowGlyph />
               </a>
             </article>
           ))}
@@ -245,20 +248,18 @@ function FormationOffer() {
 
 function OpportunitySearch() {
   return (
-    <section id="buscar" className="scroll-mt-8 mx-auto max-w-295 px-5 py-16 lg:px-8">
-      <h2 className="text-center text-[32px] font-bold tracking-tight text-[#0a4b43]">
-        Encuentra oportunidades para ti
-      </h2>
+    <section id="buscar" className="scroll-mt-8 mx-auto max-w-7xl px-5 pb-16 lg:px-10">
+      <h2 className="lp-h2 text-[27px] lg:text-[32px]">Encuentra oportunidades para ti</h2>
       <form
-        className="mt-8 grid gap-3 rounded-[18px] border border-[#dce6e0] bg-[#f8fbf9] p-3 shadow-sm md:grid-cols-[1.4fr_repeat(3,0.9fr)_auto] md:items-center md:p-4"
+        className="lp-searchbar mt-8 grid gap-3 p-4 md:grid-cols-[1.5fr_repeat(3,0.85fr)_auto] md:items-center"
         onSubmit={(event) => event.preventDefault()}
       >
-        <label className="flex items-center gap-3 rounded-xl bg-white px-4 py-3">
+        <label className="flex items-center gap-3 rounded-xl bg-white px-3 ring-1 ring-[#d6eae0] transition focus-within:ring-2 focus-within:ring-[#0bb35f]/35">
           <SearchGlyph />
           <input
             type="search"
             placeholder="¿Qué quieres aprender?"
-            className="w-full bg-transparent text-[14px] outline-none placeholder:text-[#8a9a94]"
+            className="h-12 w-full bg-transparent text-[14px] text-[#0a4030] outline-none placeholder:text-[#8a9a94]"
           />
         </label>
         <SelectField label="Programa" options={['Programa', 'Técnico', 'Tecnólogo', 'Curso corto']} />
@@ -267,11 +268,9 @@ function OpportunitySearch() {
           label="Ciudad o región"
           options={['Ciudad o región', 'Bogotá', 'Medellín', 'Cali', 'Barranquilla']}
         />
-        <button
-          type="submit"
-          className="h-12 rounded-xl bg-[#0b925f] px-5 text-[14px] font-bold text-white transition hover:brightness-105"
-        >
+        <button type="submit" className="lp-btn lp-btn-primary">
           Buscar oferta
+          <ArrowGlyph />
         </button>
       </form>
     </section>
@@ -280,21 +279,27 @@ function OpportunitySearch() {
 
 function News() {
   return (
-    <section id="noticias" className="scroll-mt-8 mx-auto max-w-295 px-5 pb-16 lg:px-8">
-      <h2 className="text-[32px] font-bold tracking-tight text-[#0a4b43]">Noticias y actualidad</h2>
+    <section id="noticias" className="scroll-mt-8 mx-auto max-w-7xl px-5 pb-16 lg:px-10">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <h2 className="lp-h2 text-[27px] lg:text-[32px]">Noticias y actualidad</h2>
+        <a href="#noticias" className="lp-section-link mt-2">
+          Ver todas las noticias
+          <ArrowGlyph />
+        </a>
+      </div>
+
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {news.map((item) => (
-          <article
-            key={item.title}
-            className="overflow-hidden rounded-2xl border border-[#e4eee8] bg-white shadow-[0_4px_16px_rgba(10,34,28,0.05)]"
-          >
-            <img src={item.image} alt="" className="h-45 w-full object-cover" />
+          <article key={item.title} className="lp-card overflow-hidden">
+            <div className="relative">
+              <img src={item.image} alt="" className="h-45 w-full object-cover" />
+              <p className="lp-badge">Educación</p>
+            </div>
             <div className="px-5 py-5">
-              <p className="text-[12px] font-semibold uppercase tracking-wide text-[#0b925f]">Educación</p>
-              <h3 className="mt-2 text-[17px] font-bold leading-6 text-[#0a4b43]">{item.title}</h3>
-              <a href="#noticias" className="mt-4 inline-flex items-center text-[14px] font-semibold text-[#0b925f]">
+              <h3 className="mt-0 text-[16px] font-bold leading-6 text-[#0a4030]">{item.title}</h3>
+              <a href="#noticias" className="lp-section-link mt-3">
                 Leer más
-                <span className="ml-1">→</span>
+                <ArrowGlyph />
               </a>
             </div>
           </article>
@@ -306,19 +311,16 @@ function News() {
 
 function Services() {
   return (
-    <section className="mx-auto max-w-295 px-5 pb-16 lg:px-8">
-      <h2 className="text-[32px] font-bold tracking-tight text-[#0a4b43]">Servicios para la ciudadanía</h2>
+    <section className="mx-auto max-w-7xl px-5 pb-16 lg:px-10">
+      <h2 className="lp-h2 text-[27px] lg:text-[32px]">Servicios para la ciudadanía</h2>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {services.map((service) => (
-          <article
-            key={service.title}
-            className="rounded-2xl border border-[#e4eee8] bg-white px-5 py-6 text-center shadow-[0_2px_10px_rgba(10,34,28,0.04)]"
-          >
-            <span className="mx-auto grid size-12 place-items-center rounded-full bg-[#eef8f1] text-[#0b925f]">
+          <article key={service.title} className="lp-card px-5 py-6 text-center">
+            <span className="lp-icon-tile mx-auto rounded-full">
               <Glyph name={service.icon} />
             </span>
-            <h3 className="mt-4 text-[16px] font-bold text-[#0a4b43]">{service.title}</h3>
-            <p className="mt-1 text-[13px] leading-5 text-[#5d6f68]">{service.text}</p>
+            <h3 className="mt-4 text-[15px] font-bold text-[#0a4030]">{service.title}</h3>
+            <p className="mt-1 text-[13px] leading-5 text-[#5b7368]">{service.text}</p>
           </article>
         ))}
       </div>
@@ -328,32 +330,27 @@ function Services() {
 
 function FutureBanner() {
   return (
-    <section className="relative overflow-hidden bg-[#123c2c]">
+    <section className="relative overflow-hidden">
       <img
         src="/img/cta-futuro.jpg"
         alt=""
         className="absolute inset-0 h-full w-full object-cover object-center"
       />
-      <div className="absolute inset-0 bg-[#06281c]/72" />
-      <div className="relative mx-auto max-w-295 px-5 py-16 lg:px-8 lg:py-20">
-        <h2 className="max-w-130 text-[34px] font-extrabold leading-tight text-white lg:text-[40px]">
+      <div className="lp-cta-scrim" />
+      <div className="relative mx-auto max-w-7xl px-5 py-16 lg:px-10 lg:py-20">
+        <p className="lp-eyebrow">SENA</p>
+        <h2 className="mt-3 max-w-130 text-[30px] font-extrabold leading-tight text-white lg:text-[40px]">
           Construye tu futuro con el SENA
         </h2>
         <p className="mt-3 max-w-130 text-[16px] leading-7 text-white/90">
           Únete a nuestra misión. Formación gratuita y de calidad para que llegues más lejos.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
-          <a
-            href="#oferta"
-            className="inline-flex h-12 items-center rounded-full bg-sena-orange px-6 text-[15px] font-bold text-white"
-          >
+          <a href="#oferta" className="lp-btn lp-btn-primary">
             Explorar oferta de formación
-            <span className="ml-2">→</span>
+            <ArrowGlyph />
           </a>
-          <a
-            href="#sedes"
-            className="inline-flex h-12 items-center rounded-full border border-white/80 px-6 text-[15px] font-semibold text-white"
-          >
+          <a href="#sedes" className="lp-btn lp-btn-outline-dark">
             Conocer el SENA
           </a>
         </div>
@@ -364,21 +361,21 @@ function FutureBanner() {
 
 function SiteFooter() {
   return (
-    <footer id="contacto" className="bg-[#013d2c] text-white">
-      <div className="mx-auto grid max-w-295 gap-10 px-5 py-12 sm:grid-cols-2 lg:grid-cols-[1.05fr_repeat(5,1fr)] lg:px-8">
+    <footer id="contacto" className="lp-footer">
+      <div className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:grid-cols-2 lg:grid-cols-[1.05fr_repeat(5,1fr)] lg:px-10">
         <div>
-          <img src="/img/logo-sena.svg" alt="SENA" className="h-16 w-auto object-contain" />
-          <p className="mt-4 max-w-55 text-[13px] leading-5 text-white/75">
+          <img src="/img/logo-sena.svg" alt="SENA" className="h-14 w-auto object-contain" />
+          <p className="mt-4 max-w-55 text-[13px] leading-5">
             Servicio Nacional de Aprendizaje. Formación gratuita y de calidad para quien la necesita.
           </p>
         </div>
         {footerColumns.map((column) => (
           <div key={column.title}>
-            <p className="text-[14px] font-bold">{column.title}</p>
+            <p className="text-[14px] font-bold text-white">{column.title}</p>
             <ul className="mt-3 space-y-2">
               {column.links.map((link) => (
                 <li key={link}>
-                  <a href="#contacto" className="text-[13px] text-white/75 hover:text-white">
+                  <a href="#contacto" className="text-[13px] transition-colors hover:text-white">
                     {link}
                   </a>
                 </li>
@@ -387,26 +384,26 @@ function SiteFooter() {
           </div>
         ))}
         <div>
-          <p className="text-[14px] font-bold">Síguenos en</p>
+          <p className="text-[14px] font-bold text-white">Síguenos en</p>
           <div className="mt-3 flex gap-2">
-            <a href="#contacto" className="grid size-8 place-items-center rounded-full bg-white/10 text-white" aria-label="Facebook">
+            <a href="#contacto" className="lp-social" aria-label="Facebook">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M14.5 8.5V6.8c0-.7.5-1 1.2-1H17V3h-2.4C12.2 3 11 4.4 11 6.6v1.9H9v2.7h2V21h3.5v-9.8h2.3l.4-2.7h-2.7Z" />
               </svg>
             </a>
-            <a href="#contacto" className="grid size-8 place-items-center rounded-full bg-white/10 text-white" aria-label="Instagram">
+            <a href="#contacto" className="lp-social" aria-label="Instagram">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" strokeWidth="1.8" />
                 <circle cx="12" cy="12" r="3.4" stroke="currentColor" strokeWidth="1.8" />
                 <circle cx="16.6" cy="7.4" r="1" fill="currentColor" />
               </svg>
             </a>
-            <a href="#contacto" className="grid size-8 place-items-center rounded-full bg-white/10 text-white" aria-label="X">
+            <a href="#contacto" className="lp-social" aria-label="X">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M17.8 3H20l-6.2 7.1L21 21h-5.5l-4.3-6.3L6.2 21H4l6.7-7.6L3 3h5.6l3.9 5.8L17.8 3Zm-1 16.2h1.5L7.3 4.7H5.7l11.1 14.5Z" />
               </svg>
             </a>
-            <a href="#contacto" className="grid size-8 place-items-center rounded-full bg-white/10 text-white" aria-label="YouTube">
+            <a href="#contacto" className="lp-social" aria-label="YouTube">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M22 12.2s0-3.2-.4-4.6c-.2-.9-.9-1.6-1.8-1.8C18.2 5.4 12 5.4 12 5.4s-6.2 0-7.8.4c-.9.2-1.6.9-1.8 1.8C2 9 2 12.2 2 12.2s0 3.2.4 4.6c.2.9.9 1.6 1.8 1.8 1.6.4 7.8.4 7.8.4s6.2 0 7.8-.4c.9-.2 1.6-.9 1.8-1.8.4-1.4.4-4.6.4-4.6ZM10 15.2V9.2l5.2 3-5.2 3Z" />
               </svg>
@@ -415,7 +412,7 @@ function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-295 flex-col gap-3 px-5 py-4 text-[12px] text-white/70 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-4 text-[12px] text-white/70 lg:flex-row lg:items-center lg:justify-between lg:px-10">
           <p>© 2025 Servicio Nacional de Aprendizaje - SENA. Todos los derechos reservados.</p>
           <p>El SENA es un establecimiento público del orden nacional, adscrito al Ministerio del Trabajo.</p>
         </div>
@@ -428,10 +425,7 @@ function SelectField({ label, options }: { label: string; options: string[] }) {
   return (
     <label className="block">
       <span className="sr-only">{label}</span>
-      <select
-        defaultValue={options[0]}
-        className="h-12 w-full rounded-xl bg-white px-4 text-[14px] text-[#173e4e] outline-none"
-      >
+      <select defaultValue={options[0]} className="lp-field">
         {options.map((option) => (
           <option key={option} value={option}>
             {option}
@@ -444,9 +438,23 @@ function SelectField({ label, options }: { label: string; options: string[] }) {
 
 function SearchGlyph() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-[#0b925f]">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0 text-[#0a9e55]">
       <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
       <path d="M16.2 16.2 20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function ArrowGlyph() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
+      <path
+        d="M4 12h15M13.5 6.5 19 12l-5.5 5.5"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
