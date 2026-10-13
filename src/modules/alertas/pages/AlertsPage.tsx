@@ -1,32 +1,25 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
-  ActionButton,
   ErrorBanner,
   PageHeader,
-  RowActions,
   TableCard,
-  TableHeader,
   TableLoading,
-  TableRow,
   pageButtonClass,
-  tableClass,
+  paginationBarClass,
 } from '@/shared/components/DataTable'
-import {
-  AlertIcon,
-  EyeIcon,
-  FilterBroomIcon,
-  HomeIcon,
-  SearchIcon,
-} from '@/shared/components/icons/AppIcons'
+import { AlertIcon, FilterBroomIcon, HomeIcon, SearchIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError } from '@/shared/lib/api'
+import { cn } from '@/shared/lib/cn'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
 import { useNotifications } from '@/modules/notificaciones/context/notifications'
 import { getAllAlertas } from '@/modules/alertas/data/alertas'
 import type { AlertaApi, TipoAlerta } from '@/modules/alertas/types'
 
 type EstadoFiltro = 'Activas' | 'Cerradas' | 'Todas'
+type Severidad = 'agotado' | 'critico' | 'bajo'
+type SeveridadFiltro = Severidad | 'todas'
 
 type AlertFilters = {
   type: TipoAlerta | 'Todos'
@@ -51,18 +44,46 @@ const TIPO_LABEL: Record<TipoAlerta, string> = {
   por_agotarse: 'Por agotarse',
 }
 
-const TABS: Array<{ label: string; type: TipoAlerta | 'Todos' }> = [
-  { label: 'Todas las alertas', type: 'Todos' },
-  { label: 'Agotados', type: 'agotado' },
-  { label: 'Por agotarse', type: 'por_agotarse' },
-]
+const SEVERIDAD: Record<Severidad, { label: string; chip: string; barra: string; texto: string; punto: string }> = {
+  agotado: {
+    label: 'Agotado',
+    chip: 'bg-sena-danger-soft text-sena-danger-text ring-sena-danger-line',
+    barra: 'bg-sena-danger-text',
+    texto: 'text-sena-danger-text',
+    punto: 'bg-sena-danger-text',
+  },
+  critico: {
+    label: 'Crítico',
+    chip: 'bg-orange-50 text-orange-700 ring-orange-200',
+    barra: 'bg-orange-500',
+    texto: 'text-orange-700',
+    punto: 'bg-orange-500',
+  },
+  bajo: {
+    label: 'Bajo',
+    chip: 'bg-amber-50 text-amber-700 ring-amber-200',
+    barra: 'bg-amber-400',
+    texto: 'text-amber-700',
+    punto: 'bg-amber-400',
+  },
+}
+
+/* Misma regla que la lista "Para reponer" del tablero. */
+function severidad(alerta: AlertaApi): Severidad {
+  if (alerta.tipo === 'agotado' || alerta.cantidad <= 0) return 'agotado'
+  const minimo = alerta.cantidadMinima || 1
+  return alerta.cantidad / minimo <= 0.5 ? 'critico' : 'bajo'
+}
+
+function ratio(alerta: AlertaApi) {
+  return alerta.cantidad / (alerta.cantidadMinima || 1)
+}
 
 const dayKey = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' })
-const dayLabel = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+const dayLabel = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
 const timeLabel = new Intl.DateTimeFormat('es-CO', { hour: '2-digit', minute: '2-digit' })
 
 export default function AlertsPage() {
-  const navigate = useNavigate()
   const { permit } = useInventoryAccess()
   const canViewElemento = permit('elemento.ver')
   const { lastArrival } = useNotifications()
@@ -70,8 +91,7 @@ export default function AlertsPage() {
   const [alertas, setAlertas] = useState<AlertaApi[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState(TABS[0].label)
-  const [draftFilters, setDraftFilters] = useState(DEFAULT_FILTERS)
+  const [nivel, setNivel] = useState<SeveridadFiltro>('todas')
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [page, setPage] = useState(1)
 
@@ -115,23 +135,26 @@ export default function AlertsPage() {
     })
   }, [alertas, filters])
 
-  const tabCount = (type: TipoAlerta | 'Todos') =>
-    type === 'Todos'
-      ? byStatusAndFilters.length
-      : byStatusAndFilters.filter((alerta) => alerta.tipo === type).length
+  const nivelCount = (value: SeveridadFiltro) =>
+    value === 'todas' ? byStatusAndFilters.length : byStatusAndFilters.filter((alerta) => severidad(alerta) === value).length
 
+  /* Activas primero; dentro, de la más grave a la menos grave y luego la más reciente. */
   const filteredAlerts = useMemo(() => {
-    const tabType = TABS.find((tab) => tab.label === activeTab)?.type ?? 'Todos'
-    return tabType === 'Todos'
-      ? byStatusAndFilters
-      : byStatusAndFilters.filter((alerta) => alerta.tipo === tabType)
-  }, [activeTab, byStatusAndFilters])
+    const rows = nivel === 'todas' ? byStatusAndFilters : byStatusAndFilters.filter((alerta) => severidad(alerta) === nivel)
+    return [...rows].sort(
+      (a, b) =>
+        Number(b.estado) - Number(a.estado) ||
+        ratio(a) - ratio(b) ||
+        new Date(b.fecha ?? 0).getTime() - new Date(a.fecha ?? 0).getTime(),
+    )
+  }, [nivel, byStatusAndFilters])
 
   const summary = useMemo(() => {
     const activas = alertas.filter((alerta) => alerta.estado)
     return {
-      agotados: activas.filter((alerta) => alerta.tipo === 'agotado').length,
-      porAgotarse: activas.filter((alerta) => alerta.tipo === 'por_agotarse').length,
+      agotado: activas.filter((alerta) => severidad(alerta) === 'agotado').length,
+      critico: activas.filter((alerta) => severidad(alerta) === 'critico').length,
+      bajo: activas.filter((alerta) => severidad(alerta) === 'bajo').length,
       activas: activas.length,
       cerradas: alertas.length - activas.length,
     }
@@ -140,23 +163,28 @@ export default function AlertsPage() {
   const pageCount = Math.max(1, Math.ceil(filteredAlerts.length / PAGE_SIZE))
   const currentPage = Math.min(page, pageCount)
   const pageAlerts = filteredAlerts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const desde = filteredAlerts.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0
+  const hasta = Math.min(currentPage * PAGE_SIZE, filteredAlerts.length)
 
-  const updateDraft = <K extends keyof AlertFilters>(key: K, value: AlertFilters[K]) => {
-    setDraftFilters((current) => ({ ...current, [key]: value }))
-  }
-
-  const applyFilters = () => {
-    setFilters(draftFilters)
-    setActiveTab(TABS[0].label)
+  const updateFilter = <K extends keyof AlertFilters>(key: K, value: AlertFilters[K]) => {
+    setFilters((current) => ({ ...current, [key]: value }))
     setPage(1)
   }
 
   const clearFilters = () => {
-    setDraftFilters(DEFAULT_FILTERS)
     setFilters(DEFAULT_FILTERS)
-    setActiveTab(TABS[0].label)
+    setNivel('todas')
     setPage(1)
   }
+
+  const hasFilters = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS) || nivel !== 'todas'
+
+  const NIVELES: Array<{ value: SeveridadFiltro; label: string }> = [
+    { value: 'todas', label: 'Todas' },
+    { value: 'agotado', label: 'Agotado' },
+    { value: 'critico', label: 'Crítico' },
+    { value: 'bajo', label: 'Bajo' },
+  ]
 
   return (
     <AppLayout title="Alertas">
@@ -177,244 +205,280 @@ export default function AlertsPage() {
 
       {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}
 
-      <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1.9fr)_minmax(320px,0.9fr)]">
+      <div className="flex flex-col gap-6">
+        <section aria-label="Resumen de alertas" className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+          <SummaryTile label="Agotados" ayuda="Activas sin existencias" count={summary.agotado} tone="agotado" onClick={() => { setNivel('agotado'); updateFilter('status', 'Activas') }} />
+          <SummaryTile label="Críticos" ayuda="Activas a la mitad del mínimo o menos" count={summary.critico} tone="critico" onClick={() => { setNivel('critico'); updateFilter('status', 'Activas') }} />
+          <SummaryTile label="Bajos" ayuda="Activas por debajo del mínimo" count={summary.bajo} tone="bajo" onClick={() => { setNivel('bajo'); updateFilter('status', 'Activas') }} />
+          <SummaryTile label="Activas" ayuda="Todas las abiertas" count={summary.activas} tone="activa" onClick={() => { setNivel('todas'); updateFilter('status', 'Activas') }} />
+          <SummaryTile label="Cerradas" ayuda="Stock ya repuesto" count={summary.cerradas} tone="cerrada" onClick={() => { setNivel('todas'); updateFilter('status', 'Cerradas') }} />
+        </section>
+
         <TableCard>
-          <div className="flex min-w-0 items-center gap-1 overflow-x-auto border-b border-sena-hairline bg-white/40 px-3 pt-2 sm:px-5">
-            {TABS.map((tab) => (
-              <button
-                key={tab.label}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab.label}
-                onClick={() => {
-                  setActiveTab(tab.label)
-                  setPage(1)
-                }}
-                className={`flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-xs font-semibold transition sm:px-4 ${
-                  activeTab === tab.label
-                    ? 'border-sena text-sena-dark'
-                    : 'border-transparent text-sena-text-soft hover:text-sena-dark'
-                }`}
-              >
-                {tab.label}
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === tab.label ? 'bg-sena text-white' : 'bg-sena-soft text-sena-strong'}`}>
-                  {tabCount(tab.type)}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {loading ? (
-            <TableLoading label="Cargando alertas…" />
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className={tableClass}>
-                  <thead>
-                    <tr>
-                      <TableHeader width="w-[17%]">Tipo</TableHeader>
-                      <TableHeader width="w-[26%]">Elemento</TableHeader>
-                      <TableHeader width="w-[22%]">Detalle</TableHeader>
-                      <TableHeader width="w-[15%]">Fecha</TableHeader>
-                      <TableHeader width="w-[12%]">Estado</TableHeader>
-                      <TableHeader width="w-[8%]" align="center">Acciones</TableHeader>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pageAlerts.length ? pageAlerts.map((alerta) => (
-                      <TableRow key={alerta.id}>
-                        <td className="px-3 py-3">
-                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-sena-text">
-                            <AlertTypeMark type={alerta.tipo} />
-                            {TIPO_LABEL[alerta.tipo]}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="block font-semibold text-sena-text">{alerta.elemento?.nombre ?? `Elemento ${alerta.idElemento}`}</span>
-                          <span className="mt-0.5 block text-[11px] text-sena-text-soft">{alerta.elemento?.codigo ?? '—'}</span>
-                        </td>
-                        <td className="px-3 py-3 text-xs text-sena-strong">{alertDetail(alerta)}</td>
-                        <td className="px-3 py-3 text-xs text-sena-text">
-                          {alerta.fecha ? (
-                            <time dateTime={alerta.fecha}>
-                              {dayLabel.format(new Date(alerta.fecha))}
-                              <span className="mt-0.5 block text-[11px] text-sena-text-soft">{timeLabel.format(new Date(alerta.fecha))}</span>
-                            </time>
-                          ) : '—'}
-                        </td>
-                        <td className="px-3 py-3">
-                          <AlertStatusPill alerta={alerta} />
-                        </td>
-                        <td className="px-3 py-3">
-                          <RowActions>
-                            {canViewElemento ? (
-                              <ActionButton
-                                title="Ver elemento"
-                                onClick={() => navigate(`/inventario/elementos/${alerta.idElemento}`)}
-                              >
-                                <EyeIcon className="size-[18px]" />
-                              </ActionButton>
-                            ) : null}
-                          </RowActions>
-                        </td>
-                      </TableRow>
-                    )) : (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-sm text-sena-text-soft">
-                          {alertas.length === 0
-                            ? 'No hay alertas. Todo el stock está por encima de su mínimo.'
-                            : 'No hay alertas que coincidan con los filtros.'}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+          <div className="flex flex-col gap-4 border-b border-sena-hairline p-4 sm:p-6">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.6fr)_auto]">
+              <div className="relative">
+                <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-sena" />
+                <label htmlFor="alert-product" className="sr-only">Buscar elemento</label>
+                <input
+                  id="alert-product"
+                  value={filters.product}
+                  onChange={(event) => updateFilter('product', event.target.value)}
+                  placeholder="Buscar por nombre o código…"
+                  className={cn(filterControlClass, 'pl-9')}
+                />
               </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-sena-hairline px-5 py-3.5 text-xs text-sena-strong sm:px-6">
-                <p>Mostrando {pageAlerts.length} de {filteredAlerts.length} alertas</p>
-                <nav aria-label="Paginación de alertas" className="flex items-center gap-1.5">
-                  <button type="button" className={pageButtonClass} aria-label="Página anterior" disabled={currentPage <= 1} onClick={() => setPage(Math.max(1, currentPage - 1))}>
-                    ‹
-                  </button>
-                  {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
-                    <button
-                      key={pageNumber}
-                      type="button"
-                      aria-current={currentPage === pageNumber ? 'page' : undefined}
-                      onClick={() => setPage(pageNumber)}
-                      className={`grid size-9 place-items-center rounded-xl text-sm font-semibold ${currentPage === pageNumber ? 'bg-sena text-white shadow-brand-sm' : 'text-sena-strong hover:bg-sena-soft'}`}
-                    >
-                      {pageNumber}
-                    </button>
-                  ))}
-                  <button type="button" className={pageButtonClass} aria-label="Página siguiente" disabled={currentPage >= pageCount} onClick={() => setPage(Math.min(pageCount, currentPage + 1))}>
-                    ›
-                  </button>
-                </nav>
-              </div>
-            </>
-          )}
-        </TableCard>
-
-        <aside className="flex flex-col gap-4">
-          <section className="rounded-[22px] border border-glass-line bg-glass/85 p-4 shadow-surface backdrop-blur-glass sm:p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-sena-dark">
-              <span className="grid size-7 place-items-center rounded-lg bg-sena-soft text-sena"><AlertIcon className="size-4" /></span>
-              Resumen de alertas
-            </h2>
-            <div className="grid grid-cols-2 gap-2.5">
-              <SummaryTile label="Agotados" count={summary.agotados} symbol="!" tone="red" />
-              <SummaryTile label="Por agotarse" count={summary.porAgotarse} symbol="!" tone="amber" />
-              <SummaryTile label="Activas" count={summary.activas} symbol="●" tone="green" />
-              <SummaryTile label="Cerradas" count={summary.cerradas} symbol="✓" tone="slate" />
-            </div>
-          </section>
-
-          <section className="rounded-[22px] border border-glass-line bg-glass/85 p-4 shadow-surface backdrop-blur-glass sm:p-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="flex items-center gap-2 text-sm font-bold text-sena-dark">
-                <FilterBroomIcon className="size-4 text-sena" />
-                Filtros
-              </h2>
-              <button type="button" onClick={clearFilters} className="text-xs font-semibold text-sena-strong hover:text-sena-dark">
-                Limpiar
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-3.5">
               <FilterField label="Tipo de alerta" htmlFor="alert-type">
-                <select id="alert-type" value={draftFilters.type} onChange={(event) => updateDraft('type', event.target.value as AlertFilters['type'])} className={filterControlClass}>
-                  <option value="Todos">Todos</option>
-                  <option value="agotado">Agotado</option>
-                  <option value="por_agotarse">Por agotarse</option>
+                <select id="alert-type" value={filters.type} onChange={(event) => updateFilter('type', event.target.value as AlertFilters['type'])} className={filterControlClass}>
+                  <option value="Todos">Todos los tipos</option>
+                  <option value="agotado">{TIPO_LABEL.agotado}</option>
+                  <option value="por_agotarse">{TIPO_LABEL.por_agotarse}</option>
                 </select>
               </FilterField>
               <FilterField label="Estado" htmlFor="alert-status">
-                <select id="alert-status" value={draftFilters.status} onChange={(event) => updateDraft('status', event.target.value as EstadoFiltro)} className={filterControlClass}>
+                <select id="alert-status" value={filters.status} onChange={(event) => updateFilter('status', event.target.value as EstadoFiltro)} className={filterControlClass}>
                   <option value="Activas">Activas</option>
                   <option value="Cerradas">Cerradas</option>
                   <option value="Todas">Todas</option>
                 </select>
               </FilterField>
-              <FilterField label="Elemento" htmlFor="alert-product">
-                <input id="alert-product" value={draftFilters.product} onChange={(event) => updateDraft('product', event.target.value)} placeholder="Buscar por nombre o código..." className={filterControlClass} />
-              </FilterField>
-              <fieldset>
-                <legend className="mb-1.5 text-[11px] font-semibold text-sena-text">Rango de fechas</legend>
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                  <input aria-label="Desde" type="date" value={draftFilters.from} onChange={(event) => updateDraft('from', event.target.value)} className={filterControlClass} />
-                  <span aria-hidden="true" className="text-xs text-sena-text-soft">→</span>
-                  <input aria-label="Hasta" type="date" value={draftFilters.to} onChange={(event) => updateDraft('to', event.target.value)} className={filterControlClass} />
-                </div>
+              <fieldset className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <legend className="sr-only">Rango de fechas</legend>
+                <input aria-label="Desde" type="date" value={filters.from} onChange={(event) => updateFilter('from', event.target.value)} className={filterControlClass} />
+                <span aria-hidden="true" className="text-xs text-sena-text-soft">→</span>
+                <input aria-label="Hasta" type="date" value={filters.to} onChange={(event) => updateFilter('to', event.target.value)} className={filterControlClass} />
               </fieldset>
-              <button type="button" onClick={applyFilters} className="mt-1 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-sena px-4 text-xs font-bold text-white shadow-brand-sm transition hover:bg-sena-dark">
-                <SearchIcon className="size-4" />
-                Aplicar filtros
+              <button
+                type="button"
+                onClick={clearFilters}
+                disabled={!hasFilters}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-sena-line bg-white px-4 text-xs font-semibold text-sena-strong transition hover:border-sena/45 hover:text-sena-dark disabled:opacity-45"
+              >
+                <FilterBroomIcon className="size-4" />
+                Limpiar
               </button>
             </div>
-          </section>
-        </aside>
+
+            <div role="tablist" aria-label="Severidad" className="flex flex-wrap gap-2">
+              {NIVELES.map((item) => {
+                const active = nivel === item.value
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => {
+                      setNivel(item.value)
+                      setPage(1)
+                    }}
+                    className={cn(
+                      'inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold ring-1 transition',
+                      active ? 'bg-sena text-white ring-sena' : 'bg-white text-sena-strong ring-sena-line hover:ring-sena/45',
+                    )}
+                  >
+                    {item.value !== 'todas' ? (
+                      <span aria-hidden="true" className={cn('size-2 rounded-full', active ? 'bg-white' : SEVERIDAD[item.value].punto)} />
+                    ) : null}
+                    {item.label}
+                    <span className={cn('rounded-full px-1.5 text-[11px] tabular-nums', active ? 'bg-white/20' : 'bg-sena-soft')}>
+                      {nivelCount(item.value)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {loading ? (
+            <TableLoading label="Cargando alertas…" />
+          ) : pageAlerts.length ? (
+            <ul className="divide-y divide-sena-line-soft px-2 sm:px-4">
+              {pageAlerts.map((alerta) => (
+                <li key={alerta.id}>
+                  <AlertRow alerta={alerta} canViewElemento={canViewElemento} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="grid place-items-center px-6 py-16 text-center">
+              <div>
+                <span className="mx-auto grid size-12 place-items-center rounded-full bg-sena-active-soft text-sena-ok-text">
+                  <AlertIcon className="size-6" />
+                </span>
+                <p className="mt-3 text-sm font-semibold text-sena-text">
+                  {alertas.length === 0 ? 'Todo el stock está al día' : 'No hay alertas que coincidan con los filtros'}
+                </p>
+                <p className="mt-1 text-xs text-sena-text-soft">
+                  {alertas.length === 0
+                    ? 'Ningún elemento está por debajo de su mínimo.'
+                    : 'Prueba con otra búsqueda o limpia los filtros.'}
+                </p>
+                {alertas.length > 0 && hasFilters ? (
+                  <button type="button" onClick={clearFilters} className="mt-4 text-xs font-semibold text-sena-strong hover:underline">
+                    Limpiar filtros
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          )}
+
+          {!loading && filteredAlerts.length > 0 ? (
+            <nav aria-label="Paginación de alertas" className={cn(paginationBarClass, 'px-4 sm:px-7')}>
+              <p className="text-sm text-sena-strong tabular-nums" aria-live="polite">
+                Mostrando {desde}–{hasta} de {filteredAlerts.length} {filteredAlerts.length === 1 ? 'alerta' : 'alertas'}
+              </p>
+              <div className="flex items-center justify-between gap-2 sm:justify-end sm:gap-3">
+                <button type="button" className={pageBoton} disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>
+                  ‹ Anterior
+                </button>
+                <span className="text-sm font-semibold whitespace-nowrap text-sena-text tabular-nums">
+                  Página {currentPage} de {pageCount}
+                </span>
+                <button type="button" className={pageBoton} disabled={currentPage >= pageCount} onClick={() => setPage(currentPage + 1)}>
+                  Siguiente ›
+                </button>
+              </div>
+            </nav>
+          ) : null}
+        </TableCard>
       </div>
     </AppLayout>
   )
 }
 
-function alertDetail(alerta: AlertaApi) {
-  if (alerta.tipo === 'agotado') return `Sin existencias. El mínimo es ${alerta.cantidadMinima}.`
-  return `Quedan ${alerta.cantidad}. El mínimo es ${alerta.cantidadMinima}.`
-}
+const pageBoton = cn(pageButtonClass, 'w-auto px-3 text-sm font-semibold whitespace-nowrap sm:px-4')
 
-const filterControlClass = 'h-10 w-full min-w-0 rounded-xl border border-sena-line bg-white/75 px-3 text-xs text-sena-text outline-none transition focus:border-sena focus:ring-2 focus:ring-sena/15'
+const filterControlClass = 'h-10 w-full min-w-0 rounded-xl border border-sena-line bg-white px-3 text-xs text-sena-text outline-none transition focus:border-sena focus:ring-2 focus:ring-sena/15'
 
-function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
+function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
     <div>
-      <label htmlFor={htmlFor} className="mb-1.5 block text-[11px] font-semibold text-sena-text">{label}</label>
+      <label htmlFor={htmlFor} className="sr-only">{label}</label>
       {children}
     </div>
   )
 }
 
-function AlertTypeMark({ type }: { type: TipoAlerta }) {
-  const className = type === 'agotado'
-    ? 'bg-red-100 text-red-600'
-    : 'bg-amber-100 text-amber-600'
+function AlertRow({ alerta, canViewElemento }: { alerta: AlertaApi; canViewElemento: boolean }) {
+  const nivel = severidad(alerta)
+  const estilo = SEVERIDAD[nivel]
+  const cerrada = !alerta.estado
+  const minimo = alerta.cantidadMinima ?? 0
+  const porcentaje = minimo > 0 ? Math.min(100, Math.round((alerta.cantidad / minimo) * 100)) : 0
+  const faltan = Math.max(0, minimo - alerta.cantidad)
+  const nombre = alerta.elemento?.nombre ?? `Elemento ${alerta.idElemento}`
 
-  return (
-    <span aria-hidden="true" className={`grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold ${className}`}>
-      !
-    </span>
+  const contenido = (
+    <>
+      <span aria-hidden="true" className={cn('hidden size-10 shrink-0 place-items-center rounded-xl sm:grid', cerrada ? 'bg-slate-100 text-slate-500' : estilo.chip)}>
+        <AlertIcon className="size-5" />
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="truncate text-sm font-semibold text-sena-text" title={nombre}>{nombre}</p>
+          <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1', cerrada ? 'bg-slate-100 text-slate-600 ring-slate-200' : estilo.chip)}>
+            {cerrada ? 'Cerrada' : estilo.label}
+          </span>
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-sena-text-soft">
+          {alerta.elemento?.codigo ? (
+            <span className="rounded-md bg-sena-muted px-1.5 py-0.5 font-mono">{alerta.elemento.codigo}</span>
+          ) : null}
+          <span>{TIPO_LABEL[alerta.tipo]}</span>
+          {alerta.fecha ? (
+            <time dateTime={alerta.fecha}>
+              {dayLabel.format(new Date(alerta.fecha))} · {timeLabel.format(new Date(alerta.fecha))}
+            </time>
+          ) : null}
+        </div>
+        <div
+          className="mt-2 h-1.5 w-full max-w-md overflow-hidden rounded-full bg-sena-muted"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={minimo}
+          aria-valuenow={alerta.cantidad}
+          aria-label={`${alerta.cantidad} de ${minimo} mínimo`}
+        >
+          <div
+            className={cn('h-full rounded-full', cerrada ? 'bg-slate-300' : estilo.barra)}
+            style={{ width: `${Math.max(porcentaje, alerta.cantidad > 0 ? 4 : 0)}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="shrink-0 text-right">
+        <p className="text-sm font-semibold text-sena-text tabular-nums">
+          {alerta.cantidad} <span className="font-normal text-sena-text-soft">de {minimo} mín.</span>
+        </p>
+        {faltan > 0 ? (
+          <p className={cn('text-xs font-semibold tabular-nums', cerrada ? 'text-sena-text-soft' : estilo.texto)}>Faltan {faltan}</p>
+        ) : (
+          <p className="text-xs text-sena-text-soft">En el mínimo</p>
+        )}
+      </div>
+
+      {canViewElemento ? (
+        <span aria-hidden="true" className="shrink-0 text-lg text-sena-text-soft transition group-hover:translate-x-0.5 group-hover:text-sena-strong">
+          ›
+        </span>
+      ) : null}
+    </>
+  )
+
+  const base = 'group flex items-center gap-3 rounded-xl px-3 py-4 sm:gap-4'
+
+  return canViewElemento ? (
+    <Link
+      to={`/inventario/elementos/${alerta.idElemento}`}
+      title="Ver elemento"
+      className={cn(base, 'transition hover:bg-sena-surface focus-visible:outline-2 focus-visible:outline-sena', cerrada && 'opacity-75')}
+    >
+      {contenido}
+    </Link>
+  ) : (
+    <div className={cn(base, cerrada && 'opacity-75')}>{contenido}</div>
   )
 }
 
-function AlertStatusPill({ alerta }: { alerta: AlertaApi }) {
-  if (!alerta.estado) {
-    return <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600">Cerrada</span>
+function SummaryTile({
+  label,
+  ayuda,
+  count,
+  tone,
+  onClick,
+}: {
+  label: string
+  ayuda: string
+  count: number
+  tone: Severidad | 'activa' | 'cerrada'
+  onClick: () => void
+}) {
+  const colors: Record<typeof tone, { icono: string; barra: string; numero: string }> = {
+    agotado: { icono: SEVERIDAD.agotado.chip, barra: SEVERIDAD.agotado.barra, numero: SEVERIDAD.agotado.texto },
+    critico: { icono: SEVERIDAD.critico.chip, barra: SEVERIDAD.critico.barra, numero: SEVERIDAD.critico.texto },
+    bajo: { icono: SEVERIDAD.bajo.chip, barra: SEVERIDAD.bajo.barra, numero: SEVERIDAD.bajo.texto },
+    activa: { icono: 'bg-sena-active-soft text-sena-ok-text ring-sena-ok-line', barra: 'bg-sena', numero: 'text-sena-ok-text' },
+    cerrada: { icono: 'bg-slate-100 text-slate-600 ring-slate-200', barra: 'bg-slate-300', numero: 'text-slate-600' },
   }
-
-  const className = alerta.tipo === 'agotado'
-    ? 'bg-red-100 text-red-700'
-    : 'bg-amber-100 text-amber-700'
-
-  return <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${className}`}>Activa</span>
-}
-
-function SummaryTile({ label, count, symbol, tone }: { label: string; count: number; symbol: string; tone: 'red' | 'amber' | 'green' | 'slate' }) {
-  const colors = {
-    red: 'bg-red-100 text-red-600',
-    amber: 'bg-amber-100 text-amber-600',
-    green: 'bg-emerald-100 text-emerald-700',
-    slate: 'bg-slate-100 text-slate-600',
-  }
+  const color = colors[tone]
 
   return (
-    <div className="flex min-h-[76px] items-center gap-2.5 rounded-xl border border-white/70 bg-white/65 px-3 py-2.5">
-      <span aria-hidden="true" className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold ${colors[tone]}`}>{symbol}</span>
-      <span>
-        <strong className="block text-lg leading-5 text-sena-dark">{count}</strong>
-        <span className="text-[10px] leading-4 text-sena-text-soft">{label}</span>
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative flex items-center gap-3 overflow-hidden rounded-2xl border border-sena-line bg-white p-4 text-left shadow-sm transition hover:shadow-md focus-visible:outline-2 focus-visible:outline-sena"
+    >
+      <span aria-hidden="true" className={cn('absolute inset-y-0 left-0 w-1.5', color.barra)} />
+      <span aria-hidden="true" className={cn('grid size-10 shrink-0 place-items-center rounded-xl ring-1', color.icono)}>
+        <AlertIcon className="size-5" />
       </span>
-    </div>
+      <span className="min-w-0">
+        <span className="block text-xs font-medium text-sena-text-soft">{label}</span>
+        <strong className={cn('block text-2xl leading-tight tabular-nums', color.numero)}>{count}</strong>
+        <span className="block truncate text-[11px] text-sena-text-soft">{ayuda}</span>
+      </span>
+    </button>
   )
 }
