@@ -120,6 +120,42 @@ export default function LoginPage() {
 
   return (
     <main className="relative isolate min-h-svh overflow-hidden bg-[#073d2b]">
+
+{/* Botón para volver al inicio */}
+<button
+  type="button"
+  onClick={() => navigate('/')}
+  className="absolute left-5 top-5 z-20 inline-flex items-center gap-2
+    rounded-xl border border-white/30 bg-white/15 px-4 py-2.5
+    text-sm font-semibold text-white shadow-lg backdrop-blur-md
+    transition-all duration-200 hover:-translate-y-0.5
+    hover:bg-white/25 focus:outline-none focus:ring-2
+    focus:ring-white/60 sm:left-8 sm:top-8"
+>
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    className="h-5 w-5"
+    aria-hidden="true"
+  >
+    <path
+      d="M15 18l-6-6 6-6"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9 12h12"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+
+  Volver al inicio
+</button>
+
       {/* Fondo fotográfico con desenfoque */}
       <img
         src="/img/imageninicio.jpg"
@@ -191,10 +227,10 @@ export default function LoginPage() {
   {/* Nombre con degradados independientes */}
   <h1 className="text-4xl font-black leading-none tracking-tight sm:text-5xl xl:text-6xl">
     <span className="bg-linear-to-r from-sky-300 via-blue-400 to-cyan-300 bg-clip-text text-transparent">
-      GES
+      SIG
     </span>
     <span className="bg-linear-to-r from-lime-300 via-green-300 to-emerald-400 bg-clip-text text-transparent">
-      NOVA
+      MA
     </span>
   </h1>
 
@@ -202,7 +238,7 @@ export default function LoginPage() {
   <div className="mt-4 flex items-center justify-center gap-3">
     <span className="h-px w-8 bg-white/60 sm:w-12" />
     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/90 sm:text-sm">
-      Plataforma de gestión
+      Sistema intregral de modulos administrativos
     </p>
     <span className="h-px w-8 bg-white/60 sm:w-12" />
   </div>
@@ -275,9 +311,6 @@ export default function LoginPage() {
     />
     <div className="mt-3 flex items-center gap-3">
       <span className="h-px w-7 bg-white/50" />
-      <p className="text-sm font-medium tracking-wide text-white/90 sm:text-base">
-        SENA que transforma
-      </p>
       <span className="h-px w-7 bg-white/50" />
     </div>
   </div>
@@ -466,7 +499,7 @@ export default function LoginPage() {
             </p>
 
             <p className="mt-1 text-center text-[11px] text-white/70">
-              Gesnova · Gestión de recursos
+              Sigma · Gestión de recursos
             </p>
           </div>
         </section>
@@ -507,7 +540,7 @@ export default function LoginPage() {
             </div>
 
             <p className="mt-4 text-sm leading-relaxed text-gray-600">
-              Si tienes problemas para ingresar a Gesnova, comprueba tus
+              Si tienes problemas para ingresar a Sigma, comprueba tus
               credenciales y verifica que tu cuenta esté activa.
             </p>
 
