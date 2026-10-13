@@ -9,7 +9,7 @@ import {
 
 export function useInventoryAccess() {
   const { isAdmin, user } = useAuth()
-  const access = { isAdmin, permissions: user?.permissions }
+  const access = { isAdmin, permissions: user?.permissions, role: user?.role }
 
   return {
     screens: visibleInventoryScreens(access),

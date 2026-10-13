@@ -38,6 +38,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,
     permissions: user?.permissions,
+    role: user?.role,
   })
 
   const [inventoryOpen, setInventoryOpen] = useState(

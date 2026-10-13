@@ -55,7 +55,10 @@ import ProfilePage from '@/modules/perfil/pages/ProfilePage'
 import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
 
-import type { ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
+
+/* Carga aparte: el tablero trae Recharts y no debe pesar en el bundle inicial. */
+const TableroBodegaPage = lazy(() => import('@/modules/inventario/pages/TableroBodegaPage'))
 
 function SessionProviders({
   children,
@@ -178,6 +181,14 @@ function App() {
             <Route path="solicitudes/prestamos" element={<PrestamosPage />} />
             <Route path="solicitudes/:tipo" element={<SolicitudesPage />} />
             <Route path="alertas" element={<AlertsPage />} />
+            <Route
+              path="tablero"
+              element={
+                <Suspense fallback={<div className="grid min-h-60 place-items-center text-sm text-sena-text-soft">Cargando tablero…</div>}>
+                  <TableroBodegaPage />
+                </Suspense>
+              }
+            />
           </Route>
 
           {/* =========================
