@@ -1,0 +1,1047 @@
+/*
+ * Portal público SENA — hoja de estilos de la página principal (ruta "/").
+ *
+ * Alcance: EXCLUSIVAMENTE los componentes de la landing (Header, Hero,
+ * ProgramCard, Dashboard). No redefine variables globales, no toca
+ * `index.css`, no aplica selectores globales ni selectores que puedan alcanzar
+ * los elementos internos de `ColombiaMap`.
+ *
+ * Estas reglas viven en la capa `components` de Tailwind para que cualquier
+ * utilidad de `utilities` siga teniendo prioridad si se necesita ajustar
+ * algo puntualmente desde el JSX.
+ */
+
+@layer components {
+  /* ============================================================
+     1. Lienzo de la página
+     ============================================================ */
+  .lp-root {
+    /* Paleta local de la página pública. */
+    --lp-forest: #04301f;
+    --lp-deep: #0a4a33;
+    --lp-brand: #00a651;
+    --lp-emerald: #0bb35f;
+    --lp-lime: #b6ef4a;
+    --lp-ink: #0a4030;
+    --lp-ink-2: #14654a;
+    --lp-body: #5b7368;
+    --lp-line: #dcece4;
+    --lp-bar-h: 66px;
+
+    color: var(--lp-body);
+    /* El recurso de fondo es el mismo verde menta difuminado que usan el
+       resto de vistas de la aplicacion. Va fijo y con `cover` para que
+       siempre llene la pantalla sin deformarse ni dejar bandas planas,
+       aunque la pagina sea muy alta. Encima, veladuras translucidas muy
+       ligeras unifican el conjunto sin tapar la foto: el verde debe
+       percibirse a traves de las bandas y tarjetas de cristal. */
+    background-color: #ddede4;
+    background-image:
+      radial-gradient(72% 30% at 12% 18%, rgba(182, 239, 160, 0.3), rgba(182, 239, 160, 0) 70%),
+      radial-gradient(60% 26% at 88% 42%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%),
+      radial-gradient(56% 30% at 50% 68%, rgba(190, 242, 208, 0.26), rgba(190, 242, 208, 0) 72%),
+      linear-gradient(
+        180deg,
+        rgba(245, 251, 248, 0.22) 0%,
+        rgba(230, 245, 238, 0.34) 42%,
+        rgba(236, 248, 242, 0.28) 72%,
+        rgba(233, 245, 239, 0.34) 100%
+      ),
+      url('/img/fondo-vistas.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  /* En pantallas estrechas `fixed` no es fiable (Safari movil): se desplaza
+     con la pagina y se repite en vertical manteniendo la proporcion, para no
+     estirar la imagen. */
+  @media (max-width: 767px) {
+    .lp-root {
+      background-attachment: scroll;
+      background-repeat: repeat-y;
+      background-size: 100% auto;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .lp-root {
+      --lp-bar-h: 76px;
+    }
+  }
+
+  /* ============================================================
+     2. Barra superior — cristal verde esmerilado
+     ============================================================ */
+  .lp-bar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: var(--lp-bar-h);
+    color: #fff;
+    background-color: rgba(7, 58, 38, 0.6);
+    background-image:
+      radial-gradient(120% 240% at 8% 0%, rgba(122, 255, 192, 0.16), rgba(122, 255, 192, 0) 56%),
+      radial-gradient(90% 210% at 93% 4%, rgba(182, 239, 74, 0.12), rgba(182, 239, 74, 0) 60%),
+      linear-gradient(180deg, rgba(18, 106, 70, 0.58) 0%, rgba(4, 45, 30, 0.74) 100%);
+    backdrop-filter: blur(16px) saturate(155%);
+    -webkit-backdrop-filter: blur(16px) saturate(155%);
+    border-bottom: 1px solid rgba(226, 255, 240, 0.16);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -14px 28px rgba(2, 32, 20, 0.34),
+      0 14px 36px -18px rgba(3, 48, 30, 0.85),
+      0 2px 10px rgba(3, 48, 30, 0.24);
+  }
+
+  .lp-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 100%;
+    margin-inline: auto;
+    /* Mismo ancho y ritmo lateral que el contenedor del contenido,
+       para que logotipo y "Iniciar sesión" alineen con las secciones. */
+    max-width: 1280px;
+    padding-inline: 20px;
+  }
+
+  @media (min-width: 768px) {
+    .lp-bar-inner {
+      gap: 26px;
+      padding-inline: 40px;
+    }
+  }
+
+  .lp-logo {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    filter: drop-shadow(0 2px 8px rgba(2, 32, 20, 0.45));
+  }
+
+  .lp-logo img {
+    height: 42px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  @media (min-width: 768px) {
+    .lp-logo img {
+      height: 48px;
+    }
+  }
+
+  .lp-nav {
+    display: none;
+    height: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    .lp-nav {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+      gap: 34px;
+    }
+  }
+
+  .lp-nav-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    padding-inline: 2px;
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.9);
+    transition: color 0.18s ease, text-shadow 0.18s ease;
+  }
+
+  .lp-nav-link:hover {
+    color: #eafff3;
+    text-shadow: 0 0 12px rgba(150, 255, 200, 0.5);
+  }
+
+  .lp-nav-link.is-active {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .lp-nav-link.is-active::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 15px;
+    width: 26px;
+    height: 3px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background-image: linear-gradient(90deg, #ddf58a, #a6e93e);
+    box-shadow: 0 0 10px rgba(166, 233, 62, 0.85), 0 0 20px rgba(166, 233, 62, 0.45);
+  }
+
+  .lp-burger {
+    display: inline-grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    margin-left: auto;
+    border-radius: 999px;
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+  }
+
+  @media (min-width: 1024px) {
+    .lp-burger {
+      display: none;
+    }
+  }
+
+  .lp-burger:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.45);
+  }
+
+  /* Panel desplegable del móvil: mismo cristal que la barra. */
+  .lp-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    z-index: 50;
+    padding: 14px 18px 20px;
+    background-color: rgba(6, 52, 34, 0.93);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    border-bottom: 1px solid rgba(226, 255, 240, 0.14);
+    box-shadow: 0 20px 44px -20px rgba(3, 40, 26, 0.85);
+  }
+
+  @media (min-width: 1024px) {
+    .lp-panel {
+      display: none;
+    }
+  }
+
+  .lp-panel-link {
+    display: block;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.92);
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
+
+  .lp-panel-link:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.12);
+  }
+
+  /* ============================================================
+     3. Botones
+     ============================================================ */
+  .lp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    white-space: nowrap;
+    border-radius: 999px;
+    font-weight: 600;
+    text-align: center;
+    transition:
+      background-color 0.2s ease,
+      background-image 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .lp-btn:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+  }
+
+  /* 3.1 Cápsula esmeralda luminosa — "Iniciar sesión" */
+  .lp-btn-login {
+    height: 42px;
+    padding-inline: 18px;
+    font-size: 15px;
+    color: #fff;
+    background-color: rgba(11, 179, 95, 0.92);
+    background-image: linear-gradient(180deg, rgba(46, 214, 133, 0.95) 0%, rgba(9, 148, 87, 0.95) 100%);
+    border: 1px solid rgba(222, 255, 238, 0.45);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -8px 14px rgba(0, 64, 36, 0.3),
+      0 10px 22px rgba(4, 86, 52, 0.4);
+  }
+
+  @media (min-width: 768px) {
+    .lp-btn-login {
+      height: 44px;
+    }
+  }
+
+  .lp-btn-login:hover {
+    background-image: linear-gradient(180deg, rgba(68, 228, 150, 1) 0%, rgba(16, 172, 102, 1) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      inset 0 -8px 14px rgba(0, 64, 36, 0.2),
+      0 14px 30px rgba(4, 112, 66, 0.5);
+  }
+
+  /* 3.2 Acción principal — verde esmeralda con reflejo y sombra verde */
+  .lp-btn-primary {
+    height: 48px;
+    padding-inline: 24px;
+    font-size: 15px;
+    color: #fff;
+    background-color: #00a651;
+    background-image: linear-gradient(180deg, #16bd67 0%, #00994b 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.38),
+      inset 0 -10px 16px rgba(0, 78, 43, 0.32),
+      0 12px 26px rgba(0, 108, 60, 0.3);
+  }
+
+  .lp-btn-primary:hover {
+    background-image: linear-gradient(180deg, #22d276 0%, #00a651 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -10px 16px rgba(0, 78, 43, 0.22),
+      0 16px 34px rgba(0, 122, 66, 0.42);
+  }
+
+  .lp-btn-primary:active {
+    background-image: linear-gradient(180deg, #00984b 0%, #0a8d47 100%);
+  }
+
+  /* 3.3 Acción secundaria sobre superficie clara */
+  .lp-btn-ghost {
+    height: 46px;
+    padding-inline: 20px;
+    font-size: 15px;
+    color: var(--lp-ink);
+    background-color: rgba(255, 255, 255, 0.92);
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(233, 246, 239, 0.92) 100%);
+    border: 1px solid rgba(11, 146, 95, 0.42);
+    box-shadow:
+      0 1px 2px rgba(6, 60, 40, 0.05),
+      0 10px 22px -14px rgba(6, 60, 40, 0.4);
+  }
+
+  .lp-btn-ghost:hover {
+    color: #fff;
+    background-image: linear-gradient(180deg, #0bb35f 0%, #00964c 100%);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      0 12px 26px rgba(0, 108, 60, 0.32);
+  }
+
+  /* 3.4 Acción secundaria sobre superficie oscura (banner) */
+  .lp-btn-outline-dark {
+    height: 48px;
+    padding-inline: 22px;
+    font-size: 15px;
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  }
+
+  .lp-btn-outline-dark:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.78);
+  }
+
+  /* 3.5 Botón bloque dentro de tarjeta */
+  .lp-btn-block {
+    width: 100%;
+    height: 44px;
+    font-size: 14px;
+  }
+
+  /* En pantallas muy estrechas los botones anchos reducen su holgura
+     horizontal para no provocar desbordes. */
+  @media (max-width: 480px) {
+    .lp-btn-primary,
+    .lp-btn-outline-dark {
+      padding-inline: 18px;
+      font-size: 14px;
+    }
+  }
+
+  /* 3.6 Botón circular con flecha (tarjetas de programa) */
+  .lp-arrow-btn {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    color: #fff;
+    background-color: #0a9e55;
+    background-image: linear-gradient(180deg, #17c46e 0%, #008f49 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      0 8px 18px -7px rgba(0, 110, 62, 0.6);
+    transition: background-image 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .lp-arrow-btn:hover {
+    background-image: linear-gradient(180deg, #25d47c 0%, #00a451 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      0 12px 22px -7px rgba(0, 122, 66, 0.7);
+  }
+
+  /* 3.7 Enlace de sección ("Ver todos los programas") */
+  .lp-section-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0a8a4b;
+    transition: color 0.18s ease;
+  }
+
+  .lp-section-link:hover {
+    color: #06683a;
+  }
+
+  /* ============================================================
+     4. Banner principal
+     ============================================================ */
+  .lp-hero {
+    position: relative;
+    /* La fotografía arranca por detrás de la barra para que el cristal
+       tenga algo real que desenfocar. */
+    margin-top: calc(var(--lp-bar-h) * -1);
+    padding-top: var(--lp-bar-h);
+  }
+
+  .lp-hero-scrim {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(
+        90deg,
+        rgba(4, 46, 30, 0.93) 0%,
+        rgba(4, 52, 33, 0.8) 34%,
+        rgba(6, 58, 38, 0.38) 58%,
+        rgba(6, 58, 38, 0.14) 80%
+      ),
+      linear-gradient(180deg, rgba(3, 40, 26, 0.5) 0%, rgba(3, 40, 26, 0) 28%);
+  }
+
+  .lp-eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(206, 250, 226, 0.8);
+  }
+
+  .lp-hero-title {
+    font-weight: 800;
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    color: #fff;
+    text-shadow: 0 2px 20px rgba(2, 32, 20, 0.5);
+  }
+
+  .lp-hero-accent {
+    color: #86f0aa;
+    text-shadow: 0 2px 22px rgba(60, 220, 130, 0.35);
+  }
+
+  .lp-hero-text {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  /* ============================================================
+     5. Tarjetas y superficies
+     ============================================================ */
+  .lp-card {
+    position: relative;
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.6);
+    background-image: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.82) 0%,
+      rgba(240, 251, 246, 0.62) 48%,
+      rgba(214, 242, 228, 0.55) 100%
+    );
+    backdrop-filter: blur(14px) saturate(145%);
+    -webkit-backdrop-filter: blur(14px) saturate(145%);
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -12px 24px rgba(178, 230, 200, 0.14),
+      0 1px 3px rgba(6, 60, 40, 0.05),
+      0 14px 30px -18px rgba(6, 60, 40, 0.32),
+      0 0 22px rgba(190, 245, 215, 0.18);
+    transition:
+      transform 0.22s cubic-bezier(0.2, 0.7, 0.3, 1),
+      box-shadow 0.22s ease,
+      border-color 0.22s ease;
+  }
+
+  .lp-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      0 3px 8px rgba(6, 60, 40, 0.07),
+      0 0 0 1px rgba(120, 222, 176, 0.28),
+      0 26px 48px -22px rgba(6, 60, 40, 0.38);
+  }
+
+  /* Tarjeta Horizontal compacta (lista de presencia nacional) */
+  .lp-mini-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    overflow: hidden;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background-color: rgba(255, 255, 255, 0.52);
+    background-image: linear-gradient(
+      158deg,
+      rgba(255, 255, 255, 0.82) 0%,
+      rgba(232, 250, 241, 0.58) 55%,
+      rgba(205, 238, 220, 0.5) 100%
+    );
+    backdrop-filter: blur(14px) saturate(145%);
+    -webkit-backdrop-filter: blur(14px) saturate(145%);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -10px 18px rgba(178, 230, 200, 0.16),
+      0 0 0 1px rgba(150, 226, 190, 0.14),
+      0 0 18px rgba(190, 245, 215, 0.22),
+      0 12px 26px -18px rgba(6, 80, 50, 0.38);
+  }
+
+  /* Reflejo superior suave y selectivo: mas visible a la izquierda,
+     se atenua hacia la derecha para no iluminar todo el borde igual. */
+  .lp-mini-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 14px;
+    left: 14px;
+    height: 1px;
+    border-radius: 999px;
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.9) 28%,
+      rgba(255, 255, 255, 0.55) 62%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    pointer-events: none;
+  }
+
+  /* Destello pequeno en una esquina, distinto por tarjeta para que los
+     reflejos no sean identicos. Nivel de brillo inferior al del mapa. */
+  .lp-mini-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: radial-gradient(
+      56px 20px at 14% 0%,
+      rgba(255, 255, 255, 0.5),
+      rgba(255, 255, 255, 0) 72%
+    );
+    pointer-events: none;
+  }
+
+  .lp-mini-card:nth-child(2n)::after {
+    background-image: radial-gradient(
+      56px 20px at 86% 0%,
+      rgba(255, 255, 255, 0.48),
+      rgba(255, 255, 255, 0) 72%
+    );
+  }
+
+  .lp-mini-card:nth-child(3n)::before {
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.55) 40%,
+      rgba(255, 255, 255, 0.85) 72%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+
+  .lp-mini-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Tarjeta que envuelve al mapa. Solo afecta al contenedor: el componente
+     `ColombiaMap` y sus hijos no son alcanzados por ningún selector. */
+  .lp-map-card {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+    padding: 26px 20px;
+    border-radius: 26px;
+    background-color: rgba(214, 240, 226, 0.38);
+    background-image:
+      radial-gradient(68% 52% at 50% 44%, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 58%, rgba(255, 255, 255, 0) 76%),
+      radial-gradient(52% 38% at 12% 6%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 70%),
+      radial-gradient(58% 44% at 90% 94%, rgba(110, 205, 155, 0.34), rgba(110, 205, 155, 0) 70%),
+      radial-gradient(46% 36% at 88% 10%, rgba(190, 242, 208, 0.42), rgba(190, 242, 208, 0) 72%),
+      linear-gradient(155deg, rgba(255, 255, 255, 0.45) 0%, rgba(222, 247, 233, 0.38) 38%, rgba(192, 230, 205, 0.4) 72%, rgba(226, 249, 237, 0.42) 100%);
+    backdrop-filter: blur(14px) saturate(145%);
+    -webkit-backdrop-filter: blur(14px) saturate(145%);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow:
+      /* halo blanco-menta discreto */
+      0 0 0 1px rgba(178, 230, 204, 0.32),
+      0 0 34px rgba(190, 244, 214, 0.4),
+      /* sombra exterior verdosa de difusion amplia */
+      0 32px 64px -30px rgba(4, 80, 48, 0.48),
+      0 14px 30px -20px rgba(6, 60, 40, 0.3),
+      /* linea superior fina + reflejo interior muy atenuado */
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 0 28px rgba(255, 255, 255, 0.14),
+      inset 0 -20px 34px rgba(150, 220, 185, 0.18);
+  }
+
+  /* El mapa queda por encima de los reflejos: los destellos viven en el
+     marco y no lavan los departamentos ni los pines. */
+  .lp-map-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Filo interior: da la sensacion de cristal sin cobrir el mapa. */
+  .lp-map-card::before {
+    content: '';
+    position: absolute;
+    inset: 7px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: inset 0 1px 6px rgba(255, 255, 255, 0.32);
+    pointer-events: none;
+  }
+
+  /* Reflejos concentrados en el contorno: linea superior fina, tramo
+     luminoso corto y destellos de esquina. El centro queda transparente
+     para no aclarar el territorio. No intercepta clics del mapa. */
+  .lp-map-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 26px;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 100%),
+      linear-gradient(90deg, rgba(255, 255, 255, 0) 6%, rgba(255, 255, 255, 0.9) 24%, rgba(255, 255, 255, 0.45) 44%, rgba(255, 255, 255, 0) 62%),
+      radial-gradient(90px 20px at 26% 0.5%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 72%),
+      radial-gradient(11px 11px at 90.5% 5.5%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0) 72%),
+      radial-gradient(9px 9px at 8% 7%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 72%),
+      radial-gradient(8px 16px at 2.5% 46%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 72%);
+    background-size:
+      100% 62px,
+      100% 1px,
+      auto,
+      auto,
+      auto,
+      auto;
+    background-position:
+      top center,
+      top center,
+      top center,
+      top center,
+      top center,
+      center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+  }
+
+  /* Barra de búsqueda */
+  .lp-searchbar {
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.9);
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(243, 251, 247, 0.9) 100%);
+    border: 1px solid rgba(214, 234, 224, 0.95);
+    box-shadow:
+      0 1px 3px rgba(6, 60, 40, 0.05),
+      0 18px 40px -22px rgba(6, 60, 40, 0.36);
+  }
+
+  .lp-field {
+    height: 48px;
+    width: 100%;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.97);
+    border: 1px solid rgba(214, 234, 224, 1);
+    color: var(--lp-ink);
+    font-size: 14px;
+    box-shadow: inset 0 1px 2px rgba(6, 60, 40, 0.04);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .lp-field:focus {
+    outline: none;
+    border-color: rgba(11, 146, 95, 0.65);
+    box-shadow: 0 0 0 4px rgba(11, 179, 95, 0.14);
+  }
+
+  select.lp-field {
+    appearance: none;
+    padding-inline: 14px 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235b7368' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+
+  /* Teja de icono: cristal cuadrado con borde luminoso, no un circulo plano. */
+  .lp-icon-tile {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    overflow: hidden;
+    width: 54px;
+    height: 54px;
+    border-radius: 18px;
+    color: #0a7f4a;
+    background-color: rgba(224, 246, 235, 0.6);
+    background-image: linear-gradient(158deg, rgba(255, 255, 255, 0.95) 0%, rgba(208, 240, 224, 0.62) 58%, rgba(190, 232, 208, 0.58) 100%);
+    backdrop-filter: blur(8px) saturate(150%);
+    -webkit-backdrop-filter: blur(8px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      inset 0 -6px 12px rgba(160, 220, 190, 0.28),
+      inset 1px 0 2px rgba(255, 255, 255, 0.7),
+      0 0 0 1px rgba(150, 226, 190, 0.28),
+      0 0 16px rgba(200, 245, 220, 0.55),
+      0 6px 14px -8px rgba(6, 60, 40, 0.36);
+    transition: box-shadow 0.22s ease, transform 0.22s ease;
+  }
+
+  /* Reflejo interior suave + pequeno destello en la esquina superior. */
+  .lp-icon-tile::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 46%),
+      radial-gradient(9px 9px at 82% 10%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 70%);
+    pointer-events: none;
+  }
+
+  .lp-icon-tile > *,
+  .lp-cat-tile > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ============================================================
+     5b. Banda de las cuatro categorias institucionales
+     ============================================================ */
+  /* Superficie unica translucida: las cuatro tarjetas se leen como una
+     sola banda de cristal esmerilado y no como cajas sueltas. */
+  .lp-cat-band {
+    position: relative;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.42);
+    background-image:
+      radial-gradient(46% 90% at 8% 50%, rgba(190, 242, 208, 0.42), rgba(190, 242, 208, 0) 70%),
+      radial-gradient(40% 80% at 92% 20%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 72%),
+      linear-gradient(
+        178deg,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(232, 250, 241, 0.52) 46%,
+        rgba(205, 238, 220, 0.48) 100%
+      );
+    backdrop-filter: blur(16px) saturate(155%);
+    -webkit-backdrop-filter: blur(16px) saturate(155%);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 -14px 26px rgba(178, 230, 200, 0.18),
+      0 0 0 1px rgba(150, 226, 190, 0.16),
+      0 0 28px rgba(190, 245, 215, 0.3),
+      0 18px 40px -20px rgba(6, 60, 40, 0.32);
+  }
+
+  /* Linea blanca sutil arriba + capa de iluminacion: mas visible en el
+     centro-izquierda, discreta hacia los extremos. */
+  .lp-cat-band::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image:
+      linear-gradient(90deg, rgba(255, 255, 255, 0) 4%, rgba(255, 255, 255, 0.95) 22%, rgba(255, 255, 255, 0.9) 52%, rgba(255, 255, 255, 0.45) 78%, rgba(255, 255, 255, 0) 96%),
+      radial-gradient(74% 56px at 38% 0%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 72%);
+    background-size: 100% 1px, 100% 72px;
+    background-position: top center, top center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+  }
+
+  /* Destellos selectivos: curvas de esquinas y pequenos tramos laterales.
+     No se ilumina todo el perimetro con la misma intensidad. */
+  .lp-cat-band::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image:
+      radial-gradient(13px 13px at 7.5% 1.5%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0) 72%),
+      radial-gradient(11px 11px at 93% 2%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 72%),
+      radial-gradient(9px 26px at 0.4% 62%, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0) 72%),
+      radial-gradient(70px 16px at 68% 0.5%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 72%);
+    background-repeat: no-repeat;
+    pointer-events: none;
+  }
+
+  .lp-cat-item {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+  }
+
+  /* La banda es una sola superficie: no se eleva al pasar el cursor,
+     solo reaccionan las teselas de icono. */
+  .lp-cat-band:hover {
+    transform: none;
+    border-color: rgba(255, 255, 255, 0.85);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 -14px 26px rgba(178, 230, 200, 0.18),
+      0 0 0 1px rgba(150, 226, 190, 0.16),
+      0 0 28px rgba(190, 245, 215, 0.3),
+      0 18px 40px -20px rgba(6, 60, 40, 0.32);
+  }
+
+  /* Separadores finos y translucidos. En movil son horizontales; a partir de
+     `md` pasan a ser verticales y se retiran en la ultima tarjeta.
+     Intensidad alternada para reproducir el cristal de la referencia:
+     el segundo divisor es el mas luminoso, los demas quedan discretos. */
+  .lp-cat-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 20px;
+    left: 20px;
+    height: 1px;
+    background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.7) 30%, rgba(255, 255, 255, 0.7) 70%, rgba(255, 255, 255, 0) 100%);
+  }
+
+  .lp-cat-item:nth-child(2)::before {
+    background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.98) 24%, rgba(255, 255, 255, 0.98) 76%, rgba(255, 255, 255, 0) 100%);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.85);
+  }
+
+  .lp-cat-item:first-child::before {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .lp-cat-item {
+      padding: 20px 22px;
+    }
+
+    .lp-cat-item::before {
+      top: 20px;
+      right: 0;
+      bottom: 20px;
+      left: auto;
+      width: 1px;
+      height: auto;
+      background-image: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.7) 30%, rgba(255, 255, 255, 0.7) 70%, rgba(255, 255, 255, 0) 100%);
+    }
+
+    .lp-cat-item:nth-child(2)::before {
+      background-image: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 1) 26%, rgba(255, 255, 255, 1) 74%, rgba(255, 255, 255, 0) 100%);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
+    }
+
+    .lp-cat-item:nth-child(3)::before {
+      background-image: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.85) 34%, rgba(255, 255, 255, 0.6) 66%, rgba(255, 255, 255, 0) 100%);
+    }
+
+    .lp-cat-item:first-child::before {
+      display: block;
+    }
+
+    .lp-cat-item.is-last::before {
+      display: none;
+    }
+  }
+
+  .lp-cat-tile {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    overflow: hidden;
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    color: #0a7f4a;
+    background-color: rgba(220, 245, 233, 0.62);
+    background-image: linear-gradient(158deg, rgba(255, 255, 255, 0.96) 0%, rgba(208, 240, 224, 0.64) 58%, rgba(188, 230, 206, 0.6) 100%);
+    backdrop-filter: blur(8px) saturate(150%);
+    -webkit-backdrop-filter: blur(8px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.96);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      inset 0 -6px 12px rgba(160, 220, 190, 0.3),
+      inset 1px 0 2px rgba(255, 255, 255, 0.7),
+      0 0 0 1px rgba(150, 226, 190, 0.3),
+      0 0 16px rgba(200, 245, 220, 0.6),
+      0 6px 14px -8px rgba(6, 60, 40, 0.34);
+    transition: box-shadow 0.22s ease, transform 0.22s ease;
+  }
+
+  .lp-cat-tile::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0) 48%),
+      radial-gradient(8px 8px at 80% 12%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 70%);
+    pointer-events: none;
+  }
+
+  .lp-cat-item:hover .lp-cat-tile {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      0 0 0 1px rgba(126, 226, 180, 0.5),
+      0 0 22px rgba(22, 190, 125, 0.28),
+      0 10px 18px -8px rgba(6, 60, 40, 0.36);
+  }
+
+  .lp-cat-title {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: #0a4030;
+  }
+
+  .lp-cat-desc {
+    display: block;
+    margin-top: 2px;
+    font-size: 15px;
+    line-height: 1.3;
+    color: #4f6d60;
+  }
+
+  /* Insignia verde sobre la fotografía (noticias) */
+  .lp-badge {
+    position: absolute;
+    bottom: 12px;
+    left: 16px;
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding-inline: 12px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background-image: linear-gradient(180deg, #16bd67 0%, #00994b 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      0 6px 14px rgba(0, 90, 50, 0.4);
+  }
+
+  /* ============================================================
+     6. Títulos de sección con filo verde lima
+     ============================================================ */
+  .lp-h2 {
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--lp-ink);
+  }
+
+  .lp-h2::after {
+    content: '';
+    display: block;
+    width: 44px;
+    height: 4px;
+    margin-top: 12px;
+    border-radius: 999px;
+    background-image: linear-gradient(90deg, #12b35f 0%, #a6e93e 100%);
+    box-shadow: 0 0 12px rgba(20, 180, 100, 0.4);
+  }
+
+  .lp-h2-center {
+    text-align: center;
+  }
+
+  .lp-h2-center::after {
+    margin-inline: auto;
+  }
+
+  /* ============================================================
+     7. Banner de cierre y pie de página
+     ============================================================ */
+  .lp-cta-scrim {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(
+      90deg,
+      rgba(4, 44, 29, 0.95) 0%,
+      rgba(4, 48, 31, 0.9) 40%,
+      rgba(5, 54, 35, 0.62) 68%,
+      rgba(5, 54, 35, 0.42) 100%
+    );
+  }
+
+  .lp-footer {
+    color: rgba(255, 255, 255, 0.76);
+    background-color: #05291d;
+    background-image: linear-gradient(180deg, #073a28 0%, #042418 100%);
+  }
+
+  .lp-social {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+  }
+
+  .lp-social:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.34);
+  }
+}

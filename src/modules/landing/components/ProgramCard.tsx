@@ -12,7 +12,7 @@ export default function ProgramCard({
   branded = false,
 }: ProgramCardProps) {
   return (
-    <article className="overflow-hidden rounded-[14px] border border-[#d9e1dd] bg-white shadow-[0_2px_10px_rgba(10,34,28,0.06)]">
+    <article className="lp-card group overflow-hidden">
       <div className="relative">
         <img src={image} alt={title} className="h-[148px] w-full object-cover" />
         {branded ? (
@@ -26,16 +26,20 @@ export default function ProgramCard({
 
       <div className="flex min-h-[104px] items-center justify-between gap-3 px-4 py-4">
         <div>
-          <h3 className="text-[18px] font-bold leading-[1.15] text-[#173e4e]">{title}</h3>
-          <p className="mt-1 text-[15px] leading-[1.25] text-[#5d7380]">{description}</p>
+          <h3 className="text-[17px] font-bold leading-[1.2] text-[#0a4030]">{title}</h3>
+          <p className="mt-1 text-[14px] leading-[1.3] text-[#5b7368]">{description}</p>
         </div>
 
-        <a
-          href="#oferta"
-          aria-label={`Ver programa ${title}`}
-          className="grid size-[34px] shrink-0 place-items-center rounded-full bg-[#11895c] text-[22px] leading-none text-white transition hover:brightness-105"
-        >
-          +
+        <a href="#oferta" aria-label={`Ver programa ${title}`} className="lp-arrow-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M4 12h15M13.5 6.5 19 12l-5.5 5.5"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </a>
       </div>
     </article>

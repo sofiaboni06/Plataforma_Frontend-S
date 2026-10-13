@@ -14,42 +14,35 @@ export default function Header() {
   const [active, setActive] = useState('Inicio')
 
   return (
-    <header className="relative z-30 bg-[#005c3d] text-white">
-      <div className="mx-auto flex h-21 max-w-7xl items-center gap-4 px-5 lg:h-23 lg:px-10">
-        <a href="#inicio" aria-label="SENA, inicio" className="flex w-29.5 shrink-0 items-center">
-          <img src="/img/logo-sena.svg" alt="SENA" className="h-14.5 w-auto object-contain" />
+    <header className="lp-bar">
+      <div className="lp-bar-inner">
+        <a href="#inicio" aria-label="SENA, inicio" className="lp-logo">
+          <img src="/img/logo-sena.svg" alt="SENA" />
         </a>
 
-        <nav className="hidden h-full flex-1 items-center justify-center gap-9 lg:flex">
+        <nav className="lp-nav">
           {navigation.map((item) => (
             <a
               key={item.label}
               href={item.href}
               onClick={() => setActive(item.label)}
-              className={[
-                'relative flex h-full items-center whitespace-nowrap text-[16px] font-medium text-white/95',
-                active === item.label
-                  ? 'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.75 after:rounded-t-full after:bg-[#ffb300]'
-                  : 'hover:text-white',
-              ].join(' ')}
+              className={`lp-nav-link${active === item.label ? ' is-active' : ''}`}
             >
               {item.label}
             </a>
           ))}
         </nav>
 
-        <Link
-          to="/login"
-          className="ml-auto hidden h-11.5 shrink-0 items-center gap-2.5 rounded-full bg-[#0b925f] px-5 text-[15px] font-semibold text-white shadow-sm transition hover:brightness-110 lg:ml-0 lg:flex"
-        >
+        <Link to="/login" className="lp-btn lp-btn-login hidden shrink-0 lg:inline-flex">
           <UserGlyph />
           <span>Iniciar sesión</span>
         </Link>
 
         <button
           type="button"
-          className="ml-auto grid size-11 place-items-center rounded-full border border-white/25 bg-white/10 lg:hidden"
+          className="lp-burger"
           aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
         >
           <span className="sr-only">Menú</span>
@@ -64,8 +57,8 @@ export default function Header() {
       </div>
 
       {open ? (
-        <div className="border-t border-white/10 bg-[#005c3d] px-5 py-4 lg:hidden">
-          <nav className="flex flex-col gap-3">
+        <div className="lp-panel">
+          <nav className="flex flex-col gap-1">
             {navigation.map((item) => (
               <a
                 key={item.label}
@@ -74,15 +67,12 @@ export default function Header() {
                   setActive(item.label)
                   setOpen(false)
                 }}
-                className="rounded-lg px-2 py-2 text-[16px] font-medium text-white"
+                className="lp-panel-link"
               >
                 {item.label}
               </a>
             ))}
-            <Link
-              to="/login"
-              className="mt-2 inline-flex h-11.5 items-center justify-center gap-2.5 rounded-full bg-[#0b925f] px-5 text-[15px] font-semibold text-white"
-            >
+            <Link to="/login" className="lp-btn lp-btn-login mt-3 w-full">
               <UserGlyph />
               Iniciar sesión
             </Link>
