@@ -174,6 +174,7 @@ export default function TableroBodegaPage() {
               tipoInicial="dona"
               unidad="Unidades"
               className="xl:col-span-4"
+              expandible
             />
             <ChartCard
               titulo="Préstamos vencidos vs al día"
@@ -182,6 +183,7 @@ export default function TableroBodegaPage() {
               tipoInicial="dona"
               unidad="Unidades afuera"
               className="xl:col-span-4"
+              expandible
             />
             <ChartCard
               titulo="Solicitudes por estado"
@@ -190,6 +192,7 @@ export default function TableroBodegaPage() {
               tipoInicial="dona"
               unidad="Solicitudes"
               className="lg:col-span-2 xl:col-span-4"
+              expandible
             />
           </Seccion>
 
@@ -201,14 +204,16 @@ export default function TableroBodegaPage() {
               unidad="Unidades pedidas"
               className="xl:col-span-6"
               acciones={<TopSelect id="top-pedidos" value={topPedidos} onChange={setTopPedidos} />}
+              expandible
             />
             <ChartCard
-              titulo="Elementos que más rápido se van"
+              titulo="Elementos con mayor rotación"
               descripcion={`Unidades entregadas por día en los últimos ${VENTANA_ROTACION_DIAS} días.`}
               datos={datos.rapidos}
               unidad="Unidades por día"
               className="xl:col-span-6"
               acciones={<TopSelect id="top-rapidos" value={topRapidos} onChange={setTopRapidos} />}
+              expandible
             />
             <ChartCard
               titulo="Entregas por mes"
@@ -218,6 +223,7 @@ export default function TableroBodegaPage() {
               unidad="Unidades entregadas"
               className="xl:col-span-6"
               altura="min-h-96"
+              expandible
             />
             <ChartCard
               titulo="Solicitudes vs entregas por día"
@@ -225,6 +231,7 @@ export default function TableroBodegaPage() {
               datos={[]}
               grafica={<AreaSolicitudesChart data={datos.porDia} />}
               className="xl:col-span-6"
+              expandible
             />
           </Seccion>
 
@@ -236,6 +243,7 @@ export default function TableroBodegaPage() {
               tipoInicial="dona"
               unidad="Elementos"
               className="xl:col-span-4"
+              expandible
             />
             <ChartCard
               titulo="Stock bajo"
@@ -245,6 +253,7 @@ export default function TableroBodegaPage() {
               unidad="Elementos"
               className="xl:col-span-8"
               ladoALado
+              expandible
             >
               <StockReponerList elementos={datos.stock.criticos} />
             </ChartCard>

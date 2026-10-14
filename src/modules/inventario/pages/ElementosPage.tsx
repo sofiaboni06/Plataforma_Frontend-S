@@ -72,6 +72,9 @@ import {
   CARACTER_LABEL,
   caracterLabel,
 } from '@/modules/inventario/lib/caracter'
+import { canGenerateReports } from '@/modules/inventario/navigation'
+import FieldSelector from '@/modules/reportes/components/FieldSelector'
+import { generarReporteElementos, type CampoReporte, type ReporteFormato } from '@/modules/reportes/lib/export'
 
 type StatusFilter = 'Todos' | 'Activo' | 'Inactivo'
 
@@ -147,11 +150,12 @@ const emptyForm: ElementoForm = {
 export default function ElementosPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { isAdmin } = useAuth()
+  const { isAdmin, user } = useAuth()
   const { permit } = useInventoryAccess()
   const canCreate = permit('elemento.crear', 'elementos', 'create')
   const canEdit = permit('elemento.editar', 'elementos', 'edit')
   const canView = permit('elemento.ver', 'elementos', 'view')
+  const canReport = canGenerateReports(isAdmin, user?.permissions)
 
   const { search, setSearch, page, setPage, resetPage } = useTableState()
 
@@ -190,6 +194,11 @@ export default function ElementosPage() {
 
   const bodegaLocked = !isAdmin && bodegas.length === 1
   const lockedBodega = bodegaLocked ? bodegas[0] : null
+
+  const handleExport = async (formato: ReporteFormato, campos: CampoReporte[]) => {
+    const bodegaIds = user?.bodegaIds || (lockedBodega ? [lockedBodega.id] : undefined)
+    return generarReporteElementos({ bodegaIds, formato, campos: campos.length > 0 ? campos : undefined })
+  }
 
   const categoryNameById = useMemo(
     () => new Map(categories.map((item) => [item.id, item.nombre])),
@@ -735,15 +744,24 @@ export default function ElementosPage() {
         description="El elemento es el stock de un ítem. La cantidad en el stand es mínimo 10. La cantidad mínima es solo la alerta."
         context={<InventoryCenterBadge />}
         action={
-          canCreate ? (
-            <Button
-              type="button"
-              icon={<PlusIcon className="size-4" />}
-              onClick={openCreate}
-            >
-              Nuevo elemento
-            </Button>
-          ) : null
+          <div className="flex gap-2">
+            {canReport ? (
+              <FieldSelector
+                onExport={handleExport}
+                nombreReporte="materiales"
+                disabled={loading}
+              />
+            ) : null}
+            {canCreate ? (
+              <Button
+                type="button"
+                icon={<PlusIcon className="size-4" />}
+                onClick={openCreate}
+              >
+                Nuevo elemento
+              </Button>
+            ) : null}
+          </div>
         }
       />
 

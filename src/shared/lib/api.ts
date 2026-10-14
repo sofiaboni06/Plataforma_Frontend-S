@@ -133,3 +133,23 @@ export async function listAll<T>(path: string, query: Record<string, string> = {
 
   return rows
 }
+
+/**
+ * Solicita un archivo binario (Blob) del API, útil para descargas de Excel/PDF
+ */
+export async function apiBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+  const token = getToken()
+  const headers = new Headers(options.headers)
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
+  const response = await fetch(`/api/v1${path}`, { ...options, headers })
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new ApiError(response.status, errorMessage(body, 'No se pudo descargar el archivo'), body)
+  }
+
+  return response.blob()
+}

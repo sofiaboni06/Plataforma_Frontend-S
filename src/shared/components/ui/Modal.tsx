@@ -10,6 +10,8 @@ type ModalProps = {
   wide?: boolean
   /** Más aire en el encabezado y el cuerpo, para formularios largos. */
   spacious?: boolean
+  /** Modal casi a pantalla completa para gráficas. */
+  chart?: boolean
 }
 
 export default function Modal({
@@ -19,6 +21,7 @@ export default function Modal({
   children,
   wide = false,
   spacious = false,
+  chart = false,
 }: ModalProps) {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
@@ -49,7 +52,7 @@ export default function Modal({
         aria-labelledby="dialog-title"
         className={cn(
           'relative z-10 flex w-full max-h-[min(92vh,880px)] flex-col overflow-hidden rounded-[26px] border border-glass-line bg-glass-strong shadow-modal backdrop-blur-glass',
-          wide ? 'max-w-3xl' : 'max-w-2xl',
+          chart ? 'max-w-[min(96vw,1600px)]' : wide ? 'max-w-3xl' : 'max-w-2xl',
         )}
       >
         <div

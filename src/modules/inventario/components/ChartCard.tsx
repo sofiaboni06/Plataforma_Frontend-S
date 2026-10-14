@@ -8,7 +8,9 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/shared/components/ui/chart'
+import { ExpandIcon } from '@/shared/components/icons/AppIcons'
 import type { Punto } from '@/modules/inventario/lib/tablero'
+import ModalChart from './ModalChart'
 
 export type TipoGrafica = 'dona' | 'barras' | 'lineas' | 'area'
 
@@ -34,6 +36,8 @@ type ChartCardProps = {
   grafica?: ReactNode
   /* En pantallas anchas, `children` va a la derecha de la gráfica. */
   ladoALado?: boolean
+  /* Mostrar botón de expandir para ver en modal grande. */
+  expandible?: boolean
 }
 
 function colorDe(punto: Punto, index: number) {
@@ -54,8 +58,10 @@ export default function ChartCard({
   fijo = false,
   grafica,
   ladoALado = false,
+  expandible = false,
 }: ChartCardProps) {
   const [tipo, setTipo] = useState<TipoGrafica>(tipoInicial)
+  const [expandido, setExpandido] = useState(false)
 
   const filas = datos.map((punto, index) => ({
     key: `k${index}`,
@@ -81,6 +87,17 @@ export default function ChartCard({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {acciones}
+          {expandible ? (
+            <button
+              type="button"
+              onClick={() => setExpandido(true)}
+              className="grid size-8 shrink-0 place-items-center rounded-lg border border-sena-line bg-white text-sena-text-soft transition hover:border-sena hover:text-sena"
+              aria-label="Expandir gráfica"
+              title="Ver en pantalla completa"
+            >
+              <ExpandIcon className="size-4" />
+            </button>
+          ) : null}
           {fijo || grafica ? null : (<>
           <label className="sr-only" htmlFor={`tipo-${titulo}`}>
             Tipo de gráfica
@@ -168,6 +185,67 @@ export default function ChartCard({
         </div>
       ) : null}
       </div>
+
+      {expandido ? (
+        <ModalChart titulo={titulo} descripcion={descripcion} onClose={() => setExpandido(false)}>
+          <div className={`flex h-[calc(100vh-11rem)] w-full gap-6 ${ladoALado && children ? 'flex-row' : 'flex-col'}`}>
+            <div className="relative min-w-0 flex-1">
+              <ChartContainer config={config} className="h-full w-full">
+                {tipo === 'dona' ? (
+                  <PieChart margin={{ top: 8, bottom: 8 }}>
+                    <ChartTooltip content={<ChartTooltipContent nameKey="key" hideLabel />} />
+                    <Pie data={filas} dataKey="valor" nameKey="key" cy="45%" innerRadius="50%" outerRadius="75%" strokeWidth={2}>
+                      {filas.map((fila) => (
+                        <Cell key={fila.key} fill={fila.fill} />
+                      ))}
+                    </Pie>
+                    <ChartLegend verticalAlign="bottom" content={<ChartLegendContent nameKey="key" className="flex-wrap gap-x-4 gap-y-1 pt-4" />} />
+                  </PieChart>
+                ) : tipo === 'area' ? (
+                  <AreaChart data={filas} margin={{ left: 4, right: 16, top: 12, bottom: 8 }}>
+                    <defs>
+                      <linearGradient id="relleno-area-modal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-valor)" stopOpacity="0.5" />
+                        <stop offset="95%" stopColor="var(--color-valor)" stopOpacity="0.05" />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid vertical={false} />
+                    <XAxis dataKey="nombre" tickLine={false} axisLine={false} tickMargin={10} minTickGap={30} tick={{ fontSize: 11 }} />
+                    <YAxis tickLine={false} axisLine={false} width={44} tickMargin={6} allowDecimals={false} />
+                    <ChartTooltip content={<ChartTooltipContent indicator="line" />} />
+                    <Area dataKey="valor" type="monotone" stroke="var(--color-valor)" strokeWidth="2" fill="url(#relleno-area-modal)" />
+                  </AreaChart>
+                ) : tipo === 'barras' ? (
+                  <BarChart data={filas} margin={{ left: 4, right: 12, top: 12, bottom: 8 }}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis dataKey="nombre" tickLine={false} axisLine={false} interval="preserveStartEnd" tick={{ fontSize: 11 }} tickFormatter={corto} tickMargin={10} height={40} />
+                    <YAxis tickLine={false} axisLine={false} width={44} tickMargin={6} allowDecimals />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="valor" radius={6}>
+                      {filas.map((fila) => (
+                        <Cell key={fila.key} fill={fila.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                ) : (
+                  <LineChart data={filas} margin={{ left: 4, right: 16, top: 12, bottom: 8 }}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis dataKey="nombre" tickLine={false} axisLine={false} interval="preserveStartEnd" tick={{ fontSize: 11 }} tickMargin={10} height={40} />
+                    <YAxis tickLine={false} axisLine={false} width={44} tickMargin={6} allowDecimals />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line dataKey="valor" type="monotone" stroke="var(--color-valor)" strokeWidth="2" dot={{ r: 4 }} />
+                  </LineChart>
+                )}
+              </ChartContainer>
+            </div>
+            {ladoALado && children ? (
+              <div className="w-full shrink-0 overflow-y-auto rounded-2xl border border-sena-line-soft bg-sena-surface/50 p-4 xl:w-[24rem]">
+                {children}
+              </div>
+            ) : null}
+          </div>
+        </ModalChart>
+      ) : null}
     </section>
   )
 }
