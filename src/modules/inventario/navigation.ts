@@ -333,6 +333,14 @@ export function allowsPermission(
   return permissions?.includes(code) === true
 }
 
+/**
+ * Verifica si el usuario puede generar reportes de materiales
+ */
+export function canGenerateReports(isAdmin: boolean, permissions?: string[]): boolean {
+  if (isAdmin) return true
+  return permissions?.includes('reporte.generar') === true
+}
+
 function actionCode(screen: Exclude<InventoryScreenCode, 'solicitudes' | 'alertas' | 'tablero'>, action: InventoryAction) {
   if (action === 'list' || action === 'view') return VIEW_CODE[screen]
   return WRITE_CODE[screen]?.[action] ?? VIEW_CODE[screen]

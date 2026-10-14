@@ -8,6 +8,10 @@ import {
 } from '@/modules/inventario/data/bodega'
 import type { BodegaApi } from '@/modules/inventario/types/bodega'
 import { useInventoryAccess } from '@/modules/inventario/useInventoryAccess'
+import { canGenerateReports } from '@/modules/inventario/navigation'
+import FieldSelector from '@/modules/reportes/components/FieldSelector'
+import { generarReporteBodega, type CampoReporte, type ReporteFormato } from '@/modules/reportes/lib/export'
+import { useAuth } from '@/modules/auth/context/auth'
 
 function WarehouseIcon() {
   return (
@@ -21,8 +25,10 @@ function WarehouseIcon() {
 export default function ViewBodegaPage() {
   const navigate = useNavigate()
   const { permit } = useInventoryAccess()
+  const { isAdmin, user } = useAuth()
   const canEdit = permit('bodega.editar', 'bodegas', 'edit')
   const canCreateSub = permit('bodega.crear', 'bodegas', 'create')
+  const canReport = canGenerateReports(isAdmin, user?.permissions)
 
   const { id } = useParams<{ id: string }>()
   const [bodega, setBodega] = useState<BodegaApi | null>(null)
@@ -30,6 +36,15 @@ export default function ViewBodegaPage() {
   const [error, setError] = useState('')
   const [subBodegaModal, setSubBodegaModal] = useState(false)
   const [savingSubBodega, setSavingSubBodega] = useState(false)
+
+  const handleExport = async (formato: ReporteFormato, campos: CampoReporte[]) => {
+    if (!id) throw new Error('No se encontró el ID de la bodega')
+    return generarReporteBodega({
+      bodegaId: Number(id),
+      formato,
+      campos: campos.length > 0 ? campos : undefined,
+    })
+  }
 
   async function loadBodega(currentId: string) {
     const result = await getBodega(currentId)
@@ -243,7 +258,14 @@ export default function ViewBodegaPage() {
             )}
           </div>
 
-          <div className="mt-7 flex justify-end gap-3 border-t border-sena-dark/10 pt-6">
+          <div className="mt-7 flex flex-wrap justify-end gap-3 border-t border-sena-dark/10 pt-6">
+            {canReport && bodega ? (
+              <FieldSelector
+                onExport={handleExport}
+                nombreReporte={`bodega_${bodega.nombre.replace(/\s+/g, '_').toLowerCase()}`}
+                disabled={loading}
+              />
+            ) : null}
             <button
               type="button"
               onClick={() => navigate('/inventario/bodegas')}

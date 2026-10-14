@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type SVGProps } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
-import { ErrorBanner } from '@/shared/components/DataTable'
+import { ErrorBanner, PageHeader } from '@/shared/components/DataTable'
+import { HomeIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError } from '@/shared/lib/api'
+import { useAuth } from '@/modules/auth/context/auth'
 import { getBodegas } from '@/modules/inventario/data/bodega'
 import { getAllCategorias, getSubcategorias } from '@/modules/inventario/data/categoria'
 import { getAllItems } from '@/modules/inventario/data/item'
@@ -203,7 +205,9 @@ function categoryOfElemento(
 }
 
 export default function InventoryPage() {
-  const { screens, permit } = useInventoryAccess()
+  const { screens, permit, can } = useInventoryAccess()
+  const { isAdmin } = useAuth()
+  const accesoInventario = isAdmin || can('elementos', 'list')
   const [elementos, setElementos] = useState<ElementoApi[]>([])
   const [items, setItems] = useState<ItemApi[]>([])
   const [categories, setCategories] = useState<CategoryApi[]>([])
@@ -226,6 +230,10 @@ export default function InventoryPage() {
     setLoading(true)
     setError(null)
     try {
+      if (!accesoInventario) {
+        setElementos(await getElementos())
+        return
+      }
       const [elementoData, itemData, categoryData, subcategoryData, bodegaData] = await Promise.all([
         getElementos(),
         getAllItems(),
@@ -371,6 +379,115 @@ export default function InventoryPage() {
         { label: 'En asignación', value: null as number | null, icon: IClip, sub: 'Sin dato en la API' },
         { label: 'En mantenimiento', value: null as number | null, icon: IWrench, sub: 'Sin dato en la API' },
       ]
+
+  if (!accesoInventario && !PREVIEW) {
+    const number = new Intl.NumberFormat('es-CO')
+    const disponibles = elementos.filter((e) => e.estado)
+    return (
+      <AppLayout title="Inventario">
+        <div className="mb-4 flex items-center gap-2 text-xs font-medium text-sena-text-soft">
+          <HomeIcon className="size-4" />
+          <Link to="/inventario" className="hover:text-sena-strong">
+            Inventario
+          </Link>
+        </div>
+        <PageHeader
+          icon={<IGrid className="size-5" />}
+          title="Inventario"
+          description="Catálogo de tu centro. No ves stock ni ubicación: solo lo disponible para solicitar."
+        />
+        {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}
+        <section className="mt-6 rounded-[24px] border border-glass-line bg-glass/75 shadow-hairline backdrop-blur-glass">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 sm:px-6">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-sena-dark">
+              <span className="grid size-7 place-items-center rounded-full bg-sena-soft text-sena-dark">
+                <IBox className="size-4" />
+              </span>
+              Elementos disponibles para solicitar
+              <span className="rounded-full bg-sena-muted px-2 py-0.5 text-xs font-semibold text-sena-strong tabular-nums">
+                {disponibles.length}
+              </span>
+            </h2>
+            <Link
+              to="/inventario/solicitudes"
+              className="rounded-xl bg-sena px-4 py-2 text-xs font-semibold text-white shadow-brand transition hover:bg-sena-bright"
+            >
+              Ir a solicitudes
+            </Link>
+          </div>
+          <div className="overflow-x-auto px-3 pt-3 pb-4 sm:px-4">
+            {loading ? (
+              <p className="py-12 text-center text-sm text-sena-text-soft">Cargando catálogo…</p>
+            ) : disponibles.length === 0 ? (
+              <p className="py-12 text-center text-sm text-sena-text-soft">
+                No hay elementos activos en tu centro.
+              </p>
+            ) : (
+              <table className="data-table w-full min-w-[720px] table-fixed text-sm">
+                <thead>
+                  <tr>
+                    {['Elemento', 'Código', 'Categoría', 'Tipo', 'Disponible'].map((h, i) => (
+                      <th
+                        key={h}
+                        className={`px-5 py-3.5 text-[0.6875rem] font-bold tracking-[0.12em] text-sena-dark uppercase ${i === 4 ? 'text-right' : 'text-left'}`}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {disponibles.map((elemento) => {
+                    const disponible = Number(
+                      (elemento as ElementoApi & { disponible?: number }).disponible ?? 0,
+                    )
+                    const categoria =
+                      elemento.subcategoria?.nombre ??
+                      elemento.clasificacion?.nombre ??
+                      '—'
+                    const tipo = elemento.caracter ?? elemento.clasificacion?.caracter ?? '—'
+                    return (
+                      <tr key={elemento.id} className="border-t border-sena-hairline/70 bg-white/55 transition-colors hover:bg-sena-veil">
+                        <td className="max-w-0 truncate px-5 py-3 text-[0.8125rem] font-medium text-sena-text">
+                          {elemento.nombre}
+                        </td>
+                        <td className="px-5 py-3 font-mono text-xs text-sena-text-soft">
+                          {elemento.codigo || '—'}
+                        </td>
+                        <td className="max-w-0 truncate px-5 py-3 text-xs text-sena-text-soft">
+                          {categoria}
+                        </td>
+                        <td className="px-5 py-3 text-xs text-sena-text-soft">{tipo}</td>
+                        <td className="px-5 py-3 text-right">
+                          <span
+                            className={`font-bold tabular-nums ${disponible > 0 ? 'text-emerald-600' : 'text-sena-text-soft'}`}
+                          >
+                            {number.format(disponible)}
+                          </span>
+                          <span className="ml-1 text-xs font-normal text-sena-text-soft">
+                            {elemento.unidadMedida?.abreviatura ?? elemento.unidadMedida?.nombre ?? ''}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+        {permit('alerta.ver') ? (
+          <p className="mt-3 text-xs text-sena-text-soft">
+            También puedes revisar las{' '}
+            <Link to="/inventario/alertas" className="font-semibold text-sena-strong hover:underline">
+              alertas de tu centro
+            </Link>
+            .
+          </p>
+        ) : null}
+      </AppLayout>
+    )
+  }
 
   return (
     <AppLayout title="Inventario">

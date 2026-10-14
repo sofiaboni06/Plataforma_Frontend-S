@@ -222,6 +222,37 @@ export function SearchIcon(props: IconProps) {
   )
 }
 
+export function ExcelIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="M10 13l-2 2 2 2" />
+      <path d="M14 13l2 2-2 2" />
+    </BaseIcon>
+  )
+}
+
+export function PdfIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="M9 15h6" />
+      <path d="M9 11h6" />
+      <path d="M9 19h3" />
+    </BaseIcon>
+  )
+}
+
+export function ExpandIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+    </BaseIcon>
+  )
+}
+
 const NAV_ICONS = {
   home: HomeIcon,
   inventory: InventoryIcon,
