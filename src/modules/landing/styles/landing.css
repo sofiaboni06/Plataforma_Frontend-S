@@ -677,43 +677,6 @@
     pointer-events: none;
   }
 
-  /* Barra de búsqueda */
-  .lp-searchbar {
-    border-radius: 20px;
-    background-color: rgba(255, 255, 255, 0.9);
-    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(243, 251, 247, 0.9) 100%);
-    border: 1px solid rgba(214, 234, 224, 0.95);
-    box-shadow:
-      0 1px 3px rgba(6, 60, 40, 0.05),
-      0 18px 40px -22px rgba(6, 60, 40, 0.36);
-  }
-
-  .lp-field {
-    height: 48px;
-    width: 100%;
-    border-radius: 12px;
-    background-color: rgba(255, 255, 255, 0.97);
-    border: 1px solid rgba(214, 234, 224, 1);
-    color: var(--lp-ink);
-    font-size: 14px;
-    box-shadow: inset 0 1px 2px rgba(6, 60, 40, 0.04);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
-  }
-
-  .lp-field:focus {
-    outline: none;
-    border-color: rgba(11, 146, 95, 0.65);
-    box-shadow: 0 0 0 4px rgba(11, 179, 95, 0.14);
-  }
-
-  select.lp-field {
-    appearance: none;
-    padding-inline: 14px 36px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235b7368' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-  }
-
   /* Teja de icono: cristal cuadrado con borde luminoso, no un circulo plano. */
   .lp-icon-tile {
     position: relative;
@@ -959,26 +922,6 @@
     color: #4f6d60;
   }
 
-  /* Insignia verde sobre la fotografía (noticias) */
-  .lp-badge {
-    position: absolute;
-    bottom: 12px;
-    left: 16px;
-    display: inline-flex;
-    align-items: center;
-    height: 24px;
-    padding-inline: 12px;
-    border-radius: 999px;
-    font-size: 11.5px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    color: #fff;
-    background-image: linear-gradient(180deg, #16bd67 0%, #00994b 100%);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.4),
-      0 6px 14px rgba(0, 90, 50, 0.4);
-  }
-
   /* ============================================================
      6. Títulos de sección con filo verde lima
      ============================================================ */
@@ -1043,5 +986,237 @@
   .lp-social:hover {
     background-color: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.34);
+  }
+
+  /* ============================================================
+     8. Carrusel "Explora y conéctate" (solo sección #oferta)
+     Clases con prefijo `lp-explore-`: no afectan a otras secciones.
+     ============================================================ */
+  .lp-explore-viewport {
+    position: relative;
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    margin-inline: -4px;
+    padding: 4px 4px 10px;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    cursor: grab;
+    overscroll-behavior-x: contain;
+  }
+
+  .lp-explore-viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Durante el arrastre: sin ajuste magnético ni desplazamiento suave,
+     para que el carrusel siga al cursor de forma natural. */
+  .lp-explore-viewport.is-dragging {
+    cursor: grabbing;
+    scroll-snap-type: none;
+    scroll-behavior: auto;
+  }
+
+  /* 1 visible en móvil, 2 en tableta, exactamente 3 en escritorio. */
+  .lp-explore-slide {
+    flex: 0 0 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  .lp-explore-slide > article {
+    height: 100%;
+  }
+
+  @media (min-width: 640px) {
+    .lp-explore-slide {
+      flex-basis: calc((100% - 24px) / 2);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .lp-explore-slide {
+      flex-basis: calc((100% - 48px) / 3);
+    }
+  }
+
+  .lp-explore-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+
+  .lp-explore-dots {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .lp-explore-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background-color: rgba(10, 138, 75, 0.25);
+    transition: background-color 0.2s ease, width 0.25s ease;
+  }
+
+  .lp-explore-dot:hover {
+    background-color: rgba(10, 138, 75, 0.5);
+  }
+
+  .lp-explore-dot.is-active {
+    width: 28px;
+    background-image: linear-gradient(90deg, #12b35f 0%, #a6e93e 100%);
+    box-shadow: 0 0 12px rgba(20, 180, 100, 0.4);
+  }
+
+  .lp-explore-dot:focus-visible {
+    outline: 2px solid #0a8a4b;
+    outline-offset: 3px;
+  }
+
+  /* --- Tarjetas giratorias (flip 3D): solo caras de esta sección. --- */
+  .lp-explore-slide {
+    perspective: 1200px;
+  }
+
+  .lp-flip-inner {
+    display: grid;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.65s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+
+  .lp-flip-inner.is-flipped {
+    transform: rotateY(180deg);
+  }
+
+  /* Caras apiladas: el contenedor adopta la altura de la cara más alta,
+     así ambas dimensiones son coherentes y no se superponen. */
+  .lp-flip-face {
+    grid-area: 1 / 1;
+    min-width: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    /* Solo la cara visible recibe el puntero: la cara oculta, aunque
+       comparte plano, no debe interceptar clics de la otra cara. */
+    pointer-events: none;
+  }
+
+  .lp-flip-inner:not(.is-flipped) > .lp-flip-front {
+    pointer-events: auto;
+  }
+
+  .lp-flip-inner.is-flipped > .lp-flip-back {
+    pointer-events: auto;
+  }
+
+  .lp-flip-back {
+    transform: rotateY(180deg);
+  }
+
+  /* La cara posterior conserva su giro al recibir hover. Sin esta regla,
+     el `:hover` de `.lp-card` (más específico) la des-gira, la oculta y
+     el botón «Volver» deja de ser visible e interactivo. */
+  .lp-card.lp-flip-face.lp-flip-back:hover {
+    transform: rotateY(180deg);
+  }
+
+  .lp-icon-tile.lp-explore-tile {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
+  .lp-explore-back-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #0a4030;
+  }
+
+  .lp-explore-demo {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    height: 22px;
+    margin-top: 10px;
+    padding-inline: 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #0a7f4a;
+    background-color: rgba(11, 179, 95, 0.12);
+    border: 1px solid rgba(11, 179, 95, 0.3);
+  }
+
+  /* Galería demostrativa: espacios visuales sin imágenes reales. */
+  .lp-explore-gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .lp-explore-gallery span {
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  .lp-explore-gallery span:nth-child(1) {
+    background-image: linear-gradient(135deg, #0bb35f 0%, #b6ef4a 100%);
+  }
+
+  .lp-explore-gallery span:nth-child(2) {
+    background-image: linear-gradient(135deg, #0a8a4b 0%, #5fd68a 100%);
+  }
+
+  .lp-explore-gallery span:nth-child(3) {
+    background-image: linear-gradient(135deg, #14654a 0%, #8fe3ae 100%);
+  }
+
+  .lp-explore-back-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+    margin-bottom: 16px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lp-explore-back-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #4f6d60;
+  }
+
+  .lp-explore-back-item svg {
+    flex: none;
+    width: 17px;
+    height: 17px;
+    margin-top: 1px;
+    color: #0a7f4a;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lp-explore-viewport {
+      scroll-behavior: auto;
+      scroll-snap-type: x proximity;
+    }
+
+    /* Con movimiento reducido el giro es instantáneo, sin animación. */
+    .lp-flip-inner {
+      transition: none;
+    }
   }
 }
