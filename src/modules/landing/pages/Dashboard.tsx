@@ -1,3 +1,12 @@
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
+
 import CategoryCard from '@/modules/landing/components/CategoryCard'
 import ColombiaMap from '@/modules/landing/components/ColombiaMap'
 import Header from '@/modules/landing/components/Header'
@@ -52,43 +61,103 @@ const presence = [
   },
 ]
 
-const offers = [
+/**
+ * Tarjetas de la sección "Explora y conéctate".
+ *
+ * La información adicional vive en la cara posterior de cada tarjeta
+ * (efecto flip 3D): no hay navegación ni rutas nuevas. Todo el contenido
+ * posterior es descriptivo o demostrativo; no existen datos reales de
+ * proyectos, cursos, publicaciones, eventos ni usuarios en el backend.
+ */
+const exploreCards = [
   {
-    title: 'Formación Técnica',
-    text: 'Adquiere habilidades prácticas para el mundo laboral.',
-    icon: 'wrench' as const,
+    id: 'proyectos',
+    title: 'Proyectos de aprendices',
+    text: 'Descubre proyectos innovadores creados por aprendices e instructores de todo el país.',
+    icon: 'bulb' as const,
+    gallery: true,
+    backTitle: 'Lo que encontrarás',
+    back: [
+      { icon: 'badge' as const, label: 'Nombre del proyecto y programa asociado' },
+      { icon: 'wrench' as const, label: 'Descripción del problema que resuelve' },
+      { icon: 'monitor' as const, label: 'Tecnologías utilizadas' },
+    ],
   },
   {
-    title: 'Formación Tecnológica',
-    text: 'Profundiza tus conocimientos y potencia tu futuro.',
-    icon: 'monitor' as const,
-  },
-  {
-    title: 'Cursos cortos',
-    text: 'Aprende rápido, desarrolla tus habilidades.',
-    icon: 'clock' as const,
-  },
-  {
-    title: 'Formación complementaria',
-    text: 'Fortalece tus competencias personales y profesionales.',
+    id: 'comunidad',
+    title: 'Comunidad SENA',
+    text: 'Conecta, colabora y comparte con otros aprendices.',
     icon: 'users' as const,
+    gallery: false,
+    backTitle: 'Lo que encontrarás',
+    back: [
+      { icon: 'users' as const, label: 'Grupos por programa y especialidad' },
+      { icon: 'people' as const, label: 'Publicaciones y preguntas' },
+      { icon: 'pin' as const, label: 'Encuentra compañeros de estudio' },
+      { icon: 'briefcase' as const, label: 'Equipos para proyectos colaborativos' },
+    ],
+  },
+  {
+    id: 'academyex',
+    title: 'AcademyEX',
+    text: 'Cursos, rutas y contenidos digitales para potenciar tus habilidades.',
+    icon: 'monitor' as const,
+    gallery: false,
+    backTitle: 'Lo que encontrarás',
+    back: [
+      { icon: 'hat' as const, label: 'Cursos disponibles' },
+      { icon: 'pin' as const, label: 'Rutas de aprendizaje' },
+      { icon: 'monitor' as const, label: 'Contenidos digitales' },
+      { icon: 'bulb' as const, label: 'Cómo acceder a los recursos formativos' },
+    ],
+  },
+  {
+    id: 'agenda',
+    title: 'Mi agenda SENA',
+    text: 'Todas tus actividades, entregas, evaluaciones y eventos en un solo lugar.',
+    icon: 'clock' as const,
+    gallery: false,
+    backTitle: 'Lo que encontrarás',
+    back: [
+      { icon: 'clock' as const, label: 'Calendario semanal y mensual' },
+      { icon: 'briefcase' as const, label: 'Actividades y entregas' },
+      { icon: 'badge' as const, label: 'Evaluaciones y tutorías' },
+      { icon: 'pin' as const, label: 'Eventos del centro de formación' },
+      { icon: 'heart' as const, label: 'Recordatorios personales' },
+    ],
+  },
+  {
+    id: 'perfil',
+    title: 'Mi perfil de competencias',
+    text: 'Construye tu portafolio y muestra tus habilidades y proyectos.',
+    icon: 'badge' as const,
+    gallery: false,
+    backTitle: 'Lo que encontrarás',
+    back: [
+      { icon: 'wrench' as const, label: 'Habilidades técnicas y personales' },
+      { icon: 'briefcase' as const, label: 'Portafolio de proyectos' },
+      { icon: 'monitor' as const, label: 'Herramientas y tecnologías que dominas' },
+      { icon: 'heart' as const, label: 'Competencias por fortalecer' },
+    ],
+  },
+  {
+    id: 'ayuda',
+    title: 'Centro de ayuda inteligente',
+    text: 'Resuelve tus dudas, consulta guías y recibe orientación personalizada.',
+    icon: 'heart' as const,
+    gallery: false,
+    backTitle: 'Lo que encontrarás',
+    back: [
+      { icon: 'monitor' as const, label: 'Buscador de preguntas frecuentes' },
+      { icon: 'hat' as const, label: 'Guías paso a paso' },
+      { icon: 'building' as const, label: 'Orientación sobre trámites' },
+      { icon: 'people' as const, label: 'Canales oficiales de atención' },
+    ],
   },
 ]
 
-const news = [
-  {
-    title: 'El SENA impulsa el talento joven con formación en tecnología.',
-    image: '/img/noticia-tecnologia.jpg',
-  },
-  {
-    title: 'Tecnologías emergentes para un mejor futuro laboral.',
-    image: '/img/noticia-vr.jpg',
-  },
-  {
-    title: 'El SENA fortalece el emprendimiento en las regiones.',
-    image: '/img/noticia-emprendimiento.jpg',
-  },
-]
+/* Número fijo de indicadores de posición del carrusel. */
+const EXPLORE_DOT_COUNT = 3
 
 const services = [
   { title: 'Formación', text: 'Accede a la oferta educativa del SENA.', icon: 'hat' as const },
@@ -126,8 +195,7 @@ export default function Dashboard() {
       <Programs />
       <Colombia />
       <FormationOffer />
-      <OpportunitySearch />
-      <News />
+      <Sima />
       <Services />
       <FutureBanner />
       <SiteFooter />
@@ -220,88 +288,371 @@ function Colombia() {
 }
 
 function FormationOffer() {
+  const viewportRef = useRef<HTMLDivElement | null>(null)
+  const resumeTimer = useRef<number | null>(null)
+  const userPaused = useRef(false)
+  const [position, setPosition] = useState(0)
+  const [visibleCount, setVisibleCount] = useState(3)
+  const [reduceMotion, setReduceMotion] = useState(false)
+
+  const maxPosition = Math.max(0, exploreCards.length - visibleCount)
+  /* Posición segura derivada durante el render (evita setState en efecto). */
+  const safePosition = Math.min(position, maxPosition)
+
+  const scrollToPosition = useCallback(
+    (target: number, smooth = true) => {
+      const clamped = Math.min(Math.max(target, 0), maxPosition)
+      setPosition(clamped)
+      const viewport = viewportRef.current
+      const slide = viewport?.children.item(clamped) as HTMLElement | null
+      if (viewport && slide) {
+        viewport.scrollTo({
+          left: slide.offsetLeft,
+          behavior: smooth && !reduceMotion ? 'smooth' : 'auto',
+        })
+      }
+    },
+    [maxPosition, reduceMotion],
+  )
+
+  const goTo = useCallback(
+    (target: number) => {
+      const wrapped = target < 0 ? maxPosition : target > maxPosition ? 0 : target
+      scrollToPosition(wrapped)
+    },
+    [maxPosition, scrollToPosition],
+  )
+
+  /* Sincroniza el indicador cuando el usuario desplaza manualmente. */
+  const handleScroll = useCallback(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+    let nearest = 0
+    let best = Number.POSITIVE_INFINITY
+    for (let index = 0; index < viewport.children.length; index += 1) {
+      const slide = viewport.children.item(index) as HTMLElement | null
+      if (!slide) continue
+      const distance = Math.abs(slide.offsetLeft - viewport.scrollLeft)
+      if (distance < best) {
+        best = distance
+        nearest = Math.min(index, maxPosition)
+      }
+    }
+    setPosition((previous) => (previous === nearest ? previous : nearest))
+  }, [maxPosition])
+
+  /* Pausa el avance automático mientras el usuario interactúa o enfoca. */
+  const pauseAutoplay = useCallback(() => {
+    userPaused.current = true
+    if (resumeTimer.current !== null) {
+      window.clearTimeout(resumeTimer.current)
+      resumeTimer.current = null
+    }
+  }, [])
+
+  /* Reanuda tras un periodo de inactividad razonable (4 s). */
+  const scheduleResume = useCallback(() => {
+    if (resumeTimer.current !== null) {
+      window.clearTimeout(resumeTimer.current)
+    }
+    resumeTimer.current = window.setTimeout(() => {
+      userPaused.current = false
+      resumeTimer.current = null
+    }, 4000)
+  }, [])
+
+  /* Giro independiente por tarjeta: abrir una no afecta a las demás. */
+  const [flipped, setFlipped] = useState<Record<string, boolean>>({})
+  const flippedCount = exploreCards.reduce(
+    (count, card) => count + (flipped[card.id] ? 1 : 0),
+    0,
+  )
+
+  const setFlip = useCallback(
+    (id: string, value: boolean) => {
+      setFlipped((previous) => (previous[id] === value ? previous : { ...previous, [id]: value }))
+      /* Al voltear se pausa el carrusel para leer; al volver se reanuda
+         tras inactividad. El intervalo además ignora tarjetas volteadas. */
+      if (value) {
+        pauseAutoplay()
+      } else {
+        scheduleResume()
+      }
+    },
+    [pauseAutoplay, scheduleResume],
+  )
+
+  /* Tres indicadores fijos: mapeo proporcional entre puntos y posiciones. */
+  const dotToPosition = useCallback(
+    (dot: number) => Math.round((dot * maxPosition) / (EXPLORE_DOT_COUNT - 1)),
+    [maxPosition],
+  )
+  const activeDot =
+    maxPosition === 0
+      ? 0
+      : Math.min(
+          EXPLORE_DOT_COUNT - 1,
+          Math.max(0, Math.round((safePosition * (EXPLORE_DOT_COUNT - 1)) / maxPosition)),
+        )
+
+  /* Arrastre con el ratón (el táctil usa el desplazamiento nativo).
+     Solo se activa con el botón izquierdo y tras superar un umbral,
+     para no interferir con clics ni con la selección de texto. */
+  const dragState = useRef<{ startX: number; startLeft: number; moved: boolean } | null>(null)
+  const suppressClick = useRef(false)
+
+  const handleDragStart = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (event.pointerType !== 'mouse' || event.button !== 0) return
+      const viewport = viewportRef.current
+      if (!viewport) return
+      dragState.current = { startX: event.clientX, startLeft: viewport.scrollLeft, moved: false }
+      pauseAutoplay()
+    },
+    [pauseAutoplay],
+  )
+
+  const handleDragMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragState.current
+    const viewport = viewportRef.current
+    if (!drag || !viewport) return
+    const delta = event.clientX - drag.startX
+    if (!drag.moved && Math.abs(delta) > 6) {
+      drag.moved = true
+      viewport.classList.add('is-dragging')
+      try {
+        viewport.setPointerCapture(event.pointerId)
+      } catch {
+        /* La captura de puntero puede no estar disponible: el arrastre sigue funcionando. */
+      }
+    }
+    if (drag.moved) {
+      viewport.scrollLeft = drag.startLeft - delta
+    }
+  }, [])
+
+  const endDrag = useCallback(() => {
+    const drag = dragState.current
+    dragState.current = null
+    if (!drag) return
+    viewportRef.current?.classList.remove('is-dragging')
+    /* Un arrastre real no debe activar «Explorar»: se suprime ese clic. */
+    if (drag.moved) {
+      suppressClick.current = true
+    }
+    scheduleResume()
+  }, [scheduleResume])
+
+  const handleClickCapture = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    if (suppressClick.current) {
+      suppressClick.current = false
+      event.preventDefault()
+      event.stopPropagation()
+    }
+  }, [])
+
+  /* Visible count + preferencia de movimiento reducido. */
+  useEffect(() => {
+    const computeVisible = () => {
+      const width = window.innerWidth
+      setVisibleCount(width < 640 ? 1 : width < 1024 ? 2 : 3)
+    }
+    computeVisible()
+    window.addEventListener('resize', computeVisible)
+
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const syncMotion = () => setReduceMotion(media.matches)
+    syncMotion()
+    media.addEventListener('change', syncMotion)
+
+    return () => {
+      window.removeEventListener('resize', computeVisible)
+      media.removeEventListener('change', syncMotion)
+    }
+  }, [])
+
+  /* Avance automático lento; se limpia al desmontar. No avanza mientras
+     alguna tarjeta esté volteada para no ocultar su información. */
+  useEffect(() => {
+    if (reduceMotion) return
+    const id = window.setInterval(() => {
+      if (userPaused.current || document.hidden || flippedCount > 0) return
+      goTo(safePosition + 1)
+    }, 5000)
+    return () => window.clearInterval(id)
+  }, [goTo, safePosition, reduceMotion, flippedCount])
+
+  /* Limpia el temporizador de reanudación al desmontar. */
+  useEffect(
+    () => () => {
+      if (resumeTimer.current !== null) {
+        window.clearTimeout(resumeTimer.current)
+      }
+    },
+    [],
+  )
+
   return (
-    <section id="oferta" className="scroll-mt-8 py-16 lg:py-20">
+    <section id="oferta" aria-labelledby="explora-titulo" className="scroll-mt-8 py-16 lg:py-20">
       <div className="mx-auto max-w-7xl px-5 lg:px-10">
-        <h2 className="lp-h2 lp-h2-center text-[27px] lg:text-[32px]">
-          Conoce nuestra oferta de formación
+        <h2 id="explora-titulo" className="lp-h2 lp-h2-center text-[27px] lg:text-[32px]">
+          Explora y conéctate
         </h2>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {offers.map((offer) => (
-            <article key={offer.title} className="lp-card flex flex-col px-6 py-7">
-              <span className="lp-icon-tile">
-                <Glyph name={offer.icon} />
-              </span>
-              <h3 className="mt-5 text-[18px] font-bold text-[#0a4030]">{offer.title}</h3>
-              <p className="mt-2 mb-6 min-h-12 text-[14px] leading-6 text-[#5b7368]">{offer.text}</p>
-              <a href="#buscar" className="lp-btn lp-btn-primary lp-btn-block mt-auto">
-                Consultar programas
-                <ArrowGlyph />
-              </a>
-            </article>
-          ))}
+
+        <div
+          ref={viewportRef}
+          onScroll={handleScroll}
+          onPointerEnter={pauseAutoplay}
+          onPointerLeave={scheduleResume}
+          onPointerDown={handleDragStart}
+          onPointerMove={handleDragMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onTouchStart={pauseAutoplay}
+          onTouchEnd={scheduleResume}
+          onClickCapture={handleClickCapture}
+          onFocusCapture={pauseAutoplay}
+          onBlurCapture={scheduleResume}
+          role="region"
+          aria-roledescription="carrusel"
+          aria-label="Explora y conéctate"
+          className="lp-explore-viewport mt-10"
+        >
+          {exploreCards.map((card, index) => {
+            const isFlipped = flipped[card.id] === true
+            return (
+              <div
+                key={card.id}
+                role="group"
+                aria-roledescription="diapositiva"
+                aria-label={`${index + 1} de ${exploreCards.length}: ${card.title}`}
+                className="lp-explore-slide"
+              >
+                <div className={`lp-flip-inner${isFlipped ? ' is-flipped' : ''}`}>
+                  <article
+                    aria-hidden={isFlipped}
+                    inert={isFlipped}
+                    className="lp-card lp-flip-face lp-flip-front flex flex-col px-6 py-7"
+                  >
+                    <span className="lp-icon-tile">
+                      <Glyph name={card.icon} />
+                    </span>
+                    <h3 className="mt-5 text-[18px] font-bold text-[#0a4030]">{card.title}</h3>
+                    <p className="mt-2 mb-6 min-h-12 text-[14px] leading-6 text-[#5b7368]">
+                      {card.text}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setFlip(card.id, true)}
+                      aria-label={`Explorar ${card.title}`}
+                      className="lp-btn lp-btn-primary lp-btn-block mt-auto"
+                    >
+                      Explorar
+                      <ArrowGlyph />
+                    </button>
+                  </article>
+                  <article
+                    aria-hidden={!isFlipped}
+                    inert={!isFlipped}
+                    aria-label={`${card.title}: ${card.backTitle}`}
+                    className="lp-card lp-flip-face lp-flip-back flex flex-col px-6 py-7"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="lp-icon-tile lp-explore-tile">
+                        <Glyph name={card.icon} />
+                      </span>
+                      <p className="lp-explore-back-title">{card.backTitle}</p>
+                    </div>
+                    <p className="lp-explore-demo">Contenido demostrativo</p>
+                    {card.gallery ? (
+                      <div className="lp-explore-gallery" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    ) : null}
+                    <ul className="lp-explore-back-list">
+                      {card.back.map((item) => (
+                        <li key={item.label} className="lp-explore-back-item">
+                          <Glyph name={item.icon} />
+                          <span>{item.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={() => setFlip(card.id, false)}
+                      aria-label={`Volver a ${card.title}`}
+                      className="lp-btn lp-btn-ghost lp-btn-block mt-auto"
+                    >
+                      Volver
+                      <span className="inline-flex rotate-180">
+                        <ArrowGlyph />
+                      </span>
+                    </button>
+                  </article>
+                </div>
+              </div>
+            )
+          })}
         </div>
+
+        {maxPosition > 0 ? (
+          <div className="lp-explore-controls mt-8">
+            <div role="tablist" aria-label="Posición del carrusel" className="lp-explore-dots">
+              {Array.from({ length: EXPLORE_DOT_COUNT }).map((_, dot) => (
+                <button
+                  key={`explore-dot-${dot}`}
+                  type="button"
+                  role="tab"
+                  onClick={() => goTo(dotToPosition(dot))}
+                  aria-label={`Ir a la posición ${dot + 1} de ${EXPLORE_DOT_COUNT}`}
+                  aria-selected={dot === activeDot}
+                  className={`lp-explore-dot${dot === activeDot ? ' is-active' : ''}`}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   )
 }
 
-function OpportunitySearch() {
-  return (
-    <section id="buscar" className="scroll-mt-8 mx-auto max-w-7xl px-5 pb-16 lg:px-10">
-      <h2 className="lp-h2 text-[27px] lg:text-[32px]">Encuentra oportunidades para ti</h2>
-      <form
-        className="lp-searchbar mt-8 grid gap-3 p-4 md:grid-cols-[1.5fr_repeat(3,0.85fr)_auto] md:items-center"
-        onSubmit={(event) => event.preventDefault()}
-      >
-        <label className="flex items-center gap-3 rounded-xl bg-white px-3 ring-1 ring-[#d6eae0] transition focus-within:ring-2 focus-within:ring-[#0bb35f]/35">
-          <SearchGlyph />
-          <input
-            type="search"
-            placeholder="¿Qué quieres aprender?"
-            className="h-12 w-full bg-transparent text-[14px] text-[#0a4030] outline-none placeholder:text-[#8a9a94]"
-          />
-        </label>
-        <SelectField label="Programa" options={['Programa', 'Técnico', 'Tecnólogo', 'Curso corto']} />
-        <SelectField label="Modalidad" options={['Modalidad', 'Presencial', 'Virtual', 'Combinada']} />
-        <SelectField
-          label="Ciudad o región"
-          options={['Ciudad o región', 'Bogotá', 'Medellín', 'Cali', 'Barranquilla']}
-        />
-        <button type="submit" className="lp-btn lp-btn-primary">
-          Buscar oferta
-          <ArrowGlyph />
-        </button>
-      </form>
-    </section>
-  )
-}
+/**
+ * SIMA — Sistema Integral de Módulos Administrativos.
+ * Ocupa el lugar de las anteriores secciones de búsqueda y noticias.
+ * Las tarjetas son visuales: no existen destinos SIMA implementados y no se
+ * les atribuyen acciones ni rutas inexistentes.
+ */
+const simaCards = [
+  { title: 'Panel central', icon: 'monitor' as const },
+  { title: 'Módulos', icon: 'grid' as const },
+  { title: 'Acceso seguro', icon: 'shield' as const },
+]
 
-function News() {
+function Sima() {
   return (
-    <section id="noticias" className="scroll-mt-8 mx-auto max-w-7xl px-5 pb-16 lg:px-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <h2 className="lp-h2 text-[27px] lg:text-[32px]">Noticias y actualidad</h2>
-        <a href="#noticias" className="lp-section-link mt-2">
-          Ver todas las noticias
-          <ArrowGlyph />
-        </a>
-      </div>
+    <section id="sima" className="scroll-mt-8 mx-auto max-w-7xl px-5 pb-16 lg:px-10">
+      <h2 className="lp-h2 text-[27px] lg:text-[32px]">SIMA</h2>
+      <p className="mt-3 text-[18px] font-bold text-[#0a4030]">
+        Sistema Integral de Módulos Administrativos
+      </p>
+      <p className="mt-3 max-w-170 text-[16px] leading-7 text-[#5b7368]">
+        Una plataforma, múltiples soluciones.
+      </p>
+      <p className="mt-1 max-w-170 text-[16px] leading-7 text-[#5b7368]">
+        Centraliza la gestión administrativa, facilita el acceso a los módulos
+        institucionales y optimiza los procesos de la comunidad SENA.
+      </p>
 
-      <div className="mt-8 grid gap-6 md:grid-cols-3">
-        {news.map((item) => (
-          <article key={item.title} className="lp-card overflow-hidden">
-            <div className="relative">
-              <img src={item.image} alt="" className="h-45 w-full object-cover" />
-              <p className="lp-badge">Educación</p>
-            </div>
-            <div className="px-5 py-5">
-              <h3 className="mt-0 text-[16px] font-bold leading-6 text-[#0a4030]">{item.title}</h3>
-              <a href="#noticias" className="lp-section-link mt-3">
-                Leer más
-                <ArrowGlyph />
-              </a>
-            </div>
+      <div className="mt-8 grid gap-6 sm:grid-cols-3">
+        {simaCards.map((card) => (
+          <article key={card.title} className="lp-card px-6 py-8 text-center">
+            <span className="lp-icon-tile mx-auto">
+              <Glyph name={card.icon} />
+            </span>
+            <h3 className="mt-4 text-[17px] font-bold text-[#0a4030]">{card.title}</h3>
           </article>
         ))}
       </div>
@@ -421,30 +772,6 @@ function SiteFooter() {
   )
 }
 
-function SelectField({ label, options }: { label: string; options: string[] }) {
-  return (
-    <label className="block">
-      <span className="sr-only">{label}</span>
-      <select defaultValue={options[0]} className="lp-field">
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-
-function SearchGlyph() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0 text-[#0a9e55]">
-      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
-      <path d="M16.2 16.2 20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  )
-}
-
 function ArrowGlyph() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
@@ -472,6 +799,8 @@ type GlyphName =
   | 'bulb'
   | 'badge'
   | 'heart'
+  | 'grid'
+  | 'shield'
 
 function Glyph({ name }: { name: GlyphName }) {
   const common = {
@@ -561,6 +890,33 @@ function Glyph({ name }: { name: GlyphName }) {
       <svg {...common}>
         <circle cx="12" cy="10" r="5.2" stroke="currentColor" strokeWidth="1.8" />
         <path d="m8.5 14.5-1.5 6 5-2.2 5 2.2-1.5-6" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (name === 'grid') {
+    return (
+      <svg {...common}>
+        <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M4 12h16M12 4v16" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    )
+  }
+  if (name === 'shield') {
+    return (
+      <svg {...common}>
+        <path
+          d="M12 3.5 5.5 6v5.2c0 4.3 2.8 7.2 6.5 8.8 3.7-1.6 6.5-4.5 6.5-8.8V6L12 3.5Z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <path
+          d="m9.4 11.6 1.9 1.9 3.4-3.8"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     )
   }
