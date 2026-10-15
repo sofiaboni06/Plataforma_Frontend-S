@@ -23,6 +23,7 @@ import AlertsPage from '@/modules/alertas/pages/AlertsPage'
 
 import InventoryCenterLayout from '@/modules/inventario/centerScope'
 import InventoryPage from '@/modules/inventario/pages/InventoryPage'
+import { esAdminBodega } from '@/modules/inventario/lib/tablero'
 import InventoryCategoriesPage from '@/modules/inventario/pages/InventoryCategoriesPage'
 import CreateInventoryCategoryPage from '@/modules/inventario/pages/CreateInventoryCategoryPage'
 import ViewInventoryCategoryPage from '@/modules/inventario/pages/ViewInventoryCategoryPage'
@@ -56,9 +57,18 @@ import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
 
 import { lazy, Suspense, type ReactNode } from 'react'
+import { useAuth } from '@/modules/auth/context/auth'
 
 /* Carga aparte: el tablero trae Recharts y no debe pesar en el bundle inicial. */
 const TableroBodegaPage = lazy(() => import('@/modules/inventario/pages/TableroBodegaPage'))
+
+function InventoryLanding() {
+  const { isAdmin, user } = useAuth()
+  if (esAdminBodega({ isAdmin, permissions: user?.permissions, role: user?.role })) {
+    return <Navigate to="/inventario/tablero" replace />
+  }
+  return <InventoryPage />
+}
 
 function SessionProviders({
   children,
@@ -152,7 +162,7 @@ function App() {
               </ModuleRoute>
             }
           >
-            <Route index element={<InventoryPage />} />
+            <Route index element={<InventoryLanding />} />
             <Route path="items" element={<ItemsPage />} />
             <Route path="items/:id" element={<ViewItemPage />} />
             <Route path="elementos" element={<ElementosPage />} />
