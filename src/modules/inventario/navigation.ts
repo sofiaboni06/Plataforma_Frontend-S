@@ -389,7 +389,7 @@ export function visibleInventoryScreens(access: InventoryCaller = {}) {
   }
 
   if (esAdminBodega(access)) {
-    extra.push(TABLERO_SCREEN)
+    return [TABLERO_SCREEN, ...screens, ...extra]
   }
 
   return extra.length ? [...screens, ...extra] : screens
