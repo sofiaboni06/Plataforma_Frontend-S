@@ -634,9 +634,11 @@ const simaCards = [
 function Sima() {
   return (
     <section id="sima" className="scroll-mt-8 mx-auto max-w-7xl px-5 pb-16 lg:px-10">
-      <h2 className="lp-h2 text-[27px] lg:text-[32px]">SIMA</h2>
+      <h2 className="lp-h2 text-[27px] lg:text-[32px]">SIGMA</h2>
       <p className="mt-3 text-[18px] font-bold text-[#0a4030]">
-        Sistema Integral de Módulos Administrativos
+        SISTEMA INTEGRAL DE GESTION DE MODULOS
+        <br />
+        ADMINISTRATIVOS
       </p>
       <p className="mt-3 max-w-170 text-[16px] leading-7 text-[#5b7368]">
         Una plataforma, múltiples soluciones.

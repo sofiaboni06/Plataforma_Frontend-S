@@ -238,7 +238,7 @@ export default function LoginPage() {
   <div className="mt-4 flex items-center justify-center gap-3">
     <span className="h-px w-8 bg-white/60 sm:w-12" />
     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/90 sm:text-sm">
-      Sistema intregral de modulos administrativos
+      Sistema integral de gestion de modulos administrativos
     </p>
     <span className="h-px w-8 bg-white/60 sm:w-12" />
   </div>
