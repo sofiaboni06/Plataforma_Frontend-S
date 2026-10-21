@@ -27,7 +27,7 @@ import {
 import { ProgramIcon, UserIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError, api } from '@/shared/lib/api'
 import { buildAssignments } from '@/modules/materiales-formacion/lib/assignments'
-import { esPerfilInstructor } from '@/modules/materiales-formacion/lib/formacion'
+import { esPerfilProgramas } from '@/modules/materiales-formacion/lib/formacion'
 import type { ProgramaFormacion } from '@/modules/materiales-formacion/types/formacion'
 import type { ManagedUser } from '@/shared/types/profile'
 
@@ -76,7 +76,7 @@ export default function InstructoresFormacionPage() {
           setError(
             caught instanceof ApiError
               ? caught.message
-              : 'No se pudo cargar la información de instructores.',
+              : 'No se pudo cargar la información de usuarios.',
           )
         }
       } finally {
@@ -94,13 +94,13 @@ export default function InstructoresFormacionPage() {
     setPage(1)
   }, [search])
 
-  const instructores = useMemo(() => users.filter((user) => esPerfilInstructor(user.role)), [users])
+  const asignables = useMemo(() => users.filter((user) => esPerfilProgramas(user.role)), [users])
 
-  const filteredInstructors = useMemo(() => {
+  const filteredAsignables = useMemo(() => {
     const query = search.trim().toLowerCase()
-    if (!query) return instructores
+    if (!query) return asignables
 
-    return instructores.filter((user) => {
+    return asignables.filter((user) => {
       const assigned = (assignments[user.id] ?? [])
         .map((programa) => `${programa.codigo} ${programa.nombre}`)
         .join(' ')
@@ -108,14 +108,14 @@ export default function InstructoresFormacionPage() {
         .toLowerCase()
         .includes(query)
     })
-  }, [instructores, assignments, search])
+  }, [asignables, assignments, search])
 
-  const totalPages = Math.max(1, Math.ceil(filteredInstructors.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(filteredAsignables.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
   const pageStart = (currentPage - 1) * PAGE_SIZE
-  const pageInstructors = filteredInstructors.slice(pageStart, pageStart + PAGE_SIZE)
-  const from = filteredInstructors.length === 0 ? 0 : pageStart + 1
-  const to = pageStart + pageInstructors.length
+  const pageAsignables = filteredAsignables.slice(pageStart, pageStart + PAGE_SIZE)
+  const from = filteredAsignables.length === 0 ? 0 : pageStart + 1
+  const to = pageStart + pageAsignables.length
 
   const assignAvailable = useMemo(() => {
     if (!assignTarget) return []
@@ -156,7 +156,7 @@ export default function InstructoresFormacionPage() {
       setAssignError(
         caught instanceof ApiError
           ? caught.message
-          : 'No se pudieron cargar los programas del instructor.',
+          : 'No se pudieron cargar los programas del usuario.',
       )
     } finally {
       setAssignLoading(false)
@@ -206,7 +206,7 @@ export default function InstructoresFormacionPage() {
       <PageHeader
         icon={<UserIcon />}
         title="Asignar programas"
-        description="Elija un instructor y marque los programas de su centro que dicta. Solo aparecen los programas con ficha en su centro de formación."
+        description="Elija un instructor o coordinador y marque los programas de su centro. Solo aparecen los programas con ficha en su centro de formación."
       />
 
       {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}
@@ -221,7 +221,7 @@ export default function InstructoresFormacionPage() {
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Buscar instructor por nombre, correo o programa..."
+          placeholder="Buscar por nombre, correo o programa..."
         />
 
         <ClearFiltersButton onClick={() => setSearch('')} disabled={!search} />
@@ -229,14 +229,14 @@ export default function InstructoresFormacionPage() {
 
       <TableCard>
         {loading ? (
-          <TableLoading label="Cargando instructores…" />
+          <TableLoading label="Cargando usuarios…" />
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>
                   <tr className="border-b border-sena-hairline bg-sena-soft/85">
-                    <TableHeader width="w-[26%]">Instructor</TableHeader>
+                    <TableHeader width="w-[26%]">Instructor / Coordinador</TableHeader>
                     <TableHeader width={tableColumns.count}>Documento</TableHeader>
                     <TableHeader width="w-[18%]">Centro</TableHeader>
                     <TableHeader>Programas asignados</TableHeader>
@@ -247,11 +247,11 @@ export default function InstructoresFormacionPage() {
                 </thead>
 
                 <tbody>
-                  {pageInstructors.length === 0 ? (
+                  {pageAsignables.length === 0 ? (
                     <TableEmpty colSpan={5}>
-                      {instructores.length === 0 ? (
+                      {asignables.length === 0 ? (
                         <>
-                          No hay usuarios con perfil Instructor.{' '}
+                          No hay usuarios con perfil Instructor o Coordinador.{' '}
                           <Link
                             to="/usuarios"
                             className="font-semibold text-sena underline-offset-2 hover:underline"
@@ -261,11 +261,11 @@ export default function InstructoresFormacionPage() {
                           .
                         </>
                       ) : (
-                        'No hay instructores que coincidan con la búsqueda.'
+                        'No hay usuarios que coincidan con la búsqueda.'
                       )}
                     </TableEmpty>
                   ) : (
-                    pageInstructors.map((user) => {
+                    pageAsignables.map((user) => {
                       const assigned = assignments[user.id] ?? []
                       return (
                         <TableRow key={user.id}>
@@ -335,8 +335,8 @@ export default function InstructoresFormacionPage() {
               onPageChange={setPage}
               from={from}
               to={to}
-              total={filteredInstructors.length}
-              noun="instructores"
+              total={filteredAsignables.length}
+              noun="usuarios"
             />
           </>
         )}
@@ -345,7 +345,7 @@ export default function InstructoresFormacionPage() {
       {assignTarget ? (
         <Modal
           title={`Programas de ${assignTarget.fullName}`}
-          description={`Marque los programas del centro ${assignTarget.trainingCenter} que dicta este instructor.`}
+          description={`Marque los programas del centro ${assignTarget.trainingCenter} que tiene a cargo este usuario.`}
           onClose={closeAssign}
           wide
           spacious

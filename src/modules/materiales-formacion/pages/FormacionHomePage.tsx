@@ -10,7 +10,7 @@ import {
   UserIcon,
 } from '@/shared/components/icons/AppIcons'
 import { api } from '@/shared/lib/api'
-import { esPerfilInstructor } from '@/modules/materiales-formacion/lib/formacion'
+import { esPerfilProgramas } from '@/modules/materiales-formacion/lib/formacion'
 import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
 import type {
   Ficha,
@@ -71,9 +71,9 @@ const SECTIONS: Section[] = [
   {
     to: '/formacion/instructores',
     description:
-      'Elija un instructor y marque los programas de su centro que dicta. Así verá «Materiales de formación».',
+      'Elija un instructor o coordinador y marque los programas de su centro. Así verá «Materiales de formación».',
     icon: UserIcon,
-    noun: { one: 'instructor', many: 'instructores' },
+    noun: { one: 'instructor o coordinador', many: 'instructores y coordinadores' },
     accent: 'bg-sena-veil text-sena-strong',
   },
 ]
@@ -122,7 +122,7 @@ export default function FormacionHomePage() {
         '/formacion/niveles': size(niveles),
         '/formacion/instructores':
           users.status === 'fulfilled'
-            ? users.value.filter((user) => esPerfilInstructor(user.role)).length
+            ? users.value.filter((user) => esPerfilProgramas(user.role)).length
             : null,
       })
     }
@@ -160,8 +160,8 @@ export default function FormacionHomePage() {
             <p className="text-xs font-medium text-white/80">Bienvenido al módulo de</p>
             <h1 className="mt-0.5 text-3xl font-bold tracking-tight">Formación</h1>
             <p className="mt-2 max-w-md text-[0.8125rem] leading-5 text-white/80">
-              Administre la estructura de formación y asigne a cada instructor los programas que
-              dicta en su centro.
+              Administre la estructura de formación y asigne a cada instructor o coordinador los
+              programas que tiene a cargo en su centro.
             </p>
 
             <dl className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">

@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/modules/auth/context/auth'
 import type { NavIconName } from '@/shared/constants/navigation'
 import { visibleInventoryScreens } from '@/modules/inventario/navigation'
-import { esPerfilInstructor } from '@/modules/materiales-formacion/lib/formacion'
+import { esPerfilProgramas } from '@/modules/materiales-formacion/lib/formacion'
 import {
   isFormacionPath,
   visibleFormacionScreens,
@@ -39,7 +39,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const navigate = useNavigate()
   const location = useLocation()
   const granted = grantedModuleLinks(modules, isAdmin, user?.permissions)
-  const instructor = esPerfilInstructor(user?.role)
+  const canSeeMaterials = esPerfilProgramas(user?.role)
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,
     permissions: user?.permissions,
@@ -275,7 +275,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
           )
         })}
 
-        {instructor ? (
+        {canSeeMaterials ? (
           <SideLink
             to="/materiales-formacion"
             icon="program"

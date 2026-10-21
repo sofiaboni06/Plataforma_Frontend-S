@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 import { ApiError, api } from '@/shared/lib/api'
 import { useAuth } from '@/modules/auth/context/auth'
-import { esPerfilInstructor } from '@/modules/materiales-formacion/lib/formacion'
+import { esPerfilProgramas } from '@/modules/materiales-formacion/lib/formacion'
 import type { ProgramaFormacion } from '@/modules/materiales-formacion/types/formacion'
 
-export function useInstructorPrograms() {
+export function useAssignedPrograms() {
   const { user } = useAuth()
-  const instructor = esPerfilInstructor(user?.role)
+  const canSeePrograms = esPerfilProgramas(user?.role)
   const [programs, setPrograms] = useState<ProgramaFormacion[]>([])
-  const [loading, setLoading] = useState(instructor)
+  const [loading, setLoading] = useState(canSeePrograms)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
-    if (!instructor) return
+    if (!canSeePrograms) return
 
     let cancelled = false
     setLoading(true)
@@ -39,10 +39,10 @@ export function useInstructorPrograms() {
     return () => {
       cancelled = true
     }
-  }, [instructor, attempt])
+  }, [canSeePrograms, attempt])
 
   return {
-    instructor,
+    canSeePrograms,
     programs,
     loading,
     error,
