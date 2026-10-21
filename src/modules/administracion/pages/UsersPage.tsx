@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
@@ -7,6 +6,7 @@ import Modal from '@/shared/components/ui/Modal'
 import MultiSelectCombobox, {
   type ComboOption,
 } from '@/shared/components/ui/MultiSelectCombobox'
+import SweetAlert from '@/shared/components/ui/SweetAlert'
 import TextField from '@/shared/components/ui/TextField'
 import { PencilIcon, PlusIcon, UserIcon } from '@/shared/components/icons/AppIcons'
 import {
@@ -48,7 +48,6 @@ const EMPTY_FORM = {
 type ModalMode = 'create' | 'edit'
 
 export default function UsersPage() {
-  const navigate = useNavigate()
   const [users, setUsers] = useState<ManagedUser[]>([])
   const [options, setOptions] = useState<UserFormOptions>({ roles: [], centers: [], bodegas: [] })
   const [programs, setPrograms] = useState<ProgramaFormacion[]>([])
@@ -57,13 +56,20 @@ export default function UsersPage() {
   const [createdInstructor, setCreatedInstructor] = useState<{
     user: ManagedUser
     programs: ProgramaFormacion[]
+    askBodega: boolean
   } | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [modal, setModal] = useState<ModalMode | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const [successAlert, setSuccessAlert] = useState<{
+    title: string
+    text: string
+    confirmLabel: string
+    onConfirm: () => void
+  } | null>(null)
+  const [bodegaStep, setBodegaStep] = useState<ManagedUser | null>(null)
   const [listError, setListError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -79,6 +85,12 @@ export default function UsersPage() {
     setProgramsLoading(false)
     setProgramsError(null)
   }, [])
+
+  const continueFromInstructor = () => {
+    const flow = createdInstructor
+    setCreatedInstructor(null)
+    if (flow?.askBodega) setBodegaStep(flow.user)
+  }
 
   const patchForm = (field: keyof typeof EMPTY_FORM, value: string | boolean) => {
     setForm((current) => {
@@ -203,7 +215,7 @@ export default function UsersPage() {
     setSelectedId(null)
     setForm(EMPTY_FORM)
     setFormError(null)
-    setMessage(null)
+    setSuccessAlert(null)
     setModal('create')
   }
 
@@ -211,7 +223,7 @@ export default function UsersPage() {
     editingId.current = user.id
     setSelectedId(user.id)
     setFormError(null)
-    setMessage(null)
+    setSuccessAlert(null)
     setForm({
       nombres: user.nombres,
       apellidos: user.apellidos,
@@ -248,7 +260,6 @@ export default function UsersPage() {
     event.preventDefault()
     setSaving(true)
     setFormError(null)
-    setMessage(null)
     try {
       const created = await api<ManagedUser>('/users', {
         method: 'POST',
@@ -270,15 +281,29 @@ export default function UsersPage() {
       const index = list.findIndex((user) => user.id === created.id)
       setPage(index >= 0 ? Math.floor(index / PAGE_SIZE) + 1 : 1)
 
+      const admin = isAdministratorRole(form.idPerfil, options)
+      const askBodega = !admin
+      closeModal()
+
       if (isInstructorRole(form.idPerfil, options)) {
         const assigned = await api<ProgramaFormacion[]>(`/users/${created.id}/programas`).catch(
           () => [] as ProgramaFormacion[],
         )
-        setCreatedInstructor({ user: created, programs: assigned })
-        closeModal()
+        setSuccessAlert({
+          title: 'Usuario creado',
+          text: `“${created.fullName}” con perfil ${created.role}. Siguiente paso: sus programas.`,
+          confirmLabel: 'Ver programas',
+          onConfirm: () => setCreatedInstructor({ user: created, programs: assigned, askBodega }),
+        })
       } else {
-        setMessage(`Usuario “${created.fullName}” creado con perfil ${created.role}.`)
-        closeModal()
+        setSuccessAlert({
+          title: 'Usuario creado',
+          text: `“${created.fullName}” con perfil ${created.role}.`,
+          confirmLabel: 'Continuar',
+          onConfirm: () => {
+            if (askBodega) setBodegaStep(created)
+          },
+        })
       }
     } catch (caught) {
       setFormError(caught instanceof ApiError ? caught.message : 'No se pudo crear el usuario.')
@@ -292,7 +317,6 @@ export default function UsersPage() {
     if (!selectedId) return
     setSaving(true)
     setFormError(null)
-    setMessage(null)
     try {
       const payload: Record<string, unknown> = {
         nombres: form.nombres,
@@ -325,8 +349,13 @@ export default function UsersPage() {
         })
       }
       await loadUsers()
-      setMessage(`Usuario actualizado. Perfil: ${updated.role}.`)
       closeModal()
+      setSuccessAlert({
+        title: 'Usuario actualizado',
+        text: `El perfil quedó como ${updated.role}.`,
+        confirmLabel: 'Entendido',
+        onConfirm: () => undefined,
+      })
     } catch (caught) {
       setFormError(caught instanceof ApiError ? caught.message : 'No se pudo guardar el usuario.')
     } finally {
@@ -337,7 +366,6 @@ export default function UsersPage() {
   const from = filtered.length === 0 ? 0 : pageStart + 1
   const to = pageStart + pageRows.length
   const editing = modal === 'edit'
-  const createdBodegas = createdInstructor?.user.bodegas ?? []
   const createdPrograms = createdInstructor?.programs ?? []
 
   return (
@@ -345,7 +373,7 @@ export default function UsersPage() {
       <PageHeader
         icon={<UserIcon />}
         title="Usuarios"
-        description="Cree cuentas, asígneles perfil, centro, bodega y programas. La bodega define las solicitudes de inventario; el centro filtra los programas disponibles."
+        description="Cree cuentas, asígneles perfil, centro y programas. La bodega y las solicitudes se asignan después, cuando el usuario las necesite."
         action={
           <Button type="button" icon={<PlusIcon className="size-4" />} onClick={openCreate}>
             Nuevo usuario
@@ -355,12 +383,6 @@ export default function UsersPage() {
 
       {listError ? (
         <ErrorBanner message={listError} onClose={() => setListError(null)} />
-      ) : null}
-
-      {message ? (
-        <p className="mb-4 rounded-2xl border border-sena-ok-line bg-sena-active-soft px-5 py-3.5 text-sm text-sena-ok-text">
-          {message}
-        </p>
       ) : null}
 
       <FilterCard>
@@ -455,8 +477,8 @@ export default function UsersPage() {
           title={editing ? 'Editar usuario' : 'Registrar usuario'}
           description={
             editing
-              ? 'El perfil define los módulos. La bodega define las solicitudes de inventario y el centro filtra los programas.'
-              : 'Complete los datos, el perfil, el centro y su bodega. Si es instructor, asigne los programas de ese centro.'
+              ? 'El perfil define los módulos. Aquí también puedes ajustar la bodega de solicitudes.'
+              : 'Complete los datos, el perfil y el centro. Si es instructor, asigne los programas de ese centro.'
           }
           onClose={closeModal}
           wide
@@ -516,28 +538,10 @@ export default function UsersPage() {
           spacious
         >
           <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Summary
-                label="Centro de formación"
-                value={createdInstructor.user.trainingCenter || 'Sin centro asignado'}
-              />
-              <Summary
-                label="Bodega para solicitudes"
-                value={
-                  createdBodegas.length
-                    ? createdBodegas.map((bodega) => bodega.name).join(', ')
-                    : 'Sin bodega asignada'
-                }
-                warn={createdBodegas.length === 0}
-              />
-            </div>
-
-            {createdBodegas.length === 0 ? (
-              <p className="rounded-xl bg-sena-danger-soft px-4 py-3 text-sm text-sena-danger-text ring-1 ring-sena-danger-line">
-                Sin bodega, el instructor no podrá registrar solicitudes de inventario. Puedes
-                asignarla desde «Editar usuario».
-              </p>
-            ) : null}
+            <Summary
+              label="Centro de formación"
+              value={createdInstructor.user.trainingCenter || 'Sin centro asignado'}
+            />
 
             <div className="rounded-2xl border border-sena-line bg-sena-veil/40 px-5 py-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -567,45 +571,20 @@ export default function UsersPage() {
                 </ul>
               ) : (
                 <p className="mt-2 text-sm leading-6 text-sena-text/65">
-                  Aún no tiene programas. El instructor no verá «Materiales de formación» hasta que
-                  le asignes al menos uno.
+                  Aún no tiene programas. El instructor verá «Materiales de formación» cuando le
+                  asignes al menos uno.
                 </p>
               )}
             </div>
 
-            <div className="rounded-2xl border border-sena-line bg-white/70 px-5 py-4">
-              <p className="text-sm font-semibold text-sena-dark">Orden recomendado</p>
-              <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-sena-text/70">
-                <li>Verificar que el programa tenga una ficha en el centro de formación.</li>
-                <li>Asignar aquí los programas que dicta el instructor.</li>
-                <li>
-                  Definir la bodega: será la que use para las solicitudes de inventario del
-                  instructor.
-                </li>
-                <li>El instructor verá «Materiales de formación» en su menú.</li>
-              </ol>
-            </div>
+            <p className="text-sm leading-6 text-sena-text/65">
+              Puedes ajustar los programas ahora o más adelante desde «Editar usuario».
+            </p>
 
             <div className="flex flex-wrap justify-end gap-2">
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => setCreatedInstructor(null)}
-              >
-                Cerrar
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setCreatedInstructor(null)
-                  navigate('/formacion/instructores')
-                }}
-              >
-                Ir a Formación
-              </Button>
-              <Button
-                type="button"
                 onClick={() => {
                   const user = createdInstructor.user
                   setCreatedInstructor(null)
@@ -614,43 +593,57 @@ export default function UsersPage() {
               >
                 Asignar programas
               </Button>
+              <Button type="button" onClick={continueFromInstructor}>
+                Continuar
+              </Button>
             </div>
           </div>
         </Modal>
+      ) : null}
+
+      {successAlert ? (
+        <SweetAlert
+          title={successAlert.title}
+          confirmLabel={successAlert.confirmLabel}
+          onConfirm={() => {
+            const run = successAlert.onConfirm
+            setSuccessAlert(null)
+            run()
+          }}
+        >
+          {successAlert.text}
+        </SweetAlert>
+      ) : null}
+
+      {bodegaStep ? (
+        <SweetAlert
+          tone="question"
+          title="¿Asignar una bodega ahora?"
+          confirmLabel="Asignar ahora"
+          cancelLabel="Más tarde"
+          onConfirm={() => {
+            const user = bodegaStep
+            setBodegaStep(null)
+            openEdit(user)
+          }}
+          onCancel={() => setBodegaStep(null)}
+        >
+          Es opcional. La bodega se usa para las solicitudes de inventario; sin ella el usuario no
+          podrá registrarlas. Puedes dejarlo para después y asignarla cuando la necesite desde
+          «Editar usuario».
+        </SweetAlert>
       ) : null}
     </AppLayout>
   )
 }
 
-function Summary({
-  label,
-  value,
-  warn = false,
-}: {
-  label: string
-  value: string
-  warn?: boolean
-}) {
+function Summary({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      className={
-        warn
-          ? 'rounded-2xl bg-sena-danger-soft px-5 py-4 ring-1 ring-sena-danger-line'
-          : 'rounded-2xl bg-white/80 px-5 py-4 ring-1 ring-sena-line'
-      }
-    >
+    <div className="rounded-2xl bg-white/80 px-5 py-4 ring-1 ring-sena-line">
       <p className="text-[0.6875rem] font-bold tracking-[0.1em] text-sena-text/50 uppercase">
         {label}
       </p>
-      <p
-        className={
-          warn
-            ? 'mt-1 text-sm font-semibold text-sena-danger-text'
-            : 'mt-1 text-sm font-semibold text-sena-dark'
-        }
-      >
-        {value}
-      </p>
+      <p className="mt-1 text-sm font-semibold text-sena-dark">{value}</p>
     </div>
   )
 }
@@ -760,38 +753,41 @@ function UserFields({
           label: center.regional ? `${center.name} — ${center.regional}` : center.name,
         }))}
       />
-      {administrator ? (
-        <p className="text-sm text-sena-text/60 sm:col-span-2">
-          El perfil Administrador ve todos los centros y todas las bodegas, así que no se le asigna una.
-        </p>
-      ) : (
-        <div className="sm:col-span-2">
-          <p className="text-sm font-medium text-sena-text/75">Bodegas del centro</p>
-          <p className="mt-1 text-xs text-sena-text/55">
-            Marca la bodega de esta persona, casi siempre una. Esa bodega será la que use para las
-            solicitudes de inventario; lo que puede hacer allí lo defines en su perfil.
+      {editing ? (
+        administrator ? (
+          <p className="text-sm text-sena-text/60 sm:col-span-2">
+            El perfil Administrador ve todos los centros y todas las bodegas, así que no se le asigna
+            una.
           </p>
-          {!form.idCformacion ? (
-            <p className="mt-2 text-sm text-sena-text/55">Primero elige el centro de formación.</p>
-          ) : centerBodegas.length === 0 ? (
-            <p className="mt-2 text-sm text-sena-text/55">Este centro no tiene bodegas activas.</p>
-          ) : (
-            <div className="mt-2 max-h-40 space-y-2 overflow-y-auto rounded-xl border border-sena-line bg-sena-veil/50 p-3">
-              {centerBodegas.map((bodega) => (
-                <label key={bodega.id} className="flex items-center gap-2 text-sm text-sena-text">
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-[#00a651]"
-                    checked={form.bodegaIds.includes(bodega.id)}
-                    onChange={() => onToggleBodega(bodega.id)}
-                  />
-                  {bodega.name}
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+        ) : (
+          <div className="sm:col-span-2">
+            <p className="text-sm font-medium text-sena-text/75">Bodegas del centro</p>
+            <p className="mt-1 text-xs text-sena-text/55">
+              Marca la bodega de esta persona, casi siempre una. Esa bodega será la que use para las
+              solicitudes de inventario; lo que puede hacer allí lo defines en su perfil.
+            </p>
+            {!form.idCformacion ? (
+              <p className="mt-2 text-sm text-sena-text/55">Primero elige el centro de formación.</p>
+            ) : centerBodegas.length === 0 ? (
+              <p className="mt-2 text-sm text-sena-text/55">Este centro no tiene bodegas activas.</p>
+            ) : (
+              <div className="mt-2 max-h-40 space-y-2 overflow-y-auto rounded-xl border border-sena-line bg-sena-veil/50 p-3">
+                {centerBodegas.map((bodega) => (
+                  <label key={bodega.id} className="flex items-center gap-2 text-sm text-sena-text">
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-[#00a651]"
+                      checked={form.bodegaIds.includes(bodega.id)}
+                      onChange={() => onToggleBodega(bodega.id)}
+                    />
+                    {bodega.name}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      ) : null}
       {instructor ? (
         <div className="sm:col-span-2">
           <p className="mb-2 text-xs text-sena-text/55">
