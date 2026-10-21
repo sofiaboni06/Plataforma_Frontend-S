@@ -1,0 +1,21 @@
+import { useAuth } from '@/modules/auth/context/auth'
+import {
+  allowsFormacionPermission,
+  canFormacionAction,
+  visibleFormacionScreens,
+  type FormacionAction,
+  type FormacionScreenCode,
+} from '@/modules/materiales-formacion/navigation'
+
+export function useFormacionAccess() {
+  const { isAdmin, user } = useAuth()
+  const access = { isAdmin, permissions: user?.permissions }
+
+  return {
+    isAdmin,
+    screens: visibleFormacionScreens(access),
+    can: (screen: FormacionScreenCode, action: FormacionAction) =>
+      canFormacionAction(screen, action, access),
+    permit: (code: string) => allowsFormacionPermission(access, code),
+  }
+}

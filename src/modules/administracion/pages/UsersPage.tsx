@@ -4,6 +4,9 @@ import AppLayout from '@/shared/components/layout/AppLayout'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import Modal from '@/shared/components/ui/Modal'
+import MultiSelectCombobox, {
+  type ComboOption,
+} from '@/shared/components/ui/MultiSelectCombobox'
 import TextField from '@/shared/components/ui/TextField'
 import { PencilIcon, PlusIcon, UserIcon } from '@/shared/components/icons/AppIcons'
 import {
@@ -573,7 +576,7 @@ export default function UsersPage() {
             <div className="rounded-2xl border border-sena-line bg-white/70 px-5 py-4">
               <p className="text-sm font-semibold text-sena-dark">Orden recomendado</p>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-sena-text/70">
-                <li>Asociar el programa al centro desde Formación → Programas.</li>
+                <li>Verificar que el programa tenga una ficha en el centro de formación.</li>
                 <li>Asignar aquí los programas que dicta el instructor.</li>
                 <li>
                   Definir la bodega: será la que use para las solicitudes de inventario del
@@ -596,7 +599,7 @@ export default function UsersPage() {
                 variant="secondary"
                 onClick={() => {
                   setCreatedInstructor(null)
-                  navigate('/programas-formacion')
+                  navigate('/formacion/instructores')
                 }}
               >
                 Ir a Formación
@@ -688,6 +691,16 @@ function UserFields({
   const instructor = isInstructorRole(form.idPerfil, options)
   const centerBodegas = options.bodegas.filter(
     (bodega) => String(bodega.trainingCenterId) === form.idCformacion,
+  )
+  const programaOptions = useMemo<ComboOption[]>(
+    () =>
+      programs.map((programa) => ({
+        id: programa.id,
+        title: programa.nombre,
+        subtitle: `${programa.codigo}${programa.nivel ? ` · ${programa.nivel.nombre}` : ''}`,
+        keywords: `${programa.codigo} ${programa.nivel?.nombre ?? ''}`,
+      })),
+    [programs],
   )
 
   return (
@@ -781,57 +794,29 @@ function UserFields({
       )}
       {instructor ? (
         <div className="sm:col-span-2">
-          <p className="text-sm font-medium text-sena-text/75">Programas de formación</p>
-          <p className="mt-1 text-xs text-sena-text/55">
-            Solo aparecen los programas asociados al centro seleccionado. Si lo dejas sin
+          <p className="mb-2 text-xs text-sena-text/55">
+            Solo aparecen los programas que tienen ficha en el centro seleccionado. Si lo dejas sin
             programas, el instructor no verá «Materiales de formación» hasta que le asignes uno.
           </p>
-          {programsLoading ? (
-            <p className="mt-2 text-sm text-sena-text/55">Cargando programas del centro…</p>
-          ) : programsError ? (
-            <p className="mt-2 rounded-xl bg-sena-danger-soft px-4 py-3 text-sm text-sena-danger-text ring-1 ring-sena-danger-line">
+          {programsError ? (
+            <p className="rounded-xl bg-sena-danger-soft px-4 py-3 text-sm text-sena-danger-text ring-1 ring-sena-danger-line">
               {programsError}
             </p>
           ) : !form.idCformacion ? (
-            <p className="mt-2 text-sm text-sena-text/55">
+            <p className="text-sm text-sena-text/55">
               Primero elige el centro de formación para ver sus programas.
             </p>
-          ) : programs.length === 0 ? (
-            <div className="mt-2 rounded-xl border border-sena-line bg-sena-veil/50 px-4 py-3 text-sm text-sena-text/60">
-              Este centro no tiene programas asociados.{' '}
-              <a
-                href="/programas-formacion"
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-sena underline-offset-2 hover:underline"
-              >
-                Créalos o asígnalos en Formación
-              </a>{' '}
-              y vuelve a intentarlo.
-            </div>
           ) : (
-            <div className="mt-2 max-h-40 space-y-2 overflow-y-auto rounded-xl border border-sena-line bg-sena-veil/50 p-3">
-              {programs.map((programa) => (
-                <label
-                  key={programa.id}
-                  className="flex items-start gap-2 text-sm text-sena-text"
-                >
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 size-4 shrink-0 accent-[#00a651]"
-                    checked={form.programaIds.includes(programa.id)}
-                    onChange={() => onTogglePrograma(programa.id)}
-                  />
-                  <span className="min-w-0">
-                    <span className="block truncate">{programa.nombre}</span>
-                    <span className="block truncate text-xs text-sena-text/55">
-                      {programa.codigo}
-                      {programa.nivel ? ` · ${programa.nivel.nombre}` : ''}
-                    </span>
-                  </span>
-                </label>
-              ))}
-            </div>
+            <MultiSelectCombobox
+              options={programaOptions}
+              selectedIds={form.programaIds}
+              onToggle={onTogglePrograma}
+              label="Programas de formación"
+              placeholder="Escriba el código o el nombre del programa..."
+              loading={programsLoading}
+              loadingLabel="Cargando programas del centro…"
+              emptyMessage="Este centro no tiene programas con ficha asociada. Crea una ficha del programa en este centro para poder asignarlo."
+            />
           )}
         </div>
       ) : null}
