@@ -4,7 +4,7 @@ import {
   canOpenSolicitudes,
   isInventoryDescendantPath,
 } from '@/modules/inventario/navigation'
-import { esPerfilInstructor } from '@/modules/materiales-formacion/lib/formacion'
+import { esPerfilProgramas } from '@/modules/materiales-formacion/lib/formacion'
 import { canOpenFormacionPath, isFormacionPath } from '@/modules/materiales-formacion/navigation'
 
 import type { AppModule } from '@/shared/types/profile'
@@ -81,7 +81,7 @@ export function canOpenPath(
   }
 
   if (path === '/materiales-formacion') {
-    return esPerfilInstructor(role)
+    return esPerfilProgramas(role)
   }
 
   if (isFormacionPath(path)) {

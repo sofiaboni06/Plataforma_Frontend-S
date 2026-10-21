@@ -8,10 +8,10 @@ import {
 } from '@/shared/components/DataTable'
 import { ProgramIcon } from '@/shared/components/icons/AppIcons'
 import ProgramCard from '@/modules/materiales-formacion/components/ProgramCard'
-import { useInstructorPrograms } from '@/modules/materiales-formacion/lib/useInstructorPrograms'
+import { useAssignedPrograms } from '@/modules/materiales-formacion/lib/useAssignedPrograms'
 
 export default function MaterialesFormacionPage() {
-  const { instructor, programs, loading, error, retry } = useInstructorPrograms()
+  const { canSeePrograms, programs, loading, error, retry } = useAssignedPrograms()
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function MaterialesFormacionPage() {
     0,
   )
 
-  if (!instructor) return null
+  if (!canSeePrograms) return null
 
   return (
     <AppLayout title="Materiales de formación">
