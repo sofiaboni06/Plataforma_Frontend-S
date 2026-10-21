@@ -14,15 +14,15 @@ type Miembro = {
 };
 
 const avatarFallback = (nombre: string) =>
-  `https://ui-avatars.com/api/?name=${encodeURIComponent(nombre)}&background=0B3D2E&color=fff&size=176&bold=true&format=png`;
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(nombre)}&background=0B3D2E&color=fff&size=176&bold=true&format=png`; 
 
 const equipoActual: Miembro[] = [
   { nombre: "Henry Bastidas", rol: "Product Owner", avatar: "/avatars/henry.png", grupo: "Manejo", etiquetas: ["Product Owner"] },
-  { nombre: "Alex Jhoan Chaguendo", rol: "Full Stack Developer · Web y Móvil", github: "ALexjh117", avatar: "/avatars/alex.jpg", grupo: "Desarrolladores", etiquetas: ["Web", "Móvil", "Scrum Master"] },
-  { nombre: "Maikol Estiven Daza", rol: "Backend Developer", github: "maiKol269", avatar: "/avatars/maikol-sg.jpeg", grupo: "Desarrolladores", etiquetas: ["Backend", "APIs"] },
-  { nombre: "Yusti Mebel Campo", rol: "Full Stack Developer", github: "mebelcampo", avatar: "/avatars/mebel-sg.jpeg", grupo: "Desarrolladores", etiquetas: ["Full Stack", "Web"] },
+{ nombre: "Alex Jhoan Chaguendo", rol: "Scrum Master & Teach Lead", github: "ALexjh117", avatar: "/avatars/alex_fotogit.jpeg", grupo: "Desarrolladores", etiquetas: ["Web", "Full Stack", "Móvil", "Teach Lead"] },
+  { nombre: "Andres Mauricio Bustamante", rol: "Full Stack Developer", github: "MauricioG-Dev", avatar: "/avatars/mauricio.jpeg", grupo: "Desarrolladores", etiquetas: ["Full Stack", "Web", "Quality Assurance"] },
+  { nombre: "Yusti Mebel Campo", rol: "Full Stack Developer", github: "mebelcampo", avatar: "/avatars/mebel-sg.jpeg", grupo: "Desarrolladores", etiquetas: ["Full Stack", "Web", "Api", "UI/UX"] },
   { nombre: "María Paula Santacruz", rol: "Frontend Developer · Web y Móvil · UI/UX", github: "Paulasantacruz", avatar: "/avatars/paula-sg.jpeg", grupo: "Desarrolladores", etiquetas: ["Web", "Móvil", "UI/UX"] },
-  { nombre: "Sofia Bonilla Gallego", rol: "Frontend Developer · UI/UX", github: "sofiaboni06", avatar: "/avatars/sofia-sg.jpeg", grupo: "Desarrolladores", etiquetas: ["Frontend", "UI/UX"] },
+  { nombre: "Sofia Bonilla Gallego", rol: "Scrum Master & Team Coordinator · UI/UX", github: "sofiaboni06", avatar: "/avatars/sofia-sg.jpeg", grupo: "Desarrolladores", etiquetas: ["Full Stack", "UI/UX", "Team Coordinator"] },
 ];
 
 const codistasNuevos: Miembro[] = [
@@ -98,16 +98,7 @@ export default function EquipoView() {
         </div>
       </section>
 
-      <section className="eq-starters">
-        <p className="eq-kicker">Colaboradores en formación</p>
-        <h2>Quienes empiezan</h2>
-        <p className="eq-archive-lead">Dos espacios para quienes apenas arrancan y nos ayudan a construir SIGEVA.</p>
-        <div className="eq-grid">
-          {codistasNuevos.map((m, i) => (
-            <TarjetaMiembro key={`starter-${i}`} m={m} />
-          ))}
-        </div>
-      </section>
+      <footer/>
 
       {fotoGrande?.avatar ? (
         <div
