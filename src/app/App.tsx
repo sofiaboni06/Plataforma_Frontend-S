@@ -55,6 +55,9 @@ import PrestamosPage from '@/modules/solicitudes/pages/PrestamosPage'
 import ProfilePage from '@/modules/perfil/pages/ProfilePage'
 import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
+import MaterialesFormacionPage from '@/modules/materiales-formacion/pages/MaterialesFormacionPage'
+import ViewMaterialFormacionPage from '@/modules/materiales-formacion/pages/ViewMaterialFormacionPage'
+import SolicitudMaterialFormacionPage from '@/modules/materiales-formacion/pages/SolicitudMaterialFormacionPage'
 
 import { lazy, Suspense, type ReactNode } from 'react'
 import { useAuth } from '@/modules/auth/context/auth'
@@ -202,12 +205,34 @@ function App() {
           </Route>
 
           {/* =========================
-              MATERIALES
+              MATERIALES DE FORMACIÓN
+              CRUD de materiales por programa (no es inventario ni
+              solicitudes: /inventario/solicitudes sigue en su lugar).
           ========================== */}
 
           <Route
             path="/materiales"
-            element={<Navigate to="/inventario/solicitudes" replace />}
+            element={
+              <ModuleRoute>
+                <MaterialesFormacionPage />
+              </ModuleRoute>
+            }
+          />
+          <Route
+            path="/materiales/:id"
+            element={
+              <ModuleRoute>
+                <ViewMaterialFormacionPage />
+              </ModuleRoute>
+            }
+          />
+          <Route
+            path="/materiales/solicitudes"
+            element={
+              <ModuleRoute>
+                <SolicitudMaterialFormacionPage />
+              </ModuleRoute>
+            }
           />
 
           {/* =========================

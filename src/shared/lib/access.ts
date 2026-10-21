@@ -35,6 +35,15 @@ const INVENTORY_ENTRY: AppModule = {
   order: 1,
 }
 
+/**
+ * La sección de materiales de formación solo se anuncia a quien puede verla:
+ * el Administrador de la plataforma recibe `material_formacion.*` del
+ * catálogo; el resto necesita el permiso concedido en su perfil.
+ */
+function puedeVerMaterialesFormacion(isAdmin: boolean, permissions?: string[]) {
+  return isAdmin || permissions?.includes('material_formacion.ver') === true
+}
+
 export function grantedModuleLinks(
   modules: AppModule[],
   isAdmin = false,
@@ -45,7 +54,7 @@ export function grantedModuleLinks(
   const links = modules
     .filter((item) => item.to && item.parentId == null)
     .filter((item) => !isInventoryDescendantPath(item.to as string))
-    .filter((item) => item.to !== '/materiales')
+    .filter((item) => item.to !== '/materiales' || puedeVerMaterialesFormacion(isAdmin, permissions))
     .filter((item) => {
       const path = item.to as string
 
@@ -98,8 +107,11 @@ export function canOpenPath(
     )
   }
 
-  if (path === '/materiales') {
-    return canOpenSolicitudes(isAdmin, permissions)
+  if (path === '/materiales' || path.startsWith('/materiales/')) {
+    return (
+      modules.some((item) => item.to === '/materiales') &&
+      puedeVerMaterialesFormacion(isAdmin, permissions)
+    )
   }
 
   return modules.some((item) => item.to === path)
