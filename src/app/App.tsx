@@ -16,6 +16,8 @@ import RoleModuleCreatePage from '@/modules/administracion/pages/RoleModuleCreat
 import RoleModulesPage from '@/modules/administracion/pages/RoleModulesPage'
 import RolesPage from '@/modules/administracion/pages/RolesPage'
 import UsersPage from '@/modules/administracion/pages/UsersPage'
+import ProgramasFormacionPage from '@/modules/materiales-formacion/pages/ProgramasFormacionPage'
+import MaterialesFormacionPage from '@/modules/materiales-formacion/pages/MaterialesFormacionPage'
 import EnvironmentalPage from '@/modules/ambiental/pages/EnvironmentalPage'
 
 import HomePage from '@/modules/inicio/pages/HomePage'
@@ -272,6 +274,24 @@ function App() {
               <AdminRoute>
                 <UsersPage />
               </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/programas-formacion"
+            element={
+              <AdminRoute>
+                <ProgramasFormacionPage />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/materiales-formacion"
+            element={
+              <ModuleRoute>
+                <MaterialesFormacionPage />
+              </ModuleRoute>
             }
           />
 

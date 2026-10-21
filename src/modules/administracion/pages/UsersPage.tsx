@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
@@ -20,6 +21,8 @@ import {
   tableColumns,
 } from '@/shared/components/DataTable'
 import { ApiError, api } from '@/shared/lib/api'
+import { esPerfilInstructor } from '@/modules/materiales-formacion/lib/formacion'
+import type { ProgramaFormacion } from '@/modules/materiales-formacion/types/formacion'
 import type { ManagedUser, UserFormOptions } from '@/shared/types/profile'
 
 const PAGE_SIZE = 8
@@ -35,14 +38,23 @@ const EMPTY_FORM = {
   idPerfil: '',
   idCformacion: '',
   bodegaIds: [] as number[],
+  programaIds: [] as number[],
   active: true,
 }
 
 type ModalMode = 'create' | 'edit'
 
 export default function UsersPage() {
+  const navigate = useNavigate()
   const [users, setUsers] = useState<ManagedUser[]>([])
   const [options, setOptions] = useState<UserFormOptions>({ roles: [], centers: [], bodegas: [] })
+  const [programs, setPrograms] = useState<ProgramaFormacion[]>([])
+  const [programsLoading, setProgramsLoading] = useState(false)
+  const [programsError, setProgramsError] = useState<string | null>(null)
+  const [createdInstructor, setCreatedInstructor] = useState<{
+    user: ManagedUser
+    programs: ProgramaFormacion[]
+  } | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [search, setSearch] = useState('')
@@ -53,18 +65,22 @@ export default function UsersPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const editingId = useRef<number | null>(null)
 
   const closeModal = useCallback(() => {
+    editingId.current = null
     setModal(null)
     setSelectedId(null)
     setForm(EMPTY_FORM)
     setFormError(null)
+    setProgramsLoading(false)
+    setProgramsError(null)
   }, [])
 
   const patchForm = (field: keyof typeof EMPTY_FORM, value: string | boolean) => {
     setForm((current) => {
       if (field === 'idCformacion' && value !== current.idCformacion) {
-        return { ...current, idCformacion: String(value), bodegaIds: [] }
+        return { ...current, idCformacion: String(value), bodegaIds: [], programaIds: [] }
       }
       return { ...current, [field]: value }
     })
@@ -76,6 +92,15 @@ export default function UsersPage() {
       bodegaIds: current.bodegaIds.includes(bodegaId)
         ? current.bodegaIds.filter((id) => id !== bodegaId)
         : [...current.bodegaIds, bodegaId],
+    }))
+  }
+
+  const togglePrograma = (programaId: number) => {
+    setForm((current) => ({
+      ...current,
+      programaIds: current.programaIds.includes(programaId)
+        ? current.programaIds.filter((id) => id !== programaId)
+        : [...current.programaIds, programaId],
     }))
   }
 
@@ -118,6 +143,42 @@ export default function UsersPage() {
     }
   }, [])
 
+  const instructorRole = isInstructorRole(form.idPerfil, options)
+
+  useEffect(() => {
+    if (!modal || !instructorRole || !form.idCformacion) {
+      setPrograms([])
+      setProgramsLoading(false)
+      setProgramsError(null)
+      return
+    }
+
+    let cancelled = false
+    setProgramsLoading(true)
+    setProgramsError(null)
+
+    api<ProgramaFormacion[]>(`/programas-formacion?idCformacion=${form.idCformacion}`)
+      .then((list) => {
+        if (!cancelled) setPrograms(list)
+      })
+      .catch((caught) => {
+        if (!cancelled) {
+          setProgramsError(
+            caught instanceof ApiError
+              ? caught.message
+              : 'No se pudieron cargar los programas de este centro.',
+          )
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProgramsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [modal, instructorRole, form.idCformacion])
+
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
     if (!query) return users
@@ -144,6 +205,7 @@ export default function UsersPage() {
   }
 
   const openEdit = (user: ManagedUser) => {
+    editingId.current = user.id
     setSelectedId(user.id)
     setFormError(null)
     setMessage(null)
@@ -158,9 +220,25 @@ export default function UsersPage() {
       idPerfil: String(user.roleId),
       idCformacion: String(user.trainingCenterId),
       bodegaIds: user.bodegaIds ?? [],
+      programaIds: [],
       active: user.active,
     })
     setModal('edit')
+
+    if (esPerfilInstructor(user.role)) {
+      void api<ProgramaFormacion[]>(`/users/${user.id}/programas`)
+        .then((current) => {
+          if (editingId.current !== user.id) return
+          setForm((draft) => ({
+            ...draft,
+            programaIds:
+              draft.idCformacion === String(user.trainingCenterId)
+                ? current.map((programa) => programa.id)
+                : draft.programaIds,
+          }))
+        })
+        .catch(() => undefined)
+    }
   }
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
@@ -182,13 +260,23 @@ export default function UsersPage() {
           idPerfil: Number(form.idPerfil),
           idCformacion: Number(form.idCformacion),
           bodegaIds: isAdministratorRole(form.idPerfil, options) ? [] : form.bodegaIds,
+          programaIds: isInstructorRole(form.idPerfil, options) ? form.programaIds : [],
         }),
       })
       const list = await loadUsers()
       const index = list.findIndex((user) => user.id === created.id)
       setPage(index >= 0 ? Math.floor(index / PAGE_SIZE) + 1 : 1)
-      setMessage(`Usuario “${created.fullName}” creado con perfil ${created.role}.`)
-      closeModal()
+
+      if (isInstructorRole(form.idPerfil, options)) {
+        const assigned = await api<ProgramaFormacion[]>(`/users/${created.id}/programas`).catch(
+          () => [] as ProgramaFormacion[],
+        )
+        setCreatedInstructor({ user: created, programs: assigned })
+        closeModal()
+      } else {
+        setMessage(`Usuario “${created.fullName}” creado con perfil ${created.role}.`)
+        closeModal()
+      }
     } catch (caught) {
       setFormError(caught instanceof ApiError ? caught.message : 'No se pudo crear el usuario.')
     } finally {
@@ -227,6 +315,12 @@ export default function UsersPage() {
           bodegaIds: isAdministratorRole(form.idPerfil, options) ? [] : form.bodegaIds,
         }),
       })
+      if (isInstructorRole(form.idPerfil, options)) {
+        await api<ProgramaFormacion[]>(`/users/${selectedId}/programas`, {
+          method: 'PUT',
+          body: JSON.stringify({ programaIds: form.programaIds }),
+        })
+      }
       await loadUsers()
       setMessage(`Usuario actualizado. Perfil: ${updated.role}.`)
       closeModal()
@@ -240,13 +334,15 @@ export default function UsersPage() {
   const from = filtered.length === 0 ? 0 : pageStart + 1
   const to = pageStart + pageRows.length
   const editing = modal === 'edit'
+  const createdBodegas = createdInstructor?.user.bodegas ?? []
+  const createdPrograms = createdInstructor?.programs ?? []
 
   return (
     <AppLayout title="Usuarios">
       <PageHeader
         icon={<UserIcon />}
         title="Usuarios"
-        description="Cree cuentas, asígneles un perfil y las bodegas de su centro. Con esa bodega queda amarrado el inventario."
+        description="Cree cuentas, asígneles perfil, centro, bodega y programas. La bodega define las solicitudes de inventario; el centro filtra los programas disponibles."
         action={
           <Button type="button" icon={<PlusIcon className="size-4" />} onClick={openCreate}>
             Nuevo usuario
@@ -356,8 +452,8 @@ export default function UsersPage() {
           title={editing ? 'Editar usuario' : 'Registrar usuario'}
           description={
             editing
-              ? 'El perfil define los módulos. Las bodegas definen de dónde ve y registra el inventario.'
-              : 'Complete los datos, el perfil y las bodegas de su centro de formación.'
+              ? 'El perfil define los módulos. La bodega define las solicitudes de inventario y el centro filtra los programas.'
+              : 'Complete los datos, el perfil, el centro y su bodega. Si es instructor, asigne los programas de ese centro.'
           }
           onClose={closeModal}
           wide
@@ -366,8 +462,12 @@ export default function UsersPage() {
             <UserFields
               form={form}
               options={options}
+              programs={programs}
+              programsLoading={programsLoading}
+              programsError={programsError}
               onChange={patchForm}
               onToggleBodega={toggleBodega}
+              onTogglePrograma={togglePrograma}
               editing={editing}
             />
             {editing ? (
@@ -390,14 +490,165 @@ export default function UsersPage() {
               <Button type="button" variant="secondary" onClick={closeModal} disabled={saving}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={saving}>
+              <Button
+                type="submit"
+                disabled={
+                  saving ||
+                  (isInstructorRole(form.idPerfil, options) && programsLoading)
+                }
+              >
                 {editing ? 'Guardar cambios' : 'Crear usuario'}
               </Button>
             </div>
           </form>
         </Modal>
       ) : null}
+
+      {createdInstructor ? (
+        <Modal
+          title="Listo, ya creaste el rol de instructor"
+          description={`${createdInstructor.user.fullName} · ${createdInstructor.user.email}`}
+          onClose={() => setCreatedInstructor(null)}
+          wide
+          spacious
+        >
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Summary
+                label="Centro de formación"
+                value={createdInstructor.user.trainingCenter || 'Sin centro asignado'}
+              />
+              <Summary
+                label="Bodega para solicitudes"
+                value={
+                  createdBodegas.length
+                    ? createdBodegas.map((bodega) => bodega.name).join(', ')
+                    : 'Sin bodega asignada'
+                }
+                warn={createdBodegas.length === 0}
+              />
+            </div>
+
+            {createdBodegas.length === 0 ? (
+              <p className="rounded-xl bg-sena-danger-soft px-4 py-3 text-sm text-sena-danger-text ring-1 ring-sena-danger-line">
+                Sin bodega, el instructor no podrá registrar solicitudes de inventario. Puedes
+                asignarla desde «Editar usuario».
+              </p>
+            ) : null}
+
+            <div className="rounded-2xl border border-sena-line bg-sena-veil/40 px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-sena-dark">Programas de formación</p>
+                <StatusPill tone={createdPrograms.length ? 'ok' : 'warn'}>
+                  {createdPrograms.length
+                    ? `${createdPrograms.length} ${
+                        createdPrograms.length === 1 ? 'asignado' : 'asignados'
+                      }`
+                    : 'Sin asignar'}
+                </StatusPill>
+              </div>
+
+              {createdPrograms.length ? (
+                <ul className="mt-3 space-y-1.5">
+                  {createdPrograms.map((programa) => (
+                    <li
+                      key={programa.id}
+                      className="flex flex-wrap items-center gap-2 text-sm text-sena-text"
+                    >
+                      <span className="rounded-full bg-sena-soft px-2 py-0.5 text-[0.6875rem] font-bold text-sena-dark">
+                        {programa.codigo}
+                      </span>
+                      <span className="min-w-0 truncate">{programa.nombre}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm leading-6 text-sena-text/65">
+                  Aún no tiene programas. El instructor no verá «Materiales de formación» hasta que
+                  le asignes al menos uno.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-sena-line bg-white/70 px-5 py-4">
+              <p className="text-sm font-semibold text-sena-dark">Orden recomendado</p>
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-sena-text/70">
+                <li>Asociar el programa al centro desde Formación → Programas.</li>
+                <li>Asignar aquí los programas que dicta el instructor.</li>
+                <li>
+                  Definir la bodega: será la que use para las solicitudes de inventario del
+                  instructor.
+                </li>
+                <li>El instructor verá «Materiales de formación» en su menú.</li>
+              </ol>
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setCreatedInstructor(null)}
+              >
+                Cerrar
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setCreatedInstructor(null)
+                  navigate('/programas-formacion')
+                }}
+              >
+                Ir a Formación
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  const user = createdInstructor.user
+                  setCreatedInstructor(null)
+                  openEdit(user)
+                }}
+              >
+                Asignar programas
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
     </AppLayout>
+  )
+}
+
+function Summary({
+  label,
+  value,
+  warn = false,
+}: {
+  label: string
+  value: string
+  warn?: boolean
+}) {
+  return (
+    <div
+      className={
+        warn
+          ? 'rounded-2xl bg-sena-danger-soft px-5 py-4 ring-1 ring-sena-danger-line'
+          : 'rounded-2xl bg-white/80 px-5 py-4 ring-1 ring-sena-line'
+      }
+    >
+      <p className="text-[0.6875rem] font-bold tracking-[0.1em] text-sena-text/50 uppercase">
+        {label}
+      </p>
+      <p
+        className={
+          warn
+            ? 'mt-1 text-sm font-semibold text-sena-danger-text'
+            : 'mt-1 text-sm font-semibold text-sena-dark'
+        }
+      >
+        {value}
+      </p>
+    </div>
   )
 }
 
@@ -405,23 +656,36 @@ function isAdministratorRole(roleId: string, options: UserFormOptions) {
   return options.roles.find((role) => String(role.id) === roleId)?.name === 'Administrador'
 }
 
+function isInstructorRole(roleId: string, options: UserFormOptions) {
+  return esPerfilInstructor(options.roles.find((role) => String(role.id) === roleId)?.name)
+}
+
 function UserFields({
   form,
   options,
+  programs,
+  programsLoading = false,
+  programsError = null,
   onChange,
   onToggleBodega,
+  onTogglePrograma,
   editing = false,
 }: {
   form: typeof EMPTY_FORM
   options: UserFormOptions
+  programs: ProgramaFormacion[]
+  programsLoading?: boolean
+  programsError?: string | null
   onChange: (field: keyof typeof EMPTY_FORM, value: string | boolean) => void
   onToggleBodega: (bodegaId: number) => void
+  onTogglePrograma: (programaId: number) => void
   editing?: boolean
 }) {
   const documentOptions = DOCUMENT_TYPES.includes(form.tipoDocumento)
     ? DOCUMENT_TYPES
     : [form.tipoDocumento, ...DOCUMENT_TYPES]
   const administrator = isAdministratorRole(form.idPerfil, options)
+  const instructor = isInstructorRole(form.idPerfil, options)
   const centerBodegas = options.bodegas.filter(
     (bodega) => String(bodega.trainingCenterId) === form.idCformacion,
   )
@@ -491,7 +755,8 @@ function UserFields({
         <div className="sm:col-span-2">
           <p className="text-sm font-medium text-sena-text/75">Bodegas del centro</p>
           <p className="mt-1 text-xs text-sena-text/55">
-            Marca la bodega de esta persona, casi siempre una. Lo que puede hacer ahí lo defines en su perfil, en las funciones de Inventario.
+            Marca la bodega de esta persona, casi siempre una. Esa bodega será la que use para las
+            solicitudes de inventario; lo que puede hacer allí lo defines en su perfil.
           </p>
           {!form.idCformacion ? (
             <p className="mt-2 text-sm text-sena-text/55">Primero elige el centro de formación.</p>
@@ -514,6 +779,62 @@ function UserFields({
           )}
         </div>
       )}
+      {instructor ? (
+        <div className="sm:col-span-2">
+          <p className="text-sm font-medium text-sena-text/75">Programas de formación</p>
+          <p className="mt-1 text-xs text-sena-text/55">
+            Solo aparecen los programas asociados al centro seleccionado. Si lo dejas sin
+            programas, el instructor no verá «Materiales de formación» hasta que le asignes uno.
+          </p>
+          {programsLoading ? (
+            <p className="mt-2 text-sm text-sena-text/55">Cargando programas del centro…</p>
+          ) : programsError ? (
+            <p className="mt-2 rounded-xl bg-sena-danger-soft px-4 py-3 text-sm text-sena-danger-text ring-1 ring-sena-danger-line">
+              {programsError}
+            </p>
+          ) : !form.idCformacion ? (
+            <p className="mt-2 text-sm text-sena-text/55">
+              Primero elige el centro de formación para ver sus programas.
+            </p>
+          ) : programs.length === 0 ? (
+            <div className="mt-2 rounded-xl border border-sena-line bg-sena-veil/50 px-4 py-3 text-sm text-sena-text/60">
+              Este centro no tiene programas asociados.{' '}
+              <a
+                href="/programas-formacion"
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-sena underline-offset-2 hover:underline"
+              >
+                Créalos o asígnalos en Formación
+              </a>{' '}
+              y vuelve a intentarlo.
+            </div>
+          ) : (
+            <div className="mt-2 max-h-40 space-y-2 overflow-y-auto rounded-xl border border-sena-line bg-sena-veil/50 p-3">
+              {programs.map((programa) => (
+                <label
+                  key={programa.id}
+                  className="flex items-start gap-2 text-sm text-sena-text"
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 size-4 shrink-0 accent-[#00a651]"
+                    checked={form.programaIds.includes(programa.id)}
+                    onChange={() => onTogglePrograma(programa.id)}
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate">{programa.nombre}</span>
+                    <span className="block truncate text-xs text-sena-text/55">
+                      {programa.codigo}
+                      {programa.nivel ? ` · ${programa.nivel.nombre}` : ''}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
       <TextField
         id="password"
         label={editing ? 'Nueva contraseña (opcional)' : 'Contraseña'}

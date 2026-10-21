@@ -9,6 +9,7 @@ import SenaMark from '@/shared/components/icons/SenaMark'
 import { useAuth } from '@/modules/auth/context/auth'
 import type { NavIconName } from '@/shared/constants/navigation'
 import { visibleInventoryScreens } from '@/modules/inventario/navigation'
+import { esPerfilInstructor } from '@/modules/materiales-formacion/lib/formacion'
 import { grantedModuleLinks, toNavIcon } from '@/shared/lib/access'
 import { cn } from '@/shared/lib/cn'
 import { CloseIcon, LogoutIcon, NavIcon } from '@/shared/components/icons/AppIcons'
@@ -35,6 +36,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const navigate = useNavigate()
   const location = useLocation()
   const granted = grantedModuleLinks(modules, isAdmin, user?.permissions)
+  const instructor = esPerfilInstructor(user?.role)
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,
     permissions: user?.permissions,
@@ -177,6 +179,17 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
           )
         })}
 
+        {instructor ? (
+          <SideLink
+            to="/materiales-formacion"
+            icon="program"
+            end={false}
+            onClose={onClose}
+          >
+            Materiales de formación
+          </SideLink>
+        ) : null}
+
         <SideLink
           to="/perfil"
           icon="user"
@@ -193,6 +206,15 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
               onClose={onClose}
             >
               Usuarios
+            </SideLink>
+
+            <SideLink
+              to="/programas-formacion"
+              icon="program"
+              end={false}
+              onClose={onClose}
+            >
+              Formación
             </SideLink>
 
             <SideLink
