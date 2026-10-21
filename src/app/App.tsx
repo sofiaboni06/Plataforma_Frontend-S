@@ -56,6 +56,11 @@ import ProfilePage from '@/modules/perfil/pages/ProfilePage'
 import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
 
+import VigenciasPage from '@/modules/vigencias/pages/VigenciasPage'
+import VigenciaFormPage from '@/modules/vigencias/pages/VigenciaFormPage'
+
+import EquipoPage from '@/modules/Equipo/EquipoPage'
+
 import { lazy, Suspense, type ReactNode } from 'react'
 import { useAuth } from '@/modules/auth/context/auth'
 
@@ -128,6 +133,9 @@ function App() {
             path="/"
             element={<Dashboard />}
           />
+
+          <Route 
+            path="/equipo" element={<EquipoPage />} />
 
           <Route
             path="/login"
@@ -202,6 +210,34 @@ function App() {
           </Route>
 
           {/* =========================
+              VIGENCIAS
+          ========================== */}
+          <Route
+            path="/vigencias"
+            element={
+              <ModuleRoute>
+                <VigenciasPage />
+              </ModuleRoute>
+            }
+          />
+          <Route
+            path="/vigencias/crear"
+            element={
+              <ModuleRoute>
+                <VigenciaFormPage />
+              </ModuleRoute>
+            }
+          />
+          <Route
+            path="/vigencias/:anio/editar"
+            element={
+              <ModuleRoute>
+                <VigenciaFormPage />
+              </ModuleRoute>
+            }
+          />
+          
+          {/* =========================
               MATERIALES
           ========================== */}
 
@@ -275,6 +311,8 @@ function App() {
             }
           />
 
+          
+
           <Route
             path="/perfiles"
             element={
@@ -310,6 +348,7 @@ function App() {
               </AdminRoute>
             }
           />
+
 
           {/* =========================
               RUTA NO ENCONTRADA

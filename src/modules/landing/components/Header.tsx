@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 const navigation = [
   { label: 'Inicio', href: '#inicio' },
@@ -12,6 +12,7 @@ const navigation = [
 export default function Header() {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState('Inicio')
+  const location = useLocation(); // Para saber en qué página estamos
 
   return (
     <header className="lp-bar">
@@ -31,6 +32,15 @@ export default function Header() {
               {item.label}
             </a>
           ))}
+          
+          {/* AQUI ESTA EL NUEVO ENLACE */}
+          <Link
+            to="/equipo"
+            className={`lp-nav-link${location.pathname === '/equipo' ? ' is-active' : ''}`}
+            style={{ textDecoration: 'none' }}
+          >
+            Equipo Sigma
+          </Link>
         </nav>
 
         <Link to="/login" className="lp-btn lp-btn-login hidden shrink-0 lg:inline-flex">
@@ -72,6 +82,16 @@ export default function Header() {
                 {item.label}
               </a>
             ))}
+            
+            {/* ENLACE EN EL MENU MOVIL */}
+            <Link 
+              to="/equipo" 
+              className="lp-panel-link"
+              onClick={() => setOpen(false)}
+            >
+              Equipo Sigma
+            </Link>
+
             <Link to="/login" className="lp-btn lp-btn-login mt-3 w-full">
               <UserGlyph />
               Iniciar sesión
