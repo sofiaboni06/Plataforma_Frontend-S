@@ -19,7 +19,7 @@ export default function RequireModule({ children }: { children: ReactNode }) {
     return <Navigate to="/login" replace />
   }
 
-  if (!canOpenPath(location.pathname, modules, isAdmin, user?.permissions)) {
+  if (!canOpenPath(location.pathname, modules, isAdmin, user?.permissions, user?.role)) {
     return <Navigate to="/inicio" replace />
   }
 

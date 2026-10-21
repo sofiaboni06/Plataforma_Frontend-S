@@ -4,6 +4,8 @@ import {
   canOpenSolicitudes,
   isInventoryDescendantPath,
 } from '@/modules/inventario/navigation'
+import { esPerfilInstructor } from '@/modules/materiales-formacion/lib/formacion'
+import { canOpenFormacionPath, isFormacionPath } from '@/modules/materiales-formacion/navigation'
 
 import type { AppModule } from '@/shared/types/profile'
 import type { NavIconName } from '@/shared/constants/navigation'
@@ -81,14 +83,23 @@ export function canOpenPath(
   modules: AppModule[],
   isAdmin: boolean,
   permissions?: string[],
+  role?: string,
 ) {
   if (path === '/inicio' || path === '/perfil') {
     return true
   }
 
+  if (path === '/materiales-formacion') {
+    return esPerfilInstructor(role)
+  }
+
+  if (isFormacionPath(path)) {
+    return canOpenFormacionPath(path, { isAdmin, permissions })
+  }
+
   if (
     isAdmin &&
-    (path === '/usuarios' || path === '/perfiles')
+    (path === '/usuarios' || path === '/perfiles' || path === '/programas-formacion')
   ) {
     return true
   }

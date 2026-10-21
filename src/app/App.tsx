@@ -16,6 +16,14 @@ import RoleModuleCreatePage from '@/modules/administracion/pages/RoleModuleCreat
 import RoleModulesPage from '@/modules/administracion/pages/RoleModulesPage'
 import RolesPage from '@/modules/administracion/pages/RolesPage'
 import UsersPage from '@/modules/administracion/pages/UsersPage'
+import FormacionHomePage from '@/modules/materiales-formacion/pages/FormacionHomePage'
+import ProgramasFormacionPage from '@/modules/materiales-formacion/pages/ProgramasFormacionPage'
+import InstructoresFormacionPage from '@/modules/materiales-formacion/pages/InstructoresFormacionPage'
+import RedesConocimientoPage from '@/modules/materiales-formacion/pages/RedesConocimientoPage'
+import LineasTematicasPage from '@/modules/materiales-formacion/pages/LineasTematicasPage'
+import NivelesProgramaPage from '@/modules/materiales-formacion/pages/NivelesProgramaPage'
+import FichasPage from '@/modules/materiales-formacion/pages/FichasPage'
+import MaterialesFormacionPage from '@/modules/materiales-formacion/pages/MaterialesFormacionPage'
 import EnvironmentalPage from '@/modules/ambiental/pages/EnvironmentalPage'
 
 import HomePage from '@/modules/inicio/pages/HomePage'
@@ -58,6 +66,11 @@ import ReportsPage from '@/modules/reportes/pages/ReportsPage'
 import MaterialesFormacionPage from '@/modules/materiales-formacion/pages/MaterialesFormacionPage'
 import ViewMaterialFormacionPage from '@/modules/materiales-formacion/pages/ViewMaterialFormacionPage'
 import SolicitudMaterialFormacionPage from '@/modules/materiales-formacion/pages/SolicitudMaterialFormacionPage'
+
+import VigenciasPage from '@/modules/vigencias/pages/VigenciasPage'
+import VigenciaFormPage from '@/modules/vigencias/pages/VigenciaFormPage'
+
+import EquipoPage from '@/modules/Equipo/EquipoPage'
 
 import { lazy, Suspense, type ReactNode } from 'react'
 import { useAuth } from '@/modules/auth/context/auth'
@@ -132,6 +145,9 @@ function App() {
             element={<Dashboard />}
           />
 
+          <Route 
+            path="/equipo" element={<EquipoPage />} />
+
           <Route
             path="/login"
             element={<LoginPage />}
@@ -204,10 +220,37 @@ function App() {
             />
           </Route>
 
+          {/*=========================
+              VIGENCIAS
+          ========================== */}
+          <Route
+            path="/vigencias"
+            element={
+              <ModuleRoute>
+                <VigenciasPage />
+              </ModuleRoute>
+            }
+          />
+          <Route
+            path="/vigencias/crear"
+            element={
+              <ModuleRoute>
+                <VigenciaFormPage />
+              </ModuleRoute>
+            }
+          />
+          <Route
+            path="/vigencias/:anio/editar"
+            element={
+              <ModuleRoute>
+                <VigenciaFormPage />
+              </ModuleRoute>
+            }
+          />
+          
           {/* =========================
-              MATERIALES DE FORMACIÓN
-              CRUD de materiales por programa (no es inventario ni
-              solicitudes: /inventario/solicitudes sigue en su lugar).
+              MATERIALES
+
           ========================== */}
 
           <Route
@@ -300,6 +343,85 @@ function App() {
             }
           />
 
+          
+
+          <Route
+            path="/formacion"
+            element={
+              <ModuleRoute>
+                <FormacionHomePage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/formacion/programas"
+            element={
+              <ModuleRoute>
+                <ProgramasFormacionPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/formacion/fichas"
+            element={
+              <ModuleRoute>
+                <FichasPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/formacion/redes"
+            element={
+              <ModuleRoute>
+                <RedesConocimientoPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/formacion/lineas"
+            element={
+              <ModuleRoute>
+                <LineasTematicasPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/formacion/niveles"
+            element={
+              <ModuleRoute>
+                <NivelesProgramaPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/formacion/instructores"
+            element={
+              <AdminRoute>
+                <InstructoresFormacionPage />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/programas-formacion"
+            element={<Navigate to="/formacion" replace />}
+          />
+
+          <Route
+            path="/materiales-formacion"
+            element={
+              <ModuleRoute>
+                <MaterialesFormacionPage />
+              </ModuleRoute>
+            }
+          />
+
           <Route
             path="/perfiles"
             element={
@@ -335,6 +457,7 @@ function App() {
               </AdminRoute>
             }
           />
+
 
           {/* =========================
               RUTA NO ENCONTRADA

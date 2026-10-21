@@ -5,10 +5,14 @@ import {
   useNavigate,
 } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import SenaMark from '@/shared/components/icons/SenaMark'
 import { useAuth } from '@/modules/auth/context/auth'
 import type { NavIconName } from '@/shared/constants/navigation'
 import { visibleInventoryScreens } from '@/modules/inventario/navigation'
+import { esPerfilInstructor } from '@/modules/materiales-formacion/lib/formacion'
+import {
+  isFormacionPath,
+  visibleFormacionScreens,
+} from '@/modules/materiales-formacion/navigation'
 import { grantedModuleLinks, toNavIcon } from '@/shared/lib/access'
 import { cn } from '@/shared/lib/cn'
 import { CloseIcon, LogoutIcon, NavIcon } from '@/shared/components/icons/AppIcons'
@@ -35,15 +39,21 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const navigate = useNavigate()
   const location = useLocation()
   const granted = grantedModuleLinks(modules, isAdmin, user?.permissions)
+  const instructor = esPerfilInstructor(user?.role)
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,
     permissions: user?.permissions,
     role: user?.role,
   })
+  const formacionScreens = visibleFormacionScreens({
+    isAdmin,
+    permissions: user?.permissions,
+  })
 
   const [inventoryOpen, setInventoryOpen] = useState(
     location.pathname.startsWith('/inventario'),
   )
+  const [formacionOpen, setFormacionOpen] = useState(isFormacionPath(location.pathname))
 
   const [materialesOpen, setMaterialesOpen] = useState(
     location.pathname.startsWith('/materiales'),
@@ -58,8 +68,12 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   useEffect(() => {
     if (location.pathname.startsWith('/materiales')) {
       setMaterialesOpen(true)
-    }
-  }, [location.pathname])
+   }
+
+    if (isFormacionPath(location.pathname)) {
+      setFormacionOpen(true)
+     }
+   }, [location.pathname])
 
   return (
     <aside
@@ -80,29 +94,35 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
         className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(120%_70%_at_0%_0%,rgba(255,255,255,0.14),rgba(255,255,255,0)_62%)]"
       />
 
-      <div className="relative flex items-center justify-between px-7 pt-4 pb-4">
-        <Link
-          to="/inicio"
-          className="inline-flex items-center gap-3.5 text-white"
-          aria-label="SENA, inicio"
-          onClick={onClose}
-        >
-          <SenaMark className="h-14 w-14" />
+     
+<div className="relative flex items-center justify-between px-7 pt-4 pb-4">
+  <Link
+    to="/inicio"
+    className="inline-flex items-center gap-3.5 text-white"
+    aria-label="SIGMA, inicio"
+    onClick={onClose}
+  >
+    <img
+      src="/img/logo-sigma.png"
+      alt="Logo SIGMA"
+      className="h-14 w-14 object-contain"
+    />
 
-          <span className="text-[1.625rem] font-bold tracking-tight">
-            SENA
-          </span>
-        </Link>
+    <span className="text-[1.625rem] font-bold tracking-tight">
+      SIGMA
+    </span>
+  </Link>
 
-        <button
-          type="button"
-          className="rounded-lg p-1 text-white/80 transition hover:bg-white/10 md:hidden"
-          onClick={onClose}
-          aria-label="Cerrar menú"
-        >
-          <CloseIcon className="size-5" />
-        </button>
-      </div>
+  <button
+    type="button"
+    className="rounded-lg p-1 text-white/80 transition hover:bg-white/10 md:hidden"
+    onClick={onClose}
+    aria-label="Cerrar menú"
+  >
+    <CloseIcon className="size-5" />
+  </button>
+</div>
+
 
       <nav className="relative flex flex-none flex-col gap-1 px-4 pt-2">
         <SideLink
@@ -255,6 +275,17 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
           )
         })}
 
+        {instructor ? (
+          <SideLink
+            to="/materiales-formacion"
+            icon="program"
+            end={false}
+            onClose={onClose}
+          >
+            Materiales de formación
+          </SideLink>
+        ) : null}
+
         <SideLink
           to="/perfil"
           icon="user"
@@ -264,24 +295,76 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
         </SideLink>
 
         {isAdmin ? (
-          <>
-            <SideLink
-              to="/usuarios"
-              icon="settings"
-              onClose={onClose}
-            >
-              Usuarios
-            </SideLink>
+          <SideLink
+            to="/usuarios"
+            icon="settings"
+            onClose={onClose}
+          >
+            Usuarios
+          </SideLink>
+        ) : null}
 
-            <SideLink
-              to="/perfiles"
-              icon="user"
-              end={false}
-              onClose={onClose}
+        {formacionScreens.length > 0 ? (
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                setFormacionOpen((value) => !value)
+                navigate('/formacion')
+              }}
+              className={cn(
+                itemClass,
+                'gap-3 px-3.5 py-2 text-base',
+                isFormacionPath(location.pathname) ? activeClass : idleClass,
+              )}
+              aria-expanded={formacionOpen}
+              aria-controls="menu-formacion"
             >
-              Perfiles
-            </SideLink>
-          </>
+              <NavIcon name="program" className="size-[1.15rem] shrink-0" />
+
+              <span className="flex-1">Formación</span>
+
+              <span
+                className={cn(
+                  'text-xs text-current/70 transition-transform duration-150',
+                  formacionOpen && 'rotate-180',
+                )}
+              >
+                ⌄
+              </span>
+            </button>
+
+            {formacionOpen ? (
+              <div
+                id="menu-formacion"
+                className="mt-1.5 mb-3 ml-[0.85rem] flex flex-col gap-1"
+              >
+                {formacionScreens.map((screen) => (
+                  <SideLink
+                    key={screen.to}
+                    to={screen.to}
+                    icon="program"
+                    nested
+                    end={false}
+                    onClose={onClose}
+                  >
+                    {screen.label}
+                  </SideLink>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {isAdmin ? (
+          <SideLink
+            to="/perfiles"
+            icon="user"
+            end={false}
+            onClose={onClose}
+          >
+            Perfiles
+          </SideLink>
         ) : null}
       </nav>
 
