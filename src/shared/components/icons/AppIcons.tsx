@@ -94,6 +94,17 @@ export function SettingsIcon(props: IconProps) {
   )
 }
 
+/** Birrete: programas de formación. */
+export function ProgramIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M3.5 9.2 12 5l8.5 4.2L12 13.4 3.5 9.2Z" />
+      <path d="M6.5 11v4.4c0 1.7 2.5 3.1 5.5 3.1s5.5-1.4 5.5-3.1V11" />
+      <path d="M20.5 9.2v4.6" />
+    </BaseIcon>
+  )
+}
+
 export function PencilIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -262,6 +273,7 @@ const NAV_ICONS = {
   report: ReportIcon,
   user: UserIcon,
   settings: SettingsIcon,
+  program: ProgramIcon,
 } as const satisfies Record<NavIconName, (props: IconProps) => ReactElement>
 
 export function NavIcon({ name, className }: { name: NavIconName; className?: string }) {

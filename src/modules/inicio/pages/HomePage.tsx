@@ -4,6 +4,7 @@ import AppLayout from '@/shared/components/layout/AppLayout'
 import { NavIcon } from '@/shared/components/icons/AppIcons'
 import { useAuth } from '@/modules/auth/context/auth'
 import { grantedModuleLinks, toNavIcon } from '@/shared/lib/access'
+import InstructorPrograms from '@/modules/materiales-formacion/components/InstructorPrograms'
 
 /* Iconos locales con la misma familia gráfica del proyecto (trazo 1.8, 24px).
  * No se tocan los iconos compartidos del menú ni de la barra superior. */
@@ -120,6 +121,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <InstructorPrograms />
 
       {/* Sección de módulos */}
       <section className="mt-9">
