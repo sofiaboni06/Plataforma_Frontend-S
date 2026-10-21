@@ -22,7 +22,6 @@ export type ProgramaFormacionOptions = {
     nombre: string
     lineas: Array<{ id: number; nombre: string }>
   }>
-  centros: Array<{ id: number; nombre: string; regional: string }>
 }
 
 export type RedConocimiento = {
@@ -45,4 +44,38 @@ export type LineaTematica = {
   descripcion: string | null
   estado: boolean
   redes: Array<{ id: number; nombre: string }>
+}
+
+export type NivelPrograma = {
+  id: number
+  nombre: string
+}
+
+export type FichaPrograma = {
+  id: number
+  codigo: string
+  nombre: string
+  version: string
+  nivel: { id: number; nombre: string } | null
+}
+
+export type Ficha = {
+  id: number
+  programaId: number
+  jornadaId: number | null
+  centroFormacionId: number
+  numeroFicha: string
+  fechaInicio: string | null
+  fechaFin: string | null
+  cupoAprendices: number
+  estado: boolean
+  programa: FichaPrograma | null
+  jornada: { id: number; nombre: string } | null
+  centroFormacion: { id: number; nombre: string; regional: string | null } | null
+}
+
+export type FichaOptions = {
+  programas: FichaPrograma[]
+  jornadas: Array<{ id: number; nombre: string }>
+  centros: Array<{ id: number; nombre: string; regional: string }>
 }

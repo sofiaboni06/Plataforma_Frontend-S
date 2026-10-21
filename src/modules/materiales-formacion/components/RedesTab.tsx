@@ -19,6 +19,7 @@ import {
 } from '@/shared/components/DataTable'
 import { PencilIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError, api } from '@/shared/lib/api'
+import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
 import type {
   LineaTematica,
   RedConocimiento,
@@ -55,6 +56,7 @@ export default function RedesTab({
   onCatalogChanged: () => void
   ref?: Ref<FormacionTabHandle>
 }) {
+  const { can } = useFormacionAccess()
   const [redes, setRedes] = useState<RedConocimiento[]>([])
   const [lineas, setLineas] = useState<LineaTematica[]>([])
   const [loading, setLoading] = useState(true)
@@ -347,17 +349,21 @@ export default function RedesTab({
 
                         <td>
                           <RowActions>
-                            <ActionButton title="Editar red" onClick={() => openEdit(red)}>
-                              <PencilIcon className="size-[18px]" />
-                            </ActionButton>
+                            {can('redes', 'edit') ? (
+                              <ActionButton title="Editar red" onClick={() => openEdit(red)}>
+                                <PencilIcon className="size-[18px]" />
+                              </ActionButton>
+                            ) : null}
 
-                            <ActionButton
-                              title="Desactivar red"
-                              danger
-                              onClick={() => setToDelete(red)}
-                            >
-                              <TrashIcon className="size-[18px]" />
-                            </ActionButton>
+                            {can('redes', 'delete') ? (
+                              <ActionButton
+                                title="Desactivar red"
+                                danger
+                                onClick={() => setToDelete(red)}
+                              >
+                                <TrashIcon className="size-[18px]" />
+                              </ActionButton>
+                            ) : null}
                           </RowActions>
                         </td>
                       </TableRow>

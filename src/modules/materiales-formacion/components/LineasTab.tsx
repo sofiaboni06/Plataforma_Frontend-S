@@ -19,6 +19,7 @@ import {
 } from '@/shared/components/DataTable'
 import { PencilIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError, api } from '@/shared/lib/api'
+import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
 import type { LineaTematica } from '@/modules/materiales-formacion/types/formacion'
 import type { FormacionTabHandle } from '@/modules/materiales-formacion/components/types'
 
@@ -45,6 +46,7 @@ export default function LineasTab({
   onCatalogChanged: () => void
   ref?: Ref<FormacionTabHandle>
 }) {
+  const { can } = useFormacionAccess()
   const [lineas, setLineas] = useState<LineaTematica[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -283,17 +285,21 @@ export default function LineasTab({
 
                         <td>
                           <RowActions>
-                            <ActionButton title="Editar línea" onClick={() => openEdit(linea)}>
-                              <PencilIcon className="size-[18px]" />
-                            </ActionButton>
+                            {can('lineas', 'edit') ? (
+                              <ActionButton title="Editar línea" onClick={() => openEdit(linea)}>
+                                <PencilIcon className="size-[18px]" />
+                              </ActionButton>
+                            ) : null}
 
-                            <ActionButton
-                              title="Desactivar línea"
-                              danger
-                              onClick={() => setToDelete(linea)}
-                            >
-                              <TrashIcon className="size-[18px]" />
-                            </ActionButton>
+                            {can('lineas', 'delete') ? (
+                              <ActionButton
+                                title="Desactivar línea"
+                                danger
+                                onClick={() => setToDelete(linea)}
+                              >
+                                <TrashIcon className="size-[18px]" />
+                              </ActionButton>
+                            ) : null}
                           </RowActions>
                         </td>
                       </TableRow>
