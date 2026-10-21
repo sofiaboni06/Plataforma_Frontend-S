@@ -4,6 +4,7 @@
 
 .eq-page {
 
+  position: relative;
 
   width: 100%;
   max-width: 100%;
@@ -998,12 +999,64 @@
 ========================================================= */
 
 .foto-equipo-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
   background-color:
-    rgba(0, 0, 0, 0.72) !important;
+    rgba(0, 0, 0, 0.72);
 
   backdrop-filter:
     blur(10px);
 
   -webkit-backdrop-filter:
     blur(10px);
+}
+
+.foto-equipo-photo {
+  width: 100%;
+  max-width: 500px;
+  max-height: 85vh;
+
+  object-fit: contain;
+
+  border-radius: 12px;
+
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.foto-equipo-close {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+
+  display: grid;
+  place-items: center;
+
+  width: 40px;
+  height: 40px;
+
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+
+  font-size: 24px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+}
+
+.foto-equipo-close:hover {
+  background: rgba(255, 255, 255, 0.26);
 }

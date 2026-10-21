@@ -13,11 +13,12 @@ export default function Header() {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState('Inicio')
   const location = useLocation(); // Para saber en qué página estamos
+  const onHome = location.pathname === '/'
 
   return (
     <header className="lp-bar">
       <div className="lp-bar-inner">
-        <a href="#inicio" aria-label="SENA, inicio" className="lp-logo">
+        <a href={onHome ? '#inicio' : '/#inicio'} aria-label="SENA, inicio" className="lp-logo">
           <img src="/img/logo-sena.svg" alt="SENA" />
         </a>
 
@@ -25,7 +26,7 @@ export default function Header() {
           {navigation.map((item) => (
             <a
               key={item.label}
-              href={item.href}
+              href={onHome ? item.href : `/${item.href}`}
               onClick={() => setActive(item.label)}
               className={`lp-nav-link${active === item.label ? ' is-active' : ''}`}
             >
@@ -72,7 +73,7 @@ export default function Header() {
             {navigation.map((item) => (
               <a
                 key={item.label}
-                href={item.href}
+                href={onHome ? item.href : `/${item.href}`}
                 onClick={() => {
                   setActive(item.label)
                   setOpen(false)

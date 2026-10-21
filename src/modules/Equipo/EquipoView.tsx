@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { Modal } from "react-bootstrap";
+import { useState } from "react";
 import { GrGithub } from "react-icons/gr";
 import { FaLaptopCode, FaMobileAlt } from "react-icons/fa";
 import "./Equipo.css";
@@ -110,13 +109,30 @@ export default function EquipoView() {
         </div>
       </section>
 
-      <Modal show={Boolean(fotoGrande)} onHide={() => setFotoGrande(null)} centered contentClassName="bg-transparent border-0 shadow-none">
-        <Modal.Body className="d-flex justify-content-center p-0">
-          {fotoGrande?.avatar && (
-            <img src={fotoGrande.avatar} alt={fotoGrande.nombre} style={{ width: "100%", maxWidth: "500px", borderRadius: "12px" }} />
-          )}
-        </Modal.Body>
-      </Modal>
+      {fotoGrande?.avatar ? (
+        <div
+          className="foto-equipo-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Foto de ${fotoGrande.nombre}`}
+          onClick={() => setFotoGrande(null)}
+        >
+          <button
+            type="button"
+            className="foto-equipo-close"
+            aria-label="Cerrar"
+            onClick={() => setFotoGrande(null)}
+          >
+            ×
+          </button>
+          <img
+            src={fotoGrande.avatar}
+            alt={fotoGrande.nombre}
+            className="foto-equipo-photo"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
