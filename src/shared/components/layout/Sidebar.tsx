@@ -5,7 +5,6 @@ import {
   useNavigate,
 } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import SenaMark from '@/shared/components/icons/SenaMark'
 import { useAuth } from '@/modules/auth/context/auth'
 import type { NavIconName } from '@/shared/constants/navigation'
 import { visibleInventoryScreens } from '@/modules/inventario/navigation'
@@ -87,29 +86,35 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
         className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(120%_70%_at_0%_0%,rgba(255,255,255,0.14),rgba(255,255,255,0)_62%)]"
       />
 
-      <div className="relative flex items-center justify-between px-7 pt-4 pb-4">
-        <Link
-          to="/inicio"
-          className="inline-flex items-center gap-3.5 text-white"
-          aria-label="SENA, inicio"
-          onClick={onClose}
-        >
-          <SenaMark className="h-14 w-14" />
+     
+<div className="relative flex items-center justify-between px-7 pt-4 pb-4">
+  <Link
+    to="/inicio"
+    className="inline-flex items-center gap-3.5 text-white"
+    aria-label="SIGMA, inicio"
+    onClick={onClose}
+  >
+    <img
+      src="/img/logo-sigma.png"
+      alt="Logo SIGMA"
+      className="h-14 w-14 object-contain"
+    />
 
-          <span className="text-[1.625rem] font-bold tracking-tight">
-            SENA
-          </span>
-        </Link>
+    <span className="text-[1.625rem] font-bold tracking-tight">
+      SIGMA
+    </span>
+  </Link>
 
-        <button
-          type="button"
-          className="rounded-lg p-1 text-white/80 transition hover:bg-white/10 md:hidden"
-          onClick={onClose}
-          aria-label="Cerrar menú"
-        >
-          <CloseIcon className="size-5" />
-        </button>
-      </div>
+  <button
+    type="button"
+    className="rounded-lg p-1 text-white/80 transition hover:bg-white/10 md:hidden"
+    onClick={onClose}
+    aria-label="Cerrar menú"
+  >
+    <CloseIcon className="size-5" />
+  </button>
+</div>
+
 
       <nav className="relative flex flex-none flex-col gap-1 px-4 pt-2">
         <SideLink
