@@ -171,18 +171,30 @@
     font-weight: 600;
   }
 
-  .lp-nav-link.is-active::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 15px;
-    width: 26px;
-    height: 3px;
-    transform: translateX(-50%);
-    border-radius: 999px;
-    background-image: linear-gradient(90deg, #ddf58a, #a6e93e);
-    box-shadow: 0 0 10px rgba(166, 233, 62, 0.85), 0 0 20px rgba(166, 233, 62, 0.45);
+  /* La línea ya no es un ::after de cada enlace: es un único elemento
+   que se desliza entre opciones. */
+.lp-nav {
+  position: relative;
+}
+
+.lp-nav-indicator {
+  position: absolute;
+  left: 0;
+  bottom: 15px;
+  width: 26px; /* igual a INDICATOR_WIDTH en Header.tsx */
+  height: 3px;
+  border-radius: 999px;
+  background-image: linear-gradient(90deg, #ddf58a, #a6e93e);
+  box-shadow: 0 0 10px rgba(166, 233, 62, 0.85), 0 0 20px rgba(166, 233, 62, 0.45);
+  pointer-events: none;
+  transition: transform 0.5s cubic-bezier(0.65, 0.05, 0.25, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-nav-indicator {
+    transition: none;
   }
+}
 
   .lp-burger {
     display: inline-grid;
