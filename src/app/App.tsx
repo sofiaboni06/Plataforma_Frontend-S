@@ -24,6 +24,7 @@ import LineasTematicasPage from '@/modules/materiales-formacion/pages/LineasTema
 import NivelesProgramaPage from '@/modules/materiales-formacion/pages/NivelesProgramaPage'
 import FichasPage from '@/modules/materiales-formacion/pages/FichasPage'
 import MaterialesFormacionPage from '@/modules/materiales-formacion/pages/MaterialesFormacionPage'
+import ListasMaestrasMaterialPage from '@/modules/materiales-formacion/pages/ListasMaestrasMaterialPage'
 import EnvironmentalPage from '@/modules/ambiental/pages/EnvironmentalPage'
 
 import HomePage from '@/modules/inicio/pages/HomePage'
@@ -63,9 +64,6 @@ import PrestamosPage from '@/modules/solicitudes/pages/PrestamosPage'
 import ProfilePage from '@/modules/perfil/pages/ProfilePage'
 import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
-import MaterialesFormacionPage from '@/modules/materiales-formacion/pages/MaterialesFormacionPage'
-import ViewMaterialFormacionPage from '@/modules/materiales-formacion/pages/ViewMaterialFormacionPage'
-import SolicitudMaterialFormacionPage from '@/modules/materiales-formacion/pages/SolicitudMaterialFormacionPage'
 
 import VigenciasPage from '@/modules/vigencias/pages/VigenciasPage'
 import VigenciaFormPage from '@/modules/vigencias/pages/VigenciaFormPage'
@@ -220,7 +218,7 @@ function App() {
             />
           </Route>
 
-          {/*=========================
+          {/* =========================
               VIGENCIAS
           ========================== */}
           <Route
@@ -250,32 +248,11 @@ function App() {
           
           {/* =========================
               MATERIALES
-
           ========================== */}
 
           <Route
             path="/materiales"
-            element={
-              <ModuleRoute>
-                <MaterialesFormacionPage />
-              </ModuleRoute>
-            }
-          />
-          <Route
-            path="/materiales/:id"
-            element={
-              <ModuleRoute>
-                <ViewMaterialFormacionPage />
-              </ModuleRoute>
-            }
-          />
-          <Route
-            path="/materiales/solicitudes"
-            element={
-              <ModuleRoute>
-                <SolicitudMaterialFormacionPage />
-              </ModuleRoute>
-            }
+            element={<Navigate to="/inventario/solicitudes" replace />}
           />
 
           {/* =========================
@@ -418,6 +395,15 @@ function App() {
             element={
               <ModuleRoute>
                 <MaterialesFormacionPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/formacion/listas-maestras-material"
+            element={
+              <ModuleRoute>
+                <ListasMaestrasMaterialPage />
               </ModuleRoute>
             }
           />
