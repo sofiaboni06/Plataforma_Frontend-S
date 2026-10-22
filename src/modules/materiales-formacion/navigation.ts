@@ -5,6 +5,7 @@ export type FormacionScreenCode =
   | 'lineas'
   | 'niveles'
   | 'instructores'
+  | 'listas'
 
 export type FormacionAction = 'list' | 'view' | 'create' | 'edit' | 'delete'
 
@@ -37,9 +38,14 @@ export const FORMACION_SCREENS: FormacionScreen[] = [
     label: 'Asignar programas',
     adminOnly: true,
   },
+  {
+    code: 'listas',
+    to: '/formacion/listas-maestras-material',
+    label: 'Lista de materiales',
+  },
 ]
 
-type PermissionScreen = Exclude<FormacionScreenCode, 'instructores'>
+type PermissionScreen = Exclude<FormacionScreenCode, 'instructores' | 'listas'>
 
 const VIEW_CODE: Record<PermissionScreen, string> = {
   programas: 'programa_formacion.ver',
@@ -99,6 +105,7 @@ export function canFormacionAction(
   access: FormacionCaller = {},
 ) {
   if (code === 'instructores') return access.isAdmin === true
+  if (code === 'listas') return hasFormacionAccess(access)
   if (!isPermissionScreen(code)) return access.isAdmin === true
   if (!canSeeFormacionScreen(code, access)) return false
 
@@ -113,12 +120,17 @@ export function canFormacionAction(
 export function visibleFormacionScreens(access: FormacionCaller = {}) {
   if (access.isAdmin) return FORMACION_SCREENS
 
-  return FORMACION_SCREENS.filter(
+  const base = FORMACION_SCREENS.filter(
     (screen) =>
       !screen.adminOnly &&
       isPermissionScreen(screen.code) &&
       allowsFormacionPermission(access, VIEW_CODE[screen.code]),
   )
+  if (base.length > 0) {
+    const listas = FORMACION_SCREENS.find((screen) => screen.code === 'listas')
+    if (listas) base.push(listas)
+  }
+  return base
 }
 
 export function hasFormacionAccess(access: FormacionCaller = {}) {

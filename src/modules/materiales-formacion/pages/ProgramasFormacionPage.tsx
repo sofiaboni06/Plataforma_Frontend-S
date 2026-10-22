@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
@@ -23,6 +24,7 @@ import {
   tableColumns,
 } from '@/shared/components/DataTable'
 import {
+  ExcelIcon,
   PencilIcon,
   PlusIcon,
   ProgramIcon,
@@ -300,6 +302,7 @@ export default function ProgramasFormacionPage() {
                     <TableHeader align="center" width="w-[7%]">
                       Cupo
                     </TableHeader>
+                    <TableHeader width="w-[14%]">Lista de materiales</TableHeader>
                     <TableHeader align="center" width={tableColumns.actions}>
                       Acciones
                     </TableHeader>
@@ -365,6 +368,16 @@ export default function ProgramasFormacionPage() {
 
                         <td className="text-center text-sena-strong">
                           {programa.cupoBaseAprendices}
+                        </td>
+
+                        <td>
+                          <Link
+                            to={`/listas-maestras-material?programaId=${programa.id}`}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-sena-line bg-white px-3 py-1 text-xs font-semibold text-sena-dark shadow-hairline transition hover:border-sena/45 hover:bg-white/50"
+                          >
+                            <ExcelIcon className="size-[14px]" />
+                            Lista maestra
+                          </Link>
                         </td>
 
                         <td>
