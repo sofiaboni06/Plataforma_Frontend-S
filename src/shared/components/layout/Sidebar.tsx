@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/modules/auth/context/auth'
 import type { NavIconName } from '@/shared/constants/navigation'
 import { visibleInventoryScreens } from '@/modules/inventario/navigation'
-import { esPerfilInstructor } from '@/modules/materiales-formacion/lib/formacion'
+import { esPerfilProgramas } from '@/modules/materiales-formacion/lib/formacion'
 import {
   isFormacionPath,
   visibleFormacionScreens,
@@ -39,7 +39,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const navigate = useNavigate()
   const location = useLocation()
   const granted = grantedModuleLinks(modules, isAdmin, user?.permissions)
-  const instructor = esPerfilInstructor(user?.role)
+  const canSeeMaterials = esPerfilProgramas(user?.role)
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,
     permissions: user?.permissions,
@@ -55,6 +55,10 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   )
   const [formacionOpen, setFormacionOpen] = useState(isFormacionPath(location.pathname))
 
+  const [materialesOpen, setMaterialesOpen] = useState(
+    location.pathname.startsWith('/materiales'),
+  )
+
   useEffect(() => {
     if (location.pathname.startsWith('/inventario')) {
       setInventoryOpen(true)
@@ -62,10 +66,14 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   }, [location.pathname])
 
   useEffect(() => {
+    if (location.pathname.startsWith('/materiales')) {
+      setMaterialesOpen(true)
+   }
+
     if (isFormacionPath(location.pathname)) {
       setFormacionOpen(true)
-    }
-  }, [location.pathname])
+     }
+   }, [location.pathname])
 
   return (
     <aside
@@ -126,7 +134,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
         </SideLink>
 
         {granted.map((item) => {
-          if (item.to !== '/inventario') {
+          if (item.to !== '/inventario' && item.to !== '/materiales') {
             return (
               <SideLink
                 key={item.to}
@@ -136,6 +144,74 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
               >
                 {item.label}
               </SideLink>
+            )
+          }
+
+          if (item.to === '/materiales') {
+            const materialesActive = location.pathname.startsWith('/materiales')
+
+            return (
+              <div key={item.to}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMaterialesOpen((value) => !value)
+                    navigate('/materiales')
+                  }}
+                  className={cn(
+                    itemClass,
+                    'gap-3 px-3.5 py-2 text-base',
+                    materialesActive ? activeClass : idleClass,
+                  )}
+                  aria-expanded={materialesOpen}
+                  aria-controls="menu-materiales"
+                >
+                  <NavIcon
+                    name={toNavIcon(item.icon)}
+                    className="size-[1.15rem] shrink-0"
+                  />
+
+                  <span className="flex-1">
+                    {item.label}
+                  </span>
+
+                  <span
+                    className={cn(
+                      'text-xs text-current/70 transition-transform duration-150',
+                      materialesOpen && 'rotate-180',
+                    )}
+                  >
+                    ⌄
+                  </span>
+                </button>
+
+                {materialesOpen ? (
+                  <div
+                    id="menu-materiales"
+                    className="mt-1.5 mb-3 ml-[0.85rem] flex flex-col gap-1"
+                  >
+                    <SideLink
+                      to="/materiales"
+                      icon={toNavIcon(item.icon)}
+                      nested
+                      end={false}
+                      onClose={onClose}
+                    >
+                      Lista de materiales
+                    </SideLink>
+
+                    <SideLink
+                      to="/materiales/solicitudes"
+                      icon={toNavIcon(item.icon)}
+                      nested
+                      end={false}
+                      onClose={onClose}
+                    >
+                      Solicitud de materiales
+                    </SideLink>
+                  </div>
+                ) : null}
+              </div>
             )
           }
 
@@ -199,7 +275,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
           )
         })}
 
-        {instructor ? (
+        {canSeeMaterials ? (
           <SideLink
             to="/materiales-formacion"
             icon="program"

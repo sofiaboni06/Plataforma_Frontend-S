@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
 import { ProgramIcon } from '@/shared/components/icons/AppIcons'
 import ProgramCard from '@/modules/materiales-formacion/components/ProgramCard'
-import { useInstructorPrograms } from '@/modules/materiales-formacion/lib/useInstructorPrograms'
+import { useAssignedPrograms } from '@/modules/materiales-formacion/lib/useAssignedPrograms'
 
-export default function InstructorPrograms() {
-  const { instructor, programs, loading, error, retry } = useInstructorPrograms()
+export default function AssignedPrograms() {
+  const { canSeePrograms, programs, loading, error, retry } = useAssignedPrograms()
 
-  if (!instructor) return null
+  if (!canSeePrograms) return null
 
   return (
     <section className="mt-9">

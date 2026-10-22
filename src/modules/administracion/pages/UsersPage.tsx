@@ -24,7 +24,7 @@ import {
   tableColumns,
 } from '@/shared/components/DataTable'
 import { ApiError, api } from '@/shared/lib/api'
-import { esPerfilInstructor } from '@/modules/materiales-formacion/lib/formacion'
+import { esPerfilProgramas } from '@/modules/materiales-formacion/lib/formacion'
 import type { ProgramaFormacion } from '@/modules/materiales-formacion/types/formacion'
 import type { ManagedUser, UserFormOptions } from '@/shared/types/profile'
 
@@ -53,7 +53,7 @@ export default function UsersPage() {
   const [programs, setPrograms] = useState<ProgramaFormacion[]>([])
   const [programsLoading, setProgramsLoading] = useState(false)
   const [programsError, setProgramsError] = useState<string | null>(null)
-  const [createdInstructor, setCreatedInstructor] = useState<{
+  const [createdProgramUser, setCreatedProgramUser] = useState<{
     user: ManagedUser
     programs: ProgramaFormacion[]
     askBodega: boolean
@@ -86,9 +86,9 @@ export default function UsersPage() {
     setProgramsError(null)
   }, [])
 
-  const continueFromInstructor = () => {
-    const flow = createdInstructor
-    setCreatedInstructor(null)
+  const continueFromPrograms = () => {
+    const flow = createdProgramUser
+    setCreatedProgramUser(null)
     if (flow?.askBodega) setBodegaStep(flow.user)
   }
 
@@ -158,10 +158,10 @@ export default function UsersPage() {
     }
   }, [])
 
-  const instructorRole = isInstructorRole(form.idPerfil, options)
+  const programasRole = isProgramasRole(form.idPerfil, options)
 
   useEffect(() => {
-    if (!modal || !instructorRole || !form.idCformacion) {
+    if (!modal || !programasRole || !form.idCformacion) {
       setPrograms([])
       setProgramsLoading(false)
       setProgramsError(null)
@@ -192,7 +192,7 @@ export default function UsersPage() {
     return () => {
       cancelled = true
     }
-  }, [modal, instructorRole, form.idCformacion])
+  }, [modal, programasRole, form.idCformacion])
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -240,7 +240,7 @@ export default function UsersPage() {
     })
     setModal('edit')
 
-    if (esPerfilInstructor(user.role)) {
+    if (esPerfilProgramas(user.role)) {
       void api<ProgramaFormacion[]>(`/users/${user.id}/programas`)
         .then((current) => {
           if (editingId.current !== user.id) return
@@ -274,7 +274,7 @@ export default function UsersPage() {
           idPerfil: Number(form.idPerfil),
           idCformacion: Number(form.idCformacion),
           bodegaIds: isAdministratorRole(form.idPerfil, options) ? [] : form.bodegaIds,
-          programaIds: isInstructorRole(form.idPerfil, options) ? form.programaIds : [],
+          programaIds: isProgramasRole(form.idPerfil, options) ? form.programaIds : [],
         }),
       })
       const list = await loadUsers()
@@ -285,7 +285,7 @@ export default function UsersPage() {
       const askBodega = !admin
       closeModal()
 
-      if (isInstructorRole(form.idPerfil, options)) {
+      if (isProgramasRole(form.idPerfil, options)) {
         const assigned = await api<ProgramaFormacion[]>(`/users/${created.id}/programas`).catch(
           () => [] as ProgramaFormacion[],
         )
@@ -293,7 +293,7 @@ export default function UsersPage() {
           title: 'Usuario creado',
           text: `“${created.fullName}” con perfil ${created.role}. Siguiente paso: sus programas.`,
           confirmLabel: 'Ver programas',
-          onConfirm: () => setCreatedInstructor({ user: created, programs: assigned, askBodega }),
+          onConfirm: () => setCreatedProgramUser({ user: created, programs: assigned, askBodega }),
         })
       } else {
         setSuccessAlert({
@@ -342,7 +342,7 @@ export default function UsersPage() {
           bodegaIds: isAdministratorRole(form.idPerfil, options) ? [] : form.bodegaIds,
         }),
       })
-      if (isInstructorRole(form.idPerfil, options)) {
+      if (isProgramasRole(form.idPerfil, options)) {
         await api<ProgramaFormacion[]>(`/users/${selectedId}/programas`, {
           method: 'PUT',
           body: JSON.stringify({ programaIds: form.programaIds }),
@@ -366,7 +366,7 @@ export default function UsersPage() {
   const from = filtered.length === 0 ? 0 : pageStart + 1
   const to = pageStart + pageRows.length
   const editing = modal === 'edit'
-  const createdPrograms = createdInstructor?.programs ?? []
+  const createdPrograms = createdProgramUser?.programs ?? []
 
   return (
     <AppLayout title="Usuarios">
@@ -478,7 +478,7 @@ export default function UsersPage() {
           description={
             editing
               ? 'El perfil define los módulos. Aquí también puedes ajustar la bodega de solicitudes.'
-              : 'Complete los datos, el perfil y el centro. Si es instructor, asigne los programas de ese centro.'
+              : 'Complete los datos, el perfil y el centro. Si es instructor o coordinador, asigne los programas de ese centro.'
           }
           onClose={closeModal}
           wide
@@ -519,7 +519,7 @@ export default function UsersPage() {
                 type="submit"
                 disabled={
                   saving ||
-                  (isInstructorRole(form.idPerfil, options) && programsLoading)
+                  (isProgramasRole(form.idPerfil, options) && programsLoading)
                 }
               >
                 {editing ? 'Guardar cambios' : 'Crear usuario'}
@@ -529,18 +529,18 @@ export default function UsersPage() {
         </Modal>
       ) : null}
 
-      {createdInstructor ? (
+      {createdProgramUser ? (
         <Modal
-          title="Listo, ya creaste el rol de instructor"
-          description={`${createdInstructor.user.fullName} · ${createdInstructor.user.email}`}
-          onClose={() => setCreatedInstructor(null)}
+          title="Listo, ya creaste el usuario"
+          description={`${createdProgramUser.user.fullName} · ${createdProgramUser.user.email}`}
+          onClose={() => setCreatedProgramUser(null)}
           wide
           spacious
         >
           <div className="space-y-4">
             <Summary
               label="Centro de formación"
-              value={createdInstructor.user.trainingCenter || 'Sin centro asignado'}
+              value={createdProgramUser.user.trainingCenter || 'Sin centro asignado'}
             />
 
             <div className="rounded-2xl border border-sena-line bg-sena-veil/40 px-5 py-4">
@@ -571,8 +571,8 @@ export default function UsersPage() {
                 </ul>
               ) : (
                 <p className="mt-2 text-sm leading-6 text-sena-text/65">
-                  Aún no tiene programas. El instructor verá «Materiales de formación» cuando le
-                  asignes al menos uno.
+                  Aún no tiene programas. Verá «Materiales de formación» cuando le asignes al menos
+                  uno.
                 </p>
               )}
             </div>
@@ -586,14 +586,14 @@ export default function UsersPage() {
                 type="button"
                 variant="secondary"
                 onClick={() => {
-                  const user = createdInstructor.user
-                  setCreatedInstructor(null)
+                  const user = createdProgramUser.user
+                  setCreatedProgramUser(null)
                   openEdit(user)
                 }}
               >
                 Asignar programas
               </Button>
-              <Button type="button" onClick={continueFromInstructor}>
+              <Button type="button" onClick={continueFromPrograms}>
                 Continuar
               </Button>
             </div>
@@ -652,8 +652,8 @@ function isAdministratorRole(roleId: string, options: UserFormOptions) {
   return options.roles.find((role) => String(role.id) === roleId)?.name === 'Administrador'
 }
 
-function isInstructorRole(roleId: string, options: UserFormOptions) {
-  return esPerfilInstructor(options.roles.find((role) => String(role.id) === roleId)?.name)
+function isProgramasRole(roleId: string, options: UserFormOptions) {
+  return esPerfilProgramas(options.roles.find((role) => String(role.id) === roleId)?.name)
 }
 
 function UserFields({
@@ -681,7 +681,7 @@ function UserFields({
     ? DOCUMENT_TYPES
     : [form.tipoDocumento, ...DOCUMENT_TYPES]
   const administrator = isAdministratorRole(form.idPerfil, options)
-  const instructor = isInstructorRole(form.idPerfil, options)
+  const programasPerfil = isProgramasRole(form.idPerfil, options)
   const centerBodegas = options.bodegas.filter(
     (bodega) => String(bodega.trainingCenterId) === form.idCformacion,
   )
@@ -788,11 +788,11 @@ function UserFields({
           </div>
         )
       ) : null}
-      {instructor ? (
+      {programasPerfil ? (
         <div className="sm:col-span-2">
           <p className="mb-2 text-xs text-sena-text/55">
             Solo aparecen los programas que tienen ficha en el centro seleccionado. Si lo dejas sin
-            programas, el instructor no verá «Materiales de formación» hasta que le asignes uno.
+            programas, no verá «Materiales de formación» hasta que le asignes uno.
           </p>
           {programsError ? (
             <p className="rounded-xl bg-sena-danger-soft px-4 py-3 text-sm text-sena-danger-text ring-1 ring-sena-danger-line">

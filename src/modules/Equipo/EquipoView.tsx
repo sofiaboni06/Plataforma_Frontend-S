@@ -27,19 +27,10 @@ const equipoActual: Miembro[] = [
   { nombre: "Sofia Bonilla Gallego", rol: "Scrum Master & Team Coordinator · UI/UX", github: "sofiaboni06", avatar: "/avatars/sofia-sg.jpeg", grupo: "Desarrolladores", etiquetas: ["Full Stack", "UI/UX", "Team Coordinator"] },
 ];
 
-type TarjetaProps = {
-  m: Miembro;
-  indice: number;
-  ampliables?: boolean;
-  onVerFoto?: (m: Miembro) => void;
-};
-
-function iconoEtiqueta(etiqueta: string) {
-  const t = etiqueta.toLowerCase();
-  if (t.includes("móvil") || t.includes("movil")) return <FaMobileAlt aria-hidden="true" />;
-  if (t.includes("web")) return <FaLaptopCode aria-hidden="true" />;
-  return null;
-}
+const codistasNuevos: Miembro[] = [
+  { nombre: "Lucero Valencia Bohórquez", rol: "En formación", avatar: "/avatars/na.png", grupo: "Desarrolladores" },
+  { nombre: "Adriana Julieth Eraso Montero", rol: "En formación", avatar: "/avatars/adri.jpeg", grupo: "Desarrolladores" },
+];
 
 function TarjetaMiembro({ m, indice, ampliables = false, onVerFoto }: TarjetaProps) {
   const src = m.avatar || avatarFallback(m.nombre);
