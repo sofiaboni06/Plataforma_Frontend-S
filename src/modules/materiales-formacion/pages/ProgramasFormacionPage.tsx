@@ -21,7 +21,6 @@ import {
   TablePagination,
   TableRow,
   tableClass,
-  tableColumns,
 } from '@/shared/components/DataTable'
 import {
   ExcelIcon,
@@ -255,7 +254,7 @@ export default function ProgramasFormacionPage() {
       <PageHeader
         icon={<ProgramIcon />}
         title="Programas de formación"
-        description="Cree y edite los programas: código, versión, nivel, red, línea, duración y cupo base. Los centros se derivan de las fichas."
+        description="Cree y edite los programas: código, versión, nivel, red, línea, duración y cupo. Cada programa tiene su lista maestra: ábrala en Acciones."
         action={
           can('programas', 'create') ? (
             <Button type="button" icon={<PlusIcon className="size-4" />} onClick={openCreateProgram}>
@@ -302,8 +301,7 @@ export default function ProgramasFormacionPage() {
                     <TableHeader align="center" width="w-[7%]">
                       Cupo
                     </TableHeader>
-                    <TableHeader width="w-[14%]">Lista de materiales</TableHeader>
-                    <TableHeader align="center" width={tableColumns.actions}>
+                    <TableHeader align="center" width="w-[22%]">
                       Acciones
                     </TableHeader>
                   </tr>
@@ -311,7 +309,7 @@ export default function ProgramasFormacionPage() {
 
                 <tbody>
                   {pagePrograms.length === 0 ? (
-                    <TableEmpty colSpan={7}>
+                    <TableEmpty colSpan={6}>
                       {programs.length === 0
                         ? 'Aún no hay programas activos. Asegure primero una red con líneas en Redes y Líneas; luego use «Nuevo programa».'
                         : 'No hay programas que coincidan con la búsqueda.'}
@@ -371,17 +369,18 @@ export default function ProgramasFormacionPage() {
                         </td>
 
                         <td>
-                          <Link
-                            to={`/listas-maestras-material?programaId=${programa.id}`}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-sena-line bg-white px-3 py-1 text-xs font-semibold text-sena-dark shadow-hairline transition hover:border-sena/45 hover:bg-white/50"
-                          >
-                            <ExcelIcon className="size-[14px]" />
-                            Lista maestra
-                          </Link>
-                        </td>
-
-                        <td>
                           <RowActions>
+                            {can('listas', 'view') ? (
+                              <Link
+                                to={`/formacion/listas-maestras-material?programaId=${programa.id}`}
+                                title="Cargar el anexo Excel o completar materiales uno a uno"
+                                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-sena-line bg-white px-3 text-xs font-semibold text-sena-dark shadow-hairline transition hover:border-sena/45 hover:text-sena"
+                              >
+                                <ExcelIcon className="size-[14px]" />
+                                Gestionar lista
+                              </Link>
+                            ) : null}
+
                             {can('programas', 'edit') ? (
                               <ActionButton
                                 title="Editar programa"

@@ -1,29 +1,30 @@
 import { Link } from 'react-router-dom'
-import { ProgramIcon } from '@/shared/components/icons/AppIcons'
-import ProgramCard from '@/modules/materiales-formacion/components/ProgramCard'
+import { ExcelIcon, ProgramIcon } from '@/shared/components/icons/AppIcons'
 import { useAssignedPrograms } from '@/modules/materiales-formacion/lib/useAssignedPrograms'
+import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
+import { TableCard, TableEmpty, TableHeader, TableRow, tableClass } from '@/shared/components/DataTable'
 
 export default function AssignedPrograms() {
+  const { can } = useFormacionAccess()
   const { canSeePrograms, programs, loading, error, retry } = useAssignedPrograms()
+  const puedeLista = can('listas', 'view')
 
   if (!canSeePrograms) return null
 
   return (
     <section className="mt-9">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <ProgramIcon className="size-7 shrink-0 text-sena-dark" />
-
           <div className="min-w-0">
             <h2 className="text-xl font-bold tracking-tight text-sena-dark sm:text-2xl">
               Mis programas de formación
             </h2>
-            <p className="mt-0.5 text-sm text-sena-text/60">
-              Materiales y programas que un administrador te asignó.
+            <p className="mt-0.5 text-sm text-sena-strong">
+              Desde Acciones abres la lista de materiales de cada programa.
             </p>
           </div>
         </div>
-
         {programs.length ? (
           <Link
             to="/materiales-formacion"
@@ -35,13 +36,12 @@ export default function AssignedPrograms() {
       </div>
 
       {loading ? (
-        <p className="mt-5 rounded-[22px] bg-white/90 px-6 py-6 text-sm text-sena-text/60 shadow-card ring-1 ring-sena-line">
+        <p className="rounded-[22px] bg-white/90 px-6 py-6 text-sm text-sena-strong shadow-card ring-1 ring-sena-line">
           Cargando tus programas…
         </p>
       ) : error ? (
-        <div className="mt-5 flex flex-col gap-3 rounded-[22px] bg-sena-danger-soft px-6 py-5 text-sm text-sena-danger-text ring-1 ring-sena-danger-line sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-[22px] bg-sena-danger-soft px-6 py-5 text-sm text-sena-danger-text ring-1 ring-sena-danger-line sm:flex-row sm:items-center sm:justify-between">
           <span>{error}</span>
-
           <button
             type="button"
             onClick={retry}
@@ -50,17 +50,51 @@ export default function AssignedPrograms() {
             Reintentar
           </button>
         </div>
-      ) : programs.length === 0 ? (
-        <p className="mt-5 rounded-[22px] bg-white/90 px-6 py-6 text-sm text-sena-text/60 shadow-card ring-1 ring-sena-line">
-          Aún no tienes programas asignados. Un administrador debe asignártelos desde el módulo
-          Formación.
-        </p>
       ) : (
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {programs.map((programa) => (
-            <ProgramCard key={programa.id} programa={programa} />
-          ))}
-        </div>
+        <TableCard>
+          <div className="overflow-x-auto">
+            <table className={tableClass}>
+              <thead>
+                <tr className="border-b border-sena-hairline bg-sena-soft/85">
+                  <TableHeader>Programa</TableHeader>
+                  <TableHeader>Red / Línea</TableHeader>
+                  <TableHeader>Acciones</TableHeader>
+                </tr>
+              </thead>
+              <tbody>
+                {programs.length === 0 ? (
+                  <TableEmpty colSpan={3}>
+                    Aún no tienes programas asignados. Un administrador debe asignártelos desde Formación.
+                  </TableEmpty>
+                ) : (
+                  programs.slice(0, 6).map((programa) => (
+                    <TableRow key={programa.id}>
+                      <td>
+                        <p className="font-semibold text-sena-text">{programa.nombre}</p>
+                        <p className="text-xs text-sena-strong">{programa.codigo}</p>
+                      </td>
+                      <td>
+                        <p>{programa.redConocimiento?.nombre ?? '—'}</p>
+                        <p className="text-xs text-sena-strong">{programa.lineaTematica?.nombre ?? '—'}</p>
+                      </td>
+                      <td>
+                        {puedeLista ? (
+                          <Link
+                            to={`/formacion/listas-maestras-material?programaId=${programa.id}`}
+                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-sena-line bg-white px-3 text-xs font-semibold text-sena-dark shadow-hairline transition hover:border-sena/45 hover:text-sena"
+                          >
+                            <ExcelIcon className="size-[14px]" />
+                            Lista de materiales
+                          </Link>
+                        ) : null}
+                      </td>
+                    </TableRow>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </TableCard>
       )}
     </section>
   )

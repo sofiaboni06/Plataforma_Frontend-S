@@ -19,18 +19,25 @@
   isolation: isolate;
   color: var(--eq-ink);
 
-  /* Fondo: luz verde suave arriba y un contrapeso profundo abajo.
-     Sin líneas ni puntos, y estático. */
   background:
-    radial-gradient(1100px 440px at 50% -120px, rgba(57, 169, 0, 0.16), transparent 70%),
-    radial-gradient(800px 420px at 100% 100%, rgba(11, 61, 46, 0.08), transparent 70%),
-    radial-gradient(700px 360px at 0% 70%, rgba(125, 220, 74, 0.1), transparent 70%),
-    #f7faf8;
+    radial-gradient(1100px 440px at 50% -120px, rgba(0, 166, 81, 0.14), transparent 70%),
+    radial-gradient(800px 420px at 100% 100%, rgba(11, 61, 46, 0.1), transparent 70%),
+    #f2faf6;
 }
 
-.eq-page > * {
+.eq-page > *:not(.eq-circuit) {
   position: relative;
   z-index: 1;
+}
+
+.eq-circuit {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.9;
 }
 
 /* =========================================================
@@ -565,6 +572,76 @@
 }
 
 /* =========================================================
+   PILARES
+   Columnas de pie a cabeza, en fila, sobre el circuito.
+========================================================= */
+
+.eq-pilares {
+  align-items: stretch;
+  gap: 18px;
+}
+
+[data-variant="pilar"] .eq-card {
+  flex: 1 1 160px;
+  max-width: 210px;
+  min-height: 520px;
+  flex-direction: column;
+  border-radius: 14px;
+  background: #fff;
+}
+
+[data-variant="pilar"] .eq-person-photo-container,
+[data-variant="pilar"] .eq-person-photo-button {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 280px;
+}
+
+[data-variant="pilar"] .eq-card-content {
+  flex: none;
+  padding: 16px 14px 18px;
+  background: #005c3b;
+  color: #e9f7ef;
+}
+
+[data-variant="pilar"] .eq-copy strong {
+  font-size: 15px;
+  color: #fff;
+}
+
+[data-variant="pilar"] .eq-copy p {
+  margin-bottom: 10px;
+  color: #bfe8d1;
+  font-size: 12px;
+}
+
+[data-variant="pilar"] .eq-tags {
+  margin-bottom: 12px;
+}
+
+[data-variant="pilar"] .eq-tag {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e9f7ef;
+}
+
+[data-variant="pilar"] .eq-github {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: transparent;
+  color: #fff;
+}
+
+[data-variant="pilar"] .eq-github:hover {
+  border-color: #7ddc4a;
+  background: #7ddc4a;
+  color: #0b3d2e;
+}
+
+[data-variant="pilar"] .eq-card:hover,
+[data-variant="pilar"] .eq-card:focus-within {
+  transform: translateY(-12px);
+}
+
+/* =========================================================
    MÓVIL
 ========================================================= */
 
@@ -592,9 +669,27 @@
 
   [data-variant="retrato"] .eq-card,
   [data-variant="cinematica"] .eq-card,
-  [data-variant="ficha"] .eq-card {
+  [data-variant="ficha"] .eq-card,
+  [data-variant="pilar"] .eq-card {
     flex: 1 1 100%;
     max-width: 400px;
+  }
+
+  [data-variant="pilar"] .eq-card {
+    min-height: 0;
+    flex-direction: row;
+    max-width: none;
+  }
+
+  [data-variant="pilar"] .eq-person-photo-button {
+    flex: none;
+    width: 38%;
+    min-height: 180px;
+  }
+
+  [data-variant="pilar"] .eq-card-content {
+    flex: 1;
+    align-self: stretch;
   }
 }
 

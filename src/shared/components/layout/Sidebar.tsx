@@ -10,8 +10,10 @@ import type { NavIconName } from '@/shared/constants/navigation'
 import { visibleInventoryScreens } from '@/modules/inventario/navigation'
 import { esPerfilProgramas } from '@/modules/materiales-formacion/lib/formacion'
 import {
+  canFormacionAction,
+  isEstructuraFormacionPath,
   isFormacionPath,
-  visibleFormacionScreens,
+  visibleFormacionMenuScreens,
 } from '@/modules/materiales-formacion/navigation'
 import { grantedModuleLinks, toNavIcon } from '@/shared/lib/access'
 import { cn } from '@/shared/lib/cn'
@@ -39,25 +41,29 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const navigate = useNavigate()
   const location = useLocation()
   const granted = grantedModuleLinks(modules, isAdmin, user?.permissions)
+  const formacionAccess = { isAdmin, permissions: user?.permissions }
   const canSeeMaterials = esPerfilProgramas(user?.role)
+  const canSolicitar = canFormacionAction('solicitudes', 'list', formacionAccess)
+  const canCompras = canFormacionAction('compras', 'list', formacionAccess)
+  const showMaterialesNav = !isAdmin && (canSeeMaterials || canSolicitar || canCompras)
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,
     permissions: user?.permissions,
     role: user?.role,
   })
-  const formacionScreens = visibleFormacionScreens({
-    isAdmin,
-    permissions: user?.permissions,
-  })
+  const formacionScreens = visibleFormacionMenuScreens(formacionAccess)
 
   const [inventoryOpen, setInventoryOpen] = useState(
     location.pathname.startsWith('/inventario'),
   )
   const [formacionOpen, setFormacionOpen] = useState(isFormacionPath(location.pathname))
 
-  const [materialesOpen, setMaterialesOpen] = useState(
-    location.pathname.startsWith('/materiales'),
-  )
+  const materialesPath =
+    location.pathname.startsWith('/materiales') ||
+    location.pathname.startsWith('/formacion/solicitudes') ||
+    location.pathname.startsWith('/formacion/compras')
+
+  const [materialesOpen, setMaterialesOpen] = useState(materialesPath)
 
   useEffect(() => {
     if (location.pathname.startsWith('/inventario')) {
@@ -66,13 +72,21 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   }, [location.pathname])
 
   useEffect(() => {
-    if (location.pathname.startsWith('/materiales')) {
+    if (
+      location.pathname.startsWith('/materiales') ||
+      location.pathname.startsWith('/formacion/solicitudes') ||
+      location.pathname.startsWith('/formacion/compras')
+    ) {
       setMaterialesOpen(true)
-   }
+    }
 
-    if (isFormacionPath(location.pathname)) {
+    if (
+      isFormacionPath(location.pathname) &&
+      !location.pathname.startsWith('/formacion/solicitudes') &&
+      !location.pathname.startsWith('/formacion/compras')
+    ) {
       setFormacionOpen(true)
-     }
+    }
    }, [location.pathname])
 
   return (
@@ -134,7 +148,11 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
         </SideLink>
 
         {granted.map((item) => {
-          if (item.to !== '/inventario' && item.to !== '/materiales') {
+          if (item.to === '/materiales' || item.to === '/materiales-formacion') {
+            return null
+          }
+
+          if (item.to !== '/inventario') {
             return (
               <SideLink
                 key={item.to}
@@ -144,74 +162,6 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
               >
                 {item.label}
               </SideLink>
-            )
-          }
-
-          if (item.to === '/materiales') {
-            const materialesActive = location.pathname.startsWith('/materiales')
-
-            return (
-              <div key={item.to}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMaterialesOpen((value) => !value)
-                    navigate('/materiales')
-                  }}
-                  className={cn(
-                    itemClass,
-                    'gap-3 px-3.5 py-2 text-base',
-                    materialesActive ? activeClass : idleClass,
-                  )}
-                  aria-expanded={materialesOpen}
-                  aria-controls="menu-materiales"
-                >
-                  <NavIcon
-                    name={toNavIcon(item.icon)}
-                    className="size-[1.15rem] shrink-0"
-                  />
-
-                  <span className="flex-1">
-                    {item.label}
-                  </span>
-
-                  <span
-                    className={cn(
-                      'text-xs text-current/70 transition-transform duration-150',
-                      materialesOpen && 'rotate-180',
-                    )}
-                  >
-                    ⌄
-                  </span>
-                </button>
-
-                {materialesOpen ? (
-                  <div
-                    id="menu-materiales"
-                    className="mt-1.5 mb-3 ml-[0.85rem] flex flex-col gap-1"
-                  >
-                    <SideLink
-                      to="/materiales"
-                      icon={toNavIcon(item.icon)}
-                      nested
-                      end={false}
-                      onClose={onClose}
-                    >
-                      Lista de materiales
-                    </SideLink>
-
-                    <SideLink
-                      to="/materiales/solicitudes"
-                      icon={toNavIcon(item.icon)}
-                      nested
-                      end={false}
-                      onClose={onClose}
-                    >
-                      Solicitud de materiales
-                    </SideLink>
-                  </div>
-                ) : null}
-              </div>
             )
           }
 
@@ -275,15 +225,54 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
           )
         })}
 
-        {canSeeMaterials ? (
-          <SideLink
-            to="/materiales-formacion"
-            icon="program"
-            end={false}
-            onClose={onClose}
-          >
-            Materiales de formación
-          </SideLink>
+        {showMaterialesNav ? (
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                setMaterialesOpen((value) => !value)
+                navigate(canSolicitar ? '/formacion/solicitudes' : '/materiales-formacion')
+              }}
+              className={cn(
+                itemClass,
+                'gap-3 px-3.5 py-2 text-base',
+                materialesPath ? activeClass : idleClass,
+              )}
+              aria-expanded={materialesOpen}
+              aria-controls="menu-materiales"
+            >
+              <NavIcon name="program" className="size-[1.15rem] shrink-0" />
+              <span className="flex-1">Materiales de formación</span>
+              <span
+                className={cn(
+                  'text-xs text-current/70 transition-transform duration-150',
+                  materialesOpen && 'rotate-180',
+                )}
+              >
+                ⌄
+              </span>
+            </button>
+
+            {materialesOpen ? (
+              <div id="menu-materiales" className="mt-1.5 mb-3 ml-[0.85rem] flex flex-col gap-1">
+                {canSeeMaterials ? (
+                  <SideLink to="/materiales-formacion" icon="program" nested end={false} onClose={onClose}>
+                    Mis programas
+                  </SideLink>
+                ) : null}
+                {canSolicitar ? (
+                  <SideLink to="/formacion/solicitudes" icon="program" nested end={false} onClose={onClose}>
+                    Solicitud de materiales
+                  </SideLink>
+                ) : null}
+                {canCompras ? (
+                  <SideLink to="/formacion/compras" icon="program" nested end={false} onClose={onClose}>
+                    Consolidado de compras
+                  </SideLink>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         <SideLink
@@ -346,6 +335,9 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
                     icon="program"
                     nested
                     end={false}
+                    forceActive={
+                      screen.code === 'redes' && isEstructuraFormacionPath(location.pathname)
+                    }
                     onClose={onClose}
                   >
                     {screen.label}
@@ -394,10 +386,14 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
         </svg>
       </div>
 
-      <div className="relative z-10 mt-auto flex justify-center px-4 pb-6">
+      <div className="relative z-10 mt-auto px-4 pb-6">
+        <p className="mb-3 rounded-2xl border border-[#7ddc4a]/35 bg-[#004d32]/55 px-3.5 py-3.5 text-center text-[0.8125rem] leading-5 font-medium tracking-wide text-[#e9f7ef] shadow-[0_8px_20px_rgba(0,77,50,0.35)]">
+          El conocimiento es mejor cuando se comparte.
+        </p>
+
         <button
           type="button"
-          className={cn(itemClass, idleClass, 'justify-center gap-3 px-3.5 py-2 text-base')}
+          className={cn(itemClass, idleClass, 'w-full justify-center gap-3 px-3.5 py-2 text-base')}
           onClick={() => {
             void logout().then(() => {
               onClose()
@@ -420,6 +416,7 @@ function SideLink({
   children,
   end = true,
   nested = false,
+  forceActive = false,
 }: {
   to: string
   icon: NavIconName
@@ -427,6 +424,7 @@ function SideLink({
   children: string
   end?: boolean
   nested?: boolean
+  forceActive?: boolean
 }) {
   return (
     <NavLink
@@ -439,7 +437,7 @@ function SideLink({
           nested
             ? 'gap-2 rounded-xl px-2 py-1 pl-3 pr-1 text-sm'
             : 'gap-3 px-3.5 py-2 text-base',
-          isActive ? nestedActiveClass : idleClass,
+          isActive || forceActive ? nestedActiveClass : idleClass,
         )
       }
     >

@@ -1,12 +1,23 @@
-import Header from '@/modules/landing/components/Header'; // Ajusta la ruta si tu Header está en otro lado
-import '@/modules/landing/styles/landing.css';
-import EquipoView from './EquipoView';
+import { useEffect } from 'react'
+import Header from '@/modules/landing/components/Header'
+import SiteFooter from '@/modules/landing/components/SiteFooter'
+import '@/modules/landing/styles/landing.css'
+import EquipoView from './EquipoView'
 
 export default function EquipoPage() {
+  useEffect(() => {
+    const previous = document.title
+    document.title = 'Equipo SIGMA'
+    return () => {
+      document.title = previous
+    }
+  }, [])
+
   return (
-   <main className="lp-root min-h-screen overflow-x-clip font-sans">
-     <Header />
-     <EquipoView />
-   </main>
-  );
+    <main className="lp-root min-h-screen overflow-x-clip font-sans">
+      <Header />
+      <EquipoView />
+      <SiteFooter />
+    </main>
+  )
 }

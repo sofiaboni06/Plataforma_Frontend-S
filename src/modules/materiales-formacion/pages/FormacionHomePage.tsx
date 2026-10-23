@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
   CalendarIcon,
-  InventoryIcon,
-  PencilIcon,
   ProgramIcon,
   ReportIcon,
   UserIcon,
@@ -12,13 +10,7 @@ import {
 import { api } from '@/shared/lib/api'
 import { esPerfilProgramas } from '@/modules/materiales-formacion/lib/formacion'
 import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
-import type {
-  Ficha,
-  LineaTematica,
-  NivelPrograma,
-  ProgramaFormacion,
-  RedConocimiento,
-} from '@/modules/materiales-formacion/types/formacion'
+import type { Ficha, ProgramaFormacion, RedConocimiento } from '@/modules/materiales-formacion/types/formacion'
 import type { ManagedUser } from '@/shared/types/profile'
 import type { ComponentType, SVGProps } from 'react'
 
@@ -49,23 +41,10 @@ const SECTIONS: Section[] = [
   },
   {
     to: '/formacion/redes',
-    description: 'Agrupe las líneas temáticas y registre los datos del gestor y del asesor.',
+    description:
+      'Redes de conocimiento. Desde ahí se abren las líneas de red y los niveles.',
     icon: ReportIcon,
     noun: { one: 'red activa', many: 'redes activas' },
-    accent: 'bg-sena-veil text-sena-strong',
-  },
-  {
-    to: '/formacion/lineas',
-    description: 'Son la segunda parte de un programa. Después de crearlas, asígnelas a una red.',
-    icon: PencilIcon,
-    noun: { one: 'línea activa', many: 'líneas activas' },
-    accent: 'bg-sena-veil text-sena-strong',
-  },
-  {
-    to: '/formacion/niveles',
-    description: 'Catálogo corto con los niveles de formación: técnico, tecnólogo, entre otros.',
-    icon: InventoryIcon,
-    noun: { one: 'nivel', many: 'niveles' },
     accent: 'bg-sena-veil text-sena-strong',
   },
   {
@@ -100,12 +79,10 @@ export default function FormacionHomePage() {
         ? api<ManagedUser[]>('/users')
         : Promise.resolve<ManagedUser[]>([])
 
-      const [programas, fichas, redes, lineas, niveles, users] = await Promise.allSettled([
+      const [programas, fichas, redes, users] = await Promise.allSettled([
         api<ProgramaFormacion[]>('/programas-formacion'),
         api<Ficha[]>('/fichas'),
         api<RedConocimiento[]>('/redes-conocimiento'),
-        api<LineaTematica[]>('/lineas-tematicas'),
-        api<NivelPrograma[]>('/niveles-programa'),
         usersRequest,
       ])
 
@@ -118,8 +95,6 @@ export default function FormacionHomePage() {
         '/formacion/programas': size(programas),
         '/formacion/fichas': size(fichas),
         '/formacion/redes': size(redes),
-        '/formacion/lineas': size(lineas),
-        '/formacion/niveles': size(niveles),
         '/formacion/instructores':
           users.status === 'fulfilled'
             ? users.value.filter((user) => esPerfilProgramas(user.role)).length
@@ -184,7 +159,7 @@ export default function FormacionHomePage() {
           </div>
 
           <p className="shrink-0 text-right font-serif text-lg leading-snug text-white/90 italic lg:max-w-[13rem]">
-            Programas, fichas, redes, líneas y niveles, en un solo lugar
+            Programas, fichas y redes, en un solo lugar
           </p>
         </div>
       </section>

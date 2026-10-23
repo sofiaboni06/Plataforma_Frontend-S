@@ -161,6 +161,29 @@ img {
   -webkit-font-smoothing: antialiased;
 }
 
+@keyframes nf-num-in {
+  from {
+    opacity: 0.35;
+    filter: blur(10px);
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.nf-num {
+  animation: nf-num-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-num {
+    animation: none;
+  }
+}
+
 /*
  * Campos de formulario compartidos.
  * Bodegas, sub-bodegas, stands, usuarios y roles usan estas clases, así que

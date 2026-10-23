@@ -2,7 +2,7 @@ import { useAuth } from '@/modules/auth/context/auth'
 import {
   allowsFormacionPermission,
   canFormacionAction,
-  visibleFormacionScreens,
+  visibleFormacionMenuScreens,
   type FormacionAction,
   type FormacionScreenCode,
 } from '@/modules/materiales-formacion/navigation'
@@ -13,7 +13,7 @@ export function useFormacionAccess() {
 
   return {
     isAdmin,
-    screens: visibleFormacionScreens(access),
+    screens: visibleFormacionMenuScreens(access),
     can: (screen: FormacionScreenCode, action: FormacionAction) =>
       canFormacionAction(screen, action, access),
     permit: (code: string) => allowsFormacionPermission(access, code),

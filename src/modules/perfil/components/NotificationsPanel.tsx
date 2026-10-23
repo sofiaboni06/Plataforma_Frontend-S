@@ -2,8 +2,9 @@ import { useNavigate } from 'react-router-dom'
 import Button from '@/shared/components/ui/Button'
 import { useNotifications } from '@/modules/notificaciones/context/notifications'
 import {
+  notificationDetailPath,
   notificationMark,
-  notificationPath,
+  notificationPreview,
   timeAgo,
 } from '@/modules/notificaciones/lib/presentacion'
 
@@ -32,14 +33,13 @@ export default function NotificationsPanel() {
         <ul className="divide-y divide-sena-dark/8 overflow-hidden rounded-xl border border-sena-dark/10">
           {items.map((notification) => {
             const mark = notificationMark(notification.tipo, notification.titulo)
-            const path = notificationPath(notification)
             return (
               <li key={notification.id}>
                 <button
                   type="button"
                   onClick={() => {
                     void markRead(notification.id)
-                    if (path) navigate(path)
+                    navigate(notificationDetailPath(notification.id))
                   }}
                   className={`flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-sena-muted/60 ${notification.leida ? '' : 'bg-emerald-50/50'}`}
                 >
@@ -56,7 +56,9 @@ export default function NotificationsPanel() {
                         <span className="size-2 rounded-full bg-red-500" aria-label="No leída" />
                       ) : null}
                     </span>
-                    <span className="mt-0.5 block text-sm whitespace-pre-line text-sena-text/75">{notification.mensaje}</span>
+                    <span className="mt-0.5 block text-sm text-sena-strong">
+                      {notificationPreview(notification.mensaje)}
+                    </span>
                     <span className="mt-1 block text-xs text-sena-text/50">{timeAgo(notification.fecha)}</span>
                   </span>
                 </button>

@@ -25,9 +25,12 @@ import NivelesProgramaPage from '@/modules/materiales-formacion/pages/NivelesPro
 import FichasPage from '@/modules/materiales-formacion/pages/FichasPage'
 import MaterialesFormacionPage from '@/modules/materiales-formacion/pages/MaterialesFormacionPage'
 import ListasMaestrasMaterialPage from '@/modules/materiales-formacion/pages/ListasMaestrasMaterialPage'
+import SolicitudMaterialFormacionPage from '@/modules/materiales-formacion/pages/SolicitudMaterialFormacionPage'
+import ComprasFormacionPage from '@/modules/materiales-formacion/pages/ComprasFormacionPage'
 import EnvironmentalPage from '@/modules/ambiental/pages/EnvironmentalPage'
 
 import HomePage from '@/modules/inicio/pages/HomePage'
+import NotFoundPage from '@/modules/inicio/pages/NotFoundPage'
 import AlertsPage from '@/modules/alertas/pages/AlertsPage'
 
 import InventoryCenterLayout from '@/modules/inventario/centerScope'
@@ -62,6 +65,7 @@ import SolicitudesHomePage from '@/modules/solicitudes/pages/SolicitudesHomePage
 import SolicitudesPage from '@/modules/solicitudes/pages/SolicitudesPage'
 import PrestamosPage from '@/modules/solicitudes/pages/PrestamosPage'
 import ProfilePage from '@/modules/perfil/pages/ProfilePage'
+import NotificacionesPage from '@/modules/notificaciones/pages/NotificacionesPage'
 import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
 
@@ -216,6 +220,7 @@ function App() {
                 </Suspense>
               }
             />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
 
           {/* =========================
@@ -303,6 +308,22 @@ function App() {
             element={
               <Private>
                 <ProfilePage />
+              </Private>
+            }
+          />
+          <Route
+            path="/notificaciones"
+            element={
+              <Private>
+                <NotificacionesPage />
+              </Private>
+            }
+          />
+          <Route
+            path="/notificaciones/:id"
+            element={
+              <Private>
+                <NotificacionesPage />
               </Private>
             }
           />
@@ -409,6 +430,24 @@ function App() {
           />
 
           <Route
+            path="/formacion/solicitudes"
+            element={
+              <ModuleRoute>
+                <SolicitudMaterialFormacionPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/formacion/compras"
+            element={
+              <ModuleRoute>
+                <ComprasFormacionPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
             path="/perfiles"
             element={
               <AdminRoute>
@@ -449,15 +488,7 @@ function App() {
               RUTA NO ENCONTRADA
           ========================== */}
 
-          <Route
-            path="*"
-            element={
-              <Navigate
-                to="/"
-                replace
-              />
-            }
-          />
+          <Route path="*" element={<NotFoundPage />} />
 
         </Routes>
       </SessionProviders>
