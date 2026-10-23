@@ -1,22 +1,35 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
   ClearFiltersButton,
   FilterCard,
   PageHeader,
   SearchInput,
+  TableCard,
+  TableEmpty,
+  TableHeader,
+  TableLoading,
+  TablePagination,
+  TableRow,
+  tableClass,
+  tableColumns,
 } from '@/shared/components/DataTable'
-import { ProgramIcon } from '@/shared/components/icons/AppIcons'
-import ProgramCard from '@/modules/materiales-formacion/components/ProgramCard'
+import { ExcelIcon, ProgramIcon } from '@/shared/components/icons/AppIcons'
 import { useAssignedPrograms } from '@/modules/materiales-formacion/lib/useAssignedPrograms'
+import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
+import { usePagination } from '@/shared/lib/table'
 
 export default function MaterialesFormacionPage() {
+  const { can } = useFormacionAccess()
   const { canSeePrograms, programs, loading, error, retry } = useAssignedPrograms()
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const puedeLista = can('listas', 'view')
 
   useEffect(() => {
     const previousTitle = document.title
-    document.title = 'Materiales de formación | SENA'
+    document.title = 'Mis programas | SENA'
     return () => {
       document.title = previousTitle
     }
@@ -25,7 +38,6 @@ export default function MaterialesFormacionPage() {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
     if (!query) return programs
-
     return programs.filter((programa) =>
       `${programa.codigo} ${programa.nombre} ${programa.nivel?.nombre ?? ''} ${
         programa.redConocimiento?.nombre ?? ''
@@ -35,29 +47,21 @@ export default function MaterialesFormacionPage() {
     )
   }, [programs, search])
 
-  const totalHoras = programs.reduce(
-    (total, programa) => total + (programa.duracionTotalHoras ?? 0),
-    0,
-  )
-  const totalCupo = programs.reduce(
-    (total, programa) => total + programa.cupoBaseAprendices,
-    0,
-  )
+  const { pageRows, from, to, totalPages, currentPage } = usePagination(filtered, page)
 
   if (!canSeePrograms) return null
 
   return (
-    <AppLayout title="Materiales de formación">
+    <AppLayout title="Mis programas">
       <PageHeader
         icon={<ProgramIcon />}
-        title="Materiales de formación"
-        description="Consulta los programas que tienes asignados. Desde aquí puedes revisar su código, nivel, red, línea, duración y cupo base."
+        title="Mis programas"
+        description="Estos son los programas que te asignaron. Desde Acciones cargas o editas la lista de materiales: por Excel o uno a uno."
       />
 
       {error ? (
         <div className="mb-4 flex flex-col gap-3 rounded-[18px] bg-sena-danger-soft px-5 py-3.5 text-sm text-sena-danger-text ring-1 ring-sena-danger-line sm:flex-row sm:items-center sm:justify-between">
           <span>{error}</span>
-
           <button
             type="button"
             onClick={retry}
@@ -68,61 +72,89 @@ export default function MaterialesFormacionPage() {
         </div>
       ) : null}
 
-      {!error && !loading ? (
-        <div className="mb-4 grid gap-3 sm:grid-cols-3">
-          <Stat label="Programas asignados" value={String(programs.length)} />
-          <Stat label="Horas de formación" value={`${totalHoras} h`} />
-          <Stat label="Cupo base total" value={`${totalCupo} aprendices`} />
-        </div>
-      ) : null}
-
       <FilterCard>
         <SearchInput
           value={search}
-          onChange={setSearch}
+          onChange={(value) => {
+            setSearch(value)
+            setPage(1)
+          }}
           placeholder="Buscar por código, programa, red o línea..."
         />
-
-        <ClearFiltersButton onClick={() => setSearch('')} disabled={!search} />
+        <ClearFiltersButton
+          onClick={() => {
+            setSearch('')
+            setPage(1)
+          }}
+          disabled={!search}
+        />
       </FilterCard>
 
-      {loading ? (
-        <p className="rounded-[26px] bg-white/90 px-6 py-16 text-center text-sm text-sena-text-soft shadow-surface ring-1 ring-sena-line">
-          Cargando tus programas de formación…
-        </p>
-      ) : programs.length === 0 ? (
-        <div className="rounded-[26px] bg-white/90 px-6 py-14 text-center shadow-surface ring-1 ring-sena-line">
-          <span className="mx-auto grid size-16 place-items-center rounded-full bg-sena-soft text-sena-dark">
-            <ProgramIcon className="size-8" />
-          </span>
-          <h2 className="mt-4 text-lg font-bold text-sena-dark">Aún no tienes programas asignados</h2>
-          <p className="mx-auto mt-1.5 max-w-md text-sm leading-6 text-sena-text/60">
-            Un administrador debe asignarte los programas desde el módulo Formación. Cuando lo haga,
-            aparecerán aquí y en tu inicio.
-          </p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <p className="rounded-[26px] bg-white/90 px-6 py-16 text-center text-sm text-sena-text-soft shadow-surface ring-1 ring-sena-line">
-          No hay programas que coincidan con la búsqueda.
-        </p>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((programa) => (
-            <ProgramCard key={programa.id} programa={programa} />
-          ))}
-        </div>
-      )}
+      <TableCard>
+        {loading ? (
+          <TableLoading label="Cargando tus programas…" />
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className={tableClass}>
+                <thead>
+                  <tr className="border-b border-sena-hairline bg-sena-soft/85">
+                    <TableHeader>Programa</TableHeader>
+                    <TableHeader>Red / Línea</TableHeader>
+                    <TableHeader>Nivel</TableHeader>
+                    <TableHeader align="center" width={tableColumns.actions}>
+                      Acciones
+                    </TableHeader>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.length === 0 ? (
+                    <TableEmpty colSpan={4}>
+                      {programs.length === 0
+                        ? 'Aún no tienes programas asignados. Un administrador debe asignártelos en Formación → Asignar programas.'
+                        : 'No hay programas que coincidan con la búsqueda.'}
+                    </TableEmpty>
+                  ) : (
+                    pageRows.map((programa) => (
+                      <TableRow key={programa.id}>
+                        <td>
+                          <p className="font-semibold text-sena-text">{programa.nombre}</p>
+                          <p className="text-xs text-sena-strong">{programa.codigo}</p>
+                        </td>
+                        <td>
+                          <p className="text-sena-text">{programa.redConocimiento?.nombre ?? '—'}</p>
+                          <p className="text-xs text-sena-strong">{programa.lineaTematica?.nombre ?? '—'}</p>
+                        </td>
+                        <td>{programa.nivel?.nombre ?? '—'}</td>
+                        <td>
+                          {puedeLista ? (
+                            <Link
+                              to={`/formacion/listas-maestras-material?programaId=${programa.id}`}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-sena-line bg-white px-3 text-xs font-semibold text-sena-dark shadow-hairline transition hover:border-sena/45 hover:text-sena"
+                            >
+                              <ExcelIcon className="size-[14px]" />
+                              Lista de materiales
+                            </Link>
+                          ) : null}
+                        </td>
+                      </TableRow>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <TablePagination
+              page={currentPage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              from={from}
+              to={to}
+              total={filtered.length}
+              noun="programas"
+            />
+          </>
+        )}
+      </TableCard>
     </AppLayout>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[20px] bg-white/90 px-5 py-4 shadow-card ring-1 ring-sena-line">
-      <p className="text-[0.6875rem] font-bold tracking-[0.1em] text-sena-text/50 uppercase">
-        {label}
-      </p>
-      <p className="mt-1 text-xl font-bold tracking-tight text-sena-dark">{value}</p>
-    </div>
   )
 }

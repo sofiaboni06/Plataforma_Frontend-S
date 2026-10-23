@@ -8,6 +8,10 @@ export function getNotificaciones(page = 1, perPage = 20) {
   })
 }
 
+export function getNotificacion(id: number) {
+  return api<NotificacionApi>(`/account/notifications/${id}`)
+}
+
 export async function getNoLeidas() {
   const { meta } = await apiPage<NotificacionApi>('/account/notifications', {
     leida: 'false',

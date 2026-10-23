@@ -206,7 +206,7 @@ export default function InstructoresFormacionPage() {
       <PageHeader
         icon={<UserIcon />}
         title="Asignar programas"
-        description="Elija un instructor o coordinador y marque los programas de su centro. Solo aparecen los programas con ficha en su centro de formación."
+        description="Al instructor se le asignan programas para pedir materiales. Al coordinador, esos programas definen su red y línea (Informática → Software → ADSO): solo le llegan las solicitudes de esa red."
       />
 
       {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}

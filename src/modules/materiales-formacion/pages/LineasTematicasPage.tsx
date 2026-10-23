@@ -8,6 +8,7 @@ import {
   SearchInput,
 } from '@/shared/components/DataTable'
 import { PencilIcon, PlusIcon } from '@/shared/components/icons/AppIcons'
+import CatalogoEstructuraNav from '@/modules/materiales-formacion/components/CatalogoEstructuraNav'
 import LineasTab from '@/modules/materiales-formacion/components/LineasTab'
 import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
 import type { FormacionTabHandle } from '@/modules/materiales-formacion/components/types'
@@ -30,7 +31,7 @@ export default function LineasTematicasPage() {
       <PageHeader
         icon={<PencilIcon />}
         title="Líneas temáticas"
-        description="Las líneas son la segunda parte de un programa. Después de crearlas, asígnelas a una red de conocimiento."
+        description="Las líneas de red son la segunda parte de un programa. Después de crearlas, asígnelas a una red de conocimiento."
         action={
           can('lineas', 'create') ? (
             <Button
@@ -43,6 +44,8 @@ export default function LineasTematicasPage() {
           ) : undefined
         }
       />
+
+      <CatalogoEstructuraNav />
 
       <FilterCard>
         <SearchInput

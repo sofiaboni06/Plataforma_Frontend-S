@@ -21,7 +21,7 @@ export function notificationMark(tipo: TipoNotificacion, titulo = '') {
   }
   if (tipo === 'agotado') return { icon: '!', color: 'bg-red-500 text-white' }
   if (tipo === 'por_agotarse') return { icon: '!', color: 'bg-amber-500 text-white' }
-  if (tipo === 'entrega_material' || tipo === 'entrega_equipo') {
+  if (tipo === 'entrega_material' || tipo === 'entrega_equipo' || tipo === 'decision_solicitud_programa') {
     return { icon: '✓', color: 'bg-emerald-500 text-white' }
   }
   return { icon: 'i', color: 'bg-sky-500 text-white' }
@@ -32,6 +32,16 @@ export function notificationMark(tipo: TipoNotificacion, titulo = '') {
  * solicitudes pendientes): abren directo la vista Entregar. Si el aviso es de
  * una solicitud nueva, llega ya buscada por su código.
  */
+export function notificationDetailPath(id: number) {
+  return `/notificaciones/${id}`
+}
+
+export function notificationPreview(mensaje: string, max = 92) {
+  const compact = mensaje.replace(/\s+/g, ' ').trim()
+  if (compact.length <= max) return compact
+  return `${compact.slice(0, max).trim()}…`
+}
+
 export function notificationPath(notification: NotificacionApi) {
   const plazo = plazoDe(notification)
   if (plazo) {
@@ -45,6 +55,7 @@ export function notificationPath(notification: NotificacionApi) {
       ? `?${new URLSearchParams({ vista: 'entregar', ...(codigo ? { buscar: codigo } : {}) })}`
       : ''
   if (notification.recurso === 'alerta') return '/inventario/alertas'
+  if (notification.recurso === 'solicitud_programa') return '/formacion/solicitudes'
   if (notification.recurso === 'solicitud_material') {
     return `/inventario/solicitudes/material${entregar}`
   }

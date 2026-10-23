@@ -1,6 +1,10 @@
-﻿import { useEffect, useMemo, useState, type FormEvent } from 'react'
+﻿import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
+import Modal from '@/shared/components/ui/Modal'
+import SelectField from '@/shared/components/ui/SelectField'
+import TextField from '@/shared/components/ui/TextField'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import {
   ActionButton,
@@ -19,38 +23,58 @@ import {
   tableClass,
   tableColumns,
 } from '@/shared/components/DataTable'
-import { ProgramIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
+import { ExcelIcon, PencilIcon, PlusIcon, ProgramIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError, api } from '@/shared/lib/api'
+import {
+  createListaMaestra,
+  deleteListaMaestra,
+  downloadPlantillaListaMaestra,
+  getListaMaestra,
+  importListaMaestra,
+  updateListaMaestra,
+  type ListaMaestraItem,
+} from '@/modules/materiales-formacion/data/listaMaestra'
+import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
 
 type Programa = { id: number; codigo: string; nombre: string }
-type Centro = { id: number; name: string }
-type Elemento = { id: number; codigo: string | null; nombre: string }
-type Item = {
-  id: number
-  elemento: { id: number; codigo: string | null; nombre: string } | null
-  cantidadBase: number
-  observaciones: string | null
-  estado: boolean
-}
 
 const PAGE_SIZE = 8
 
+const EMPTY_FORM = {
+  codigoUnspsc: '',
+  producto: '',
+  descripcionTecnica: '',
+  unidadMedida: 'Unidad',
+  cantidadBase: '1',
+  caracter: '',
+  observaciones: '',
+}
+
+type MaterialForm = typeof EMPTY_FORM
+
 export default function ListasMaestrasMaterialPage() {
+  const { can, isAdmin } = useFormacionAccess()
+  const canWrite = can('listas', 'create')
+  const canEdit = can('listas', 'edit')
+  const backTo = isAdmin ? '/formacion/programas' : '/materiales-formacion'
+  const navigate = useNavigate()
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [searchParams] = useSearchParams()
   const [programas, setProgramas] = useState<Programa[]>([])
-  const [centros, setCentros] = useState<Centro[]>([])
-  const [elementos, setElementos] = useState<Elemento[]>([])
-  const [programaId, setProgramaId] = useState('')
-  const [centroId, setCentroId] = useState('')
-  const [items, setItems] = useState<Item[]>([])
+  const programaId = searchParams.get('programaId') ?? ''
+  const [items, setItems] = useState<ListaMaestraItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [erroresExcel, setErroresExcel] = useState<string[]>([])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-
-  const [manualElemento, setManualElemento] = useState('')
-  const [manualCantidad, setManualCantidad] = useState('1')
-  const [manualObs, setManualObs] = useState('')
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [form, setForm] = useState<MaterialForm>(EMPTY_FORM)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     const previousTitle = document.title
@@ -61,58 +85,53 @@ export default function ListasMaestrasMaterialPage() {
   }, [])
 
   useEffect(() => {
+    if (!searchParams.get('programaId')) {
+      navigate(backTo, { replace: true })
+    }
+  }, [navigate, searchParams])
+
+  useEffect(() => {
     void (async () => {
       try {
-        const [ps, cs, es] = await Promise.all([
-          api<Programa[]>('/programas-formacion'),
-          api<Centro[]>('/training-centers').catch(() => [] as Centro[]),
-          api<Elemento[]>('/inventario/elementos'),
-        ])
-        setProgramas(ps as any)
-        setCentros(cs as any)
-        setElementos(es as any)
+        const list = await api<Programa[]>(isAdmin ? '/programas-formacion' : '/account/programas')
+        setProgramas(Array.isArray(list) ? list : [])
       } catch (caught) {
-        setError(caught instanceof ApiError ? caught.message : 'No se pudo cargar la informaciÃ³n base.')
+        setError(caught instanceof ApiError ? caught.message : 'No se pudieron cargar los programas.')
       }
     })()
-  }, [])
+  }, [isAdmin])
 
-  const load = async () => {
-    if (!programaId) {
+  const load = async (id: string) => {
+    if (!id) {
       setItems([])
       return
     }
     setLoading(true)
     setError(null)
     try {
-      const data = await api<any>(
-        `/listas-maestras-material?programaId=${programaId}${centroId ? `&centroId=${centroId}` : ''}`,
-      )
-      const list = data?.data?.items ?? data?.items ?? data?.data ?? []
-      setItems(Array.isArray(list) ? list : [])
+      setItems(await getListaMaestra(Number(id)))
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'No se pudo cargar la lista.')
+      setError(caught instanceof ApiError ? caught.message : 'No se pudo cargar la lista maestra.')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    void load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [programaId, centroId])
+    void load(programaId)
+  }, [programaId])
 
   useEffect(() => {
     setPage(1)
-  }, [search])
+  }, [search, programaId])
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return items
-    return items.filter((it) =>
-      `${it.elemento?.codigo ?? ''} ${it.elemento?.nombre ?? ''} ${it.observaciones ?? ''}`
+    const query = search.trim().toLowerCase()
+    if (!query) return items
+    return items.filter((item) =>
+      `${item.codigoUnspsc} ${item.producto} ${item.observaciones ?? ''}`
         .toLowerCase()
-        .includes(q),
+        .includes(query),
     )
   }, [items, search])
 
@@ -122,196 +141,198 @@ export default function ListasMaestrasMaterialPage() {
   const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE)
   const from = filtered.length === 0 ? 0 : pageStart + 1
   const to = pageStart + pageItems.length
+  const programa = programas.find((item) => String(item.id) === programaId)
+
+  const openForm = (item?: ListaMaestraItem) => {
+    setEditingId(item?.id ?? null)
+    setForm(
+      item
+        ? {
+            codigoUnspsc: item.codigoUnspsc,
+            producto: item.producto,
+            descripcionTecnica: item.descripcionTecnica ?? '',
+            unidadMedida: item.unidadMedida ?? 'Unidad',
+            cantidadBase: String(item.cantidadBase),
+            caracter: item.caracter ?? '',
+            observaciones: item.observaciones ?? '',
+          }
+        : EMPTY_FORM,
+    )
+    setFormError(null)
+    setFormOpen(true)
+  }
+
+  const handlePlantilla = async () => {
+    try {
+      await downloadPlantillaListaMaestra(programaId ? Number(programaId) : undefined)
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : 'No se pudo descargar la plantilla.')
+    }
+  }
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file || !programaId) return
-    const form = new FormData()
-    form.append('archivo', file)
-    form.append('programaId', programaId)
-    if (centroId) form.append('centroId', centroId)
+    setUploading(true)
+    setError(null)
+    setMessage(null)
     try {
-      const res = await api<any>('/listas-maestras-material/importar', {
-        method: 'POST',
-        body: form,
-      })
-      const n = res?.data?.items?.length ?? res?.items?.length ?? 0
-      setMessage(`Se importaron ${n} registros.`)
-      await load()
+      const result = await importListaMaestra(Number(programaId), file)
+      const extra = result.errores.length ? ` Quedaron ${result.errores.length} filas por revisar.` : ''
+      setMessage(`Se cargaron ${result.carga.registrosOk} materiales desde el Excel.${extra}`)
+      setErroresExcel(result.errores)
+      await load(programaId)
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'No se pudo importar el archivo.')
+      setError(caught instanceof ApiError ? caught.message : 'No se pudo importar el anexo.')
     } finally {
+      setUploading(false)
       event.target.value = ''
     }
   }
 
   const handleManual = async (event: FormEvent) => {
     event.preventDefault()
-    if (!programaId || !manualElemento) return
+    if (!programaId) return
+    setSaving(true)
+    setFormError(null)
     try {
-      await api('/listas-maestras-material', {
-        method: 'POST',
-        body: JSON.stringify({
-          programaId: Number(programaId),
-          centroId: centroId ? Number(centroId) : null,
-          elementoId: Number(manualElemento),
-          cantidadBase: Number(manualCantidad) || 1,
-          observaciones: manualObs || null,
-        }),
-      })
-      setMessage('Material agregado.')
-      setManualElemento('')
-      setManualCantidad('1')
-      setManualObs('')
-      await load()
+      const payload = {
+        codigoUnspsc: form.codigoUnspsc.trim(),
+        producto: form.producto.trim(),
+        descripcionTecnica: form.descripcionTecnica.trim() || null,
+        unidadMedida: form.unidadMedida.trim() || null,
+        cantidadBase: Number(form.cantidadBase) || 1,
+        caracter: (form.caracter || null) as ListaMaestraItem['caracter'],
+        observaciones: form.observaciones.trim() || null,
+      }
+      if (editingId) {
+        await updateListaMaestra(editingId, payload)
+        setMessage('Material actualizado en la lista del programa.')
+      } else {
+        await createListaMaestra({ programaId: Number(programaId), ...payload })
+        setMessage('Material agregado a la lista del programa.')
+      }
+      setFormOpen(false)
+      setEditingId(null)
+      setForm(EMPTY_FORM)
+      await load(programaId)
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'No se pudo agregar el material.')
+      setFormError(caught instanceof ApiError ? caught.message : 'No se pudo guardar el material.')
+    } finally {
+      setSaving(false)
     }
   }
 
   const handleDelete = async (id: number) => {
     try {
-      await api(`/listas-maestras-material/${id}`, { method: 'DELETE' })
-      await load()
+      await deleteListaMaestra(id)
+      await load(programaId)
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'No se pudo eliminar.')
     }
   }
 
-  const downloadTemplate = async () => {
-    const XLSX = await import('xlsx')
-    const rows = [
-      ['Código', 'Nombre', 'Cantidad', 'Unidad', 'Observaciones'],
-      ['EJ-001', 'Ejemplo de elemento', 2, 'unidad', 'Ejemplo de observación'],
-    ]
-    const ws = XLSX.utils.aoa_to_sheet(rows)
-    ws['!cols'] = [{ wch: 14 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 40 }]
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Lista de materiales')
-    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-    const blob = new Blob([buf], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'plantilla_lista_materiales.xlsx'
-    a.click()
-    URL.revokeObjectURL(url)
+  const patchForm = (field: keyof MaterialForm, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }))
   }
 
   return (
     <AppLayout title="Lista de materiales">
       <PageHeader
         icon={<ProgramIcon />}
-        title="Lista de materiales"
-        description="Lista maestra de materiales por programa de formaciÃ³n. CÃ¡rgala desde Excel o agrÃ©gala manualmente."
+        title={programa ? `Lista maestra · ${programa.codigo}` : 'Lista maestra de materiales'}
+        description={
+          programa
+            ? `${programa.nombre}. Descarga la plantilla, súbela en Excel o agrega y edita materiales uno a uno.`
+            : 'Descarga la plantilla, súbela en Excel o agrega y edita materiales uno a uno.'
+        }
+        action={
+          canWrite ? (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                icon={<ExcelIcon className="size-4" />}
+                onClick={() => void handlePlantilla()}
+              >
+                Descargar plantilla
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                icon={<ExcelIcon className="size-4" />}
+                disabled={!programaId || uploading}
+                onClick={() => fileInput.current?.click()}
+              >
+                {uploading ? 'Cargando Excel…' : 'Subir Excel'}
+              </Button>
+              <Button
+                type="button"
+                icon={<PlusIcon className="size-4" />}
+                disabled={!programaId}
+                onClick={() => openForm()}
+              >
+                Agregar material
+              </Button>
+            </div>
+          ) : undefined
+        }
       />
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        onChange={handleUpload}
+      />
+
       {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}
       {message ? (
         <p className="mb-4 rounded-2xl border border-sena-ok-line bg-sena-active-soft px-5 py-3.5 text-sm text-sena-ok-text">
           {message}
         </p>
       ) : null}
-
-      <div className="mb-4 flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-sena-text/70">Programa</label>
-          <select
-            value={programaId}
-            onChange={(e) => setProgramaId(e.target.value)}
-            className="form-field form-select min-w-[16rem]"
-          >
-            <option value="">Seleccione un programa</option>
-            {programas.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.codigo} - {p.nombre}
-              </option>
+      {erroresExcel.length > 0 ? (
+        <div className="mb-4 rounded-2xl border border-sena-warn-line bg-white px-5 py-3.5 text-sm text-sena-text">
+          <p className="font-semibold text-sena-dark">
+            El Excel dejó filas pendientes. Agrégalas con «Agregar material».
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sena-text/80">
+            {erroresExcel.slice(0, 8).map((fila) => (
+              <li key={fila}>{fila}</li>
             ))}
-          </select>
+          </ul>
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-sena-text/70">Centro</label>
-          <select
-            value={centroId}
-            onChange={(e) => setCentroId(e.target.value)}
-            className="form-field form-select min-w-[14rem]"
-          >
-            <option value="">Todos los centros</option>
-            {centros.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <Button type="button" variant="secondary" onClick={() => void downloadTemplate()}>
-          Descargar plantilla
-        </Button>
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-sena-line bg-white px-4 py-2 text-sm font-semibold text-sena-dark shadow-hairline transition hover:border-sena/45">
-          Subir Excel
-          <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleUpload} />
-        </label>
-      </div>
-
-      <form onSubmit={handleManual} className="mb-4 flex flex-wrap items-end gap-2">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-sena-text/70">Elemento</label>
-          <select
-            value={manualElemento}
-            onChange={(e) => setManualElemento(e.target.value)}
-            className="form-field form-select min-w-[16rem]"
-          >
-            <option value="">Seleccione un elemento</option>
-            {elementos.map((el) => (
-              <option key={el.id} value={el.id}>
-                {el.codigo ? `${el.codigo} - ` : ''}
-                {el.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-sena-text/70">Cantidad</label>
-          <input
-            type="number"
-            min={1}
-            value={manualCantidad}
-            onChange={(e) => setManualCantidad(e.target.value)}
-            className="form-field w-24"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-sena-text/70">Observaciones</label>
-          <input
-            type="text"
-            value={manualObs}
-            onChange={(e) => setManualObs(e.target.value)}
-            className="form-field min-w-[16rem]"
-          />
-        </div>
-        <Button type="submit" disabled={!programaId || !manualElemento}>
-          Agregar
-        </Button>
-      </form>
+      ) : null}
 
       <FilterCard>
-        <SearchInput value={search} onChange={setSearch} placeholder="Buscar por cÃ³digo, elemento u observaciÃ³n..." />
+        <Link
+          to={backTo}
+          className="inline-flex h-11 items-center rounded-xl border border-sena-line bg-white px-4 text-sm font-semibold text-sena-dark shadow-hairline transition hover:border-sena/45 hover:text-sena"
+        >
+          Volver a programas
+        </Link>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por UNSPSC, producto u observación..."
+        />
         <ClearFiltersButton onClick={() => setSearch('')} disabled={!search} />
       </FilterCard>
 
       <TableCard>
         {loading ? (
-          <TableLoading label="Cargando lista de materialesâ€¦" />
+          <TableLoading label="Cargando lista de materiales…" />
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>
                   <tr className="border-b border-sena-hairline bg-sena-soft/85">
-                    <TableHeader width="w-[16%]">CÃ³digo</TableHeader>
-                    <TableHeader>Elemento</TableHeader>
-                    <TableHeader width="w-[14%]">Cantidad base</TableHeader>
+                    <TableHeader width="w-[14%]">UNSPSC</TableHeader>
+                    <TableHeader>Producto</TableHeader>
+                    <TableHeader width="w-[12%]">Unidad</TableHeader>
+                    <TableHeader width="w-[12%]">Cantidad base</TableHeader>
                     <TableHeader>Observaciones</TableHeader>
                     <TableHeader align="center" width={tableColumns.actions}>
                       Acciones
@@ -320,29 +341,40 @@ export default function ListasMaestrasMaterialPage() {
                 </thead>
                 <tbody>
                   {pageItems.length === 0 ? (
-                    <TableEmpty colSpan={5}>
-                      {items.length === 0
-                        ? 'No hay materiales en esta lista. Carga un Excel o agrÃ©galos manualmente.'
-                        : 'No hay materiales que coincidan con la bÃºsqueda.'}
+                    <TableEmpty colSpan={6}>
+                      {!programaId
+                        ? 'Abra la lista desde acciones del programa.'
+                        : items.length === 0
+                          ? 'Este programa no tiene materiales. Súbelos con Excel o agrégalos con el formulario.'
+                          : 'No hay materiales que coincidan con la búsqueda.'}
                     </TableEmpty>
                   ) : (
-                    pageItems.map((it) => (
-                      <TableRow key={it.id}>
-                        <td className="truncate font-semibold text-sena-strong">
-                          {it.elemento?.codigo ?? 'â€”'}
-                        </td>
+                    pageItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <td className="truncate font-semibold text-sena-strong">{item.codigoUnspsc}</td>
                         <td className="min-w-0">
-                          <p className="truncate font-semibold text-sena-text">{it.elemento?.nombre ?? 'â€”'}</p>
+                          <p className="truncate font-semibold text-sena-text">{item.producto}</p>
+                          {item.descripcionTecnica ? (
+                            <p className="truncate text-xs text-sena-text/60">{item.descripcionTecnica}</p>
+                          ) : null}
                         </td>
-                        <td className="text-sena-strong">
-                          <StatusPill tone="ok">{String(it.cantidadBase)}</StatusPill>
+                        <td>{item.unidadMedida ?? '—'}</td>
+                        <td>
+                          <StatusPill tone="ok">{String(item.cantidadBase)}</StatusPill>
                         </td>
-                        <td className="truncate text-sena-text/70">{it.observaciones ?? 'â€”'}</td>
+                        <td className="truncate text-sena-text/70">{item.observaciones ?? '—'}</td>
                         <td>
                           <RowActions>
-                            <ActionButton title="Eliminar" onClick={() => void handleDelete(it.id)}>
-                              <TrashIcon className="size-[18px]" />
-                            </ActionButton>
+                            {canEdit ? (
+                              <ActionButton title="Editar material" onClick={() => openForm(item)}>
+                                <PencilIcon className="size-[18px]" />
+                              </ActionButton>
+                            ) : null}
+                            {can('listas', 'delete') ? (
+                              <ActionButton title="Eliminar" onClick={() => void handleDelete(item.id)}>
+                                <TrashIcon className="size-[18px]" />
+                              </ActionButton>
+                            ) : null}
                           </RowActions>
                         </td>
                       </TableRow>
@@ -363,6 +395,109 @@ export default function ListasMaestrasMaterialPage() {
           </>
         )}
       </TableCard>
+
+      {formOpen ? (
+        <Modal
+          title={editingId ? 'Editar material' : 'Agregar material a la lista'}
+          description={
+            editingId
+              ? 'Cambia la cantidad, la descripción o el tipo de este material del programa.'
+              : 'Completa un material que no vino en el Excel o que quieras sumar a este programa.'
+          }
+          onClose={() => {
+            setFormOpen(false)
+            setEditingId(null)
+          }}
+          wide
+          spacious
+        >
+          <form className="grid gap-3 sm:grid-cols-2" onSubmit={handleManual}>
+            {formError ? (
+              <p className="sm:col-span-2 rounded-xl bg-sena-danger-soft px-4 py-3 text-sm text-sena-danger-text">
+                {formError}
+              </p>
+            ) : null}
+            <TextField
+              id="lm-unspsc"
+              label="Código UNSPSC"
+              value={form.codigoUnspsc}
+              onChange={(event) => patchForm('codigoUnspsc', event.target.value)}
+              maxLength={20}
+              required
+            />
+            <TextField
+              id="lm-cantidad"
+              label="Cantidad para 30 aprendices"
+              type="number"
+              min={1}
+              step="0.001"
+              value={form.cantidadBase}
+              onChange={(event) => patchForm('cantidadBase', event.target.value)}
+              required
+            />
+            <div className="sm:col-span-2">
+              <TextField
+                id="lm-producto"
+                label="Producto"
+                value={form.producto}
+                onChange={(event) => patchForm('producto', event.target.value)}
+                maxLength={200}
+                required
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <TextField
+                id="lm-descripcion"
+                label="Descripción técnica"
+                value={form.descripcionTecnica}
+                onChange={(event) => patchForm('descripcionTecnica', event.target.value)}
+              />
+            </div>
+            <TextField
+              id="lm-unidad"
+              label="Unidad de medida"
+              value={form.unidadMedida}
+              onChange={(event) => patchForm('unidadMedida', event.target.value)}
+            />
+            <SelectField
+              id="lm-caracter"
+              label="Tipo"
+              value={form.caracter}
+              onChange={(value) => patchForm('caracter', value)}
+              placeholder="Opcional"
+              required={false}
+              options={[
+                { value: 'consumo', label: 'Consumo' },
+                { value: 'devolutivo', label: 'Devolutivo' },
+                { value: 'software', label: 'Software' },
+              ]}
+            />
+            <div className="sm:col-span-2">
+              <TextField
+                id="lm-obs"
+                label="Observaciones"
+                value={form.observaciones}
+                onChange={(event) => patchForm('observaciones', event.target.value)}
+              />
+            </div>
+            <div className="sm:col-span-2 mt-2 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setFormOpen(false)
+                  setEditingId(null)
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Agregar a la lista'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
     </AppLayout>
   )
 }
