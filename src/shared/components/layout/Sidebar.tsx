@@ -387,7 +387,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
       </div>
 
       <div className="relative z-10 mt-auto px-4 pb-6">
-        <p className="mb-3 rounded-2xl border border-[#7ddc4a]/35 bg-[#004d32]/55 px-3.5 py-3.5 text-center text-[0.8125rem] leading-5 font-medium tracking-wide text-[#e9f7ef] shadow-[0_8px_20px_rgba(0,77,50,0.35)]">
+        <p className="mb-3 rounded-2xl border border-[#7ddc4a]/35 bg-sena-forest/55 px-3.5 py-3.5 text-center text-[0.8125rem] leading-5 font-medium tracking-wide text-sena-soft shadow-[0_8px_20px_rgba(0,77,50,0.35)]">
           El conocimiento es mejor cuando se comparte.
         </p>
 
