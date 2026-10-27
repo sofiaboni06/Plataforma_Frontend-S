@@ -63,7 +63,6 @@ import PrestamosPage from '@/modules/solicitudes/pages/PrestamosPage'
 import ProfilePage from '@/modules/perfil/pages/ProfilePage'
 import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
-import MaterialesFormacionPage from '@/modules/materiales-formacion/pages/MaterialesFormacionPage'
 import ViewMaterialFormacionPage from '@/modules/materiales-formacion/pages/ViewMaterialFormacionPage'
 import SolicitudMaterialFormacionPage from '@/modules/materiales-formacion/pages/SolicitudMaterialFormacionPage'
 

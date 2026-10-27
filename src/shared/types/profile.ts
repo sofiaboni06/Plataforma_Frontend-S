@@ -1,6 +1,8 @@
 export type UserProfile = {
   id: number
   fullName: string
+  nombres?: string
+  apellidos?: string
   roleLabel: string
   location: string
   avatarUrl: string
@@ -20,7 +22,15 @@ export type UserProfile = {
   bodegas?: Array<{ id: number; name: string }>
 }
 
-export type ProfileDraft = Pick<UserProfile, 'documentId' | 'email' | 'phone' | 'address'>
+export type ProfileDraft = {
+  nombres: string
+  apellidos: string
+  documentType: string
+  documentId: string
+  email: string
+  phone: string
+  address: string
+}
 
 export type AppModule = {
   id: number
