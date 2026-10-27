@@ -18,6 +18,18 @@ type Miembro = {
 const avatarFallback = (nombre: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(nombre)}&background=0B3D2E&color=fff&size=176&bold=true&format=png`;
 
+function iconoEtiqueta(etiqueta: string) {
+  if (etiqueta === "Móvil") {
+    return <FaMobileAlt aria-hidden="true" />;
+  }
+
+  if (["Web", "Full Stack", "Api"].includes(etiqueta)) {
+    return <FaLaptopCode aria-hidden="true" />;
+  }
+
+  return null;
+}
+
 const equipoActual: Miembro[] = [
   { nombre: "Henry Bastidas", rol: "Product Owner", avatar: "/avatars/henry.png", grupo: "Manejo", etiquetas: ["Product Owner"] },
   { nombre: "Alex Jhoan Chaguendo", rol: "Scrum Master & Tech Lead", github: "ALexjh117", avatar: "/avatars/alex_fotogit.jpeg", grupo: "Desarrolladores", etiquetas: ["Web", "Full Stack", "Móvil", "Tech Lead"] },
@@ -27,10 +39,12 @@ const equipoActual: Miembro[] = [
   { nombre: "Sofia Bonilla Gallego", rol: "Scrum Master & Team Coordinator · UI/UX", github: "sofiaboni06", avatar: "/avatars/sofia-sg.jpeg", grupo: "Desarrolladores", etiquetas: ["Full Stack", "UI/UX", "Team Coordinator"] },
 ];
 
-const codistasNuevos: Miembro[] = [
-  { nombre: "Lucero Valencia Bohórquez", rol: "En formación", avatar: "/avatars/na.png", grupo: "Desarrolladores" },
-  { nombre: "Adriana Julieth Eraso Montero", rol: "En formación", avatar: "/avatars/adri.jpeg", grupo: "Desarrolladores" },
-];
+type TarjetaProps = {
+  m: Miembro;
+  indice: number;
+  ampliables?: boolean;
+  onVerFoto?: (miembro: Miembro) => void;
+};
 
 function TarjetaMiembro({ m, indice, ampliables = false, onVerFoto }: TarjetaProps) {
   const src = m.avatar || avatarFallback(m.nombre);
