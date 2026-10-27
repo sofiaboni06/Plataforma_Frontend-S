@@ -8,6 +8,9 @@ export type ListaMaestraItem = {
   producto: string
   descripcionTecnica: string | null
   unidadMedida: string | null
+  valorUnitario: number | null
+  loteId: number | null
+  lote: { id: number; nombre: string } | null
   cantidadBase: number
   caracter: 'consumo' | 'devolutivo' | 'software' | null
   observaciones: string | null
@@ -30,6 +33,8 @@ export function createListaMaestra(payload: {
   producto: string
   descripcionTecnica?: string | null
   unidadMedida?: string | null
+  valorUnitario?: number | null
+  loteId?: number | null
   cantidadBase: number
   caracter?: ListaMaestraItem['caracter']
   observaciones?: string | null
@@ -57,6 +62,8 @@ export function updateListaMaestra(
     producto?: string
     descripcionTecnica?: string | null
     unidadMedida?: string | null
+    valorUnitario?: number | null
+    loteId?: number | null
     cantidadBase?: number
     caracter?: ListaMaestraItem['caracter']
     observaciones?: string | null

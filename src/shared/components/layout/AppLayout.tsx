@@ -12,6 +12,8 @@ import {
 } from '@/modules/notificaciones/lib/presentacion'
 import type { NotificacionApi } from '@/modules/notificaciones/types'
 import Sidebar from './Sidebar'
+import SiteFooter from '@/modules/landing/components/SiteFooter'
+import { leaveNotice } from '@/shared/components/ui/Toast'
 
 type AppLayoutProps = {
   title: string
@@ -118,6 +120,7 @@ export default function AppLayout({
 
   const signOut = () => {
     setIsProfileOpen(false)
+    leaveNotice('Sesión cerrada')
     void logout().then(() => navigate('/login'))
   }
 
@@ -174,6 +177,11 @@ export default function AppLayout({
             <span className="truncate text-sm font-semibold tracking-tight text-sena-dark md:text-[0.9375rem]">
               {title}
             </span>
+            <img
+              src="/img/logo-fabrica-oscuro.png"
+              alt="Fábrica de Software"
+              className="h-11 w-auto max-w-[42vw] shrink-0 object-contain sm:h-14 sm:max-w-none"
+            />
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-4">
@@ -373,6 +381,8 @@ export default function AppLayout({
         >
           {children}
         </main>
+
+        <SiteFooter className="mt-auto" />
       </div>
     </div>
   )

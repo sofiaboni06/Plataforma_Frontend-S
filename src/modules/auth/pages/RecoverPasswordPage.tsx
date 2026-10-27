@@ -305,12 +305,9 @@ export default function RecoverPasswordPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col items-center">
+          <div className="mt-6 flex items-center justify-center gap-4">
             <img src="/img/logo-sena.svg" alt="SENA" className="h-14 w-auto brightness-0 invert sm:h-16" />
-            <div className="mt-3 flex items-center gap-3">
-              <span className="h-px w-7 bg-white/50" />
-              <span className="h-px w-7 bg-white/50" />
-            </div>
+            <img src="/img/logo-fabrica-software.png" alt="Fábrica de Software" className="h-12 w-auto sm:h-14" />
           </div>
         </section>
 

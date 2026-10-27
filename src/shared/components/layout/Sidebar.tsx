@@ -45,6 +45,8 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const canSeeMaterials = esPerfilProgramas(user?.role)
   const canSolicitar = canFormacionAction('solicitudes', 'list', formacionAccess)
   const canCompras = canFormacionAction('compras', 'list', formacionAccess)
+  const canVigencias = isAdmin || user?.permissions?.includes('vigencia.ver') === true
+  const canPresupuesto = !isAdmin && user?.permissions?.includes('solicitud_programa.editar') === true
   const showMaterialesNav = !isAdmin && (canSeeMaterials || canSolicitar || canCompras)
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,
@@ -61,7 +63,8 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const materialesPath =
     location.pathname.startsWith('/materiales') ||
     location.pathname.startsWith('/formacion/solicitudes') ||
-    location.pathname.startsWith('/formacion/compras')
+    location.pathname.startsWith('/formacion/compras') ||
+    location.pathname.startsWith('/presupuesto-formacion')
 
   const [materialesOpen, setMaterialesOpen] = useState(materialesPath)
 
@@ -75,7 +78,8 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
     if (
       location.pathname.startsWith('/materiales') ||
       location.pathname.startsWith('/formacion/solicitudes') ||
-      location.pathname.startsWith('/formacion/compras')
+      location.pathname.startsWith('/formacion/compras') ||
+      location.pathname.startsWith('/presupuesto-formacion')
     ) {
       setMaterialesOpen(true)
     }
@@ -268,6 +272,16 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
                 {canCompras ? (
                   <SideLink to="/formacion/compras" icon="program" nested end={false} onClose={onClose}>
                     Consolidado de compras
+                  </SideLink>
+                ) : null}
+                {canPresupuesto ? (
+                  <SideLink to="/presupuesto-formacion" icon="program" nested end={false} onClose={onClose}>
+                    Presupuesto
+                  </SideLink>
+                ) : null}
+                {canVigencias ? (
+                  <SideLink to="/vigencias" icon="program" nested end={false} onClose={onClose}>
+                    Vigencias
                   </SideLink>
                 ) : null}
               </div>

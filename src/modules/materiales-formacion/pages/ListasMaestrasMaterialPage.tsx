@@ -34,6 +34,7 @@ import {
   updateListaMaestra,
   type ListaMaestraItem,
 } from '@/modules/materiales-formacion/data/listaMaestra'
+import { getLotes, type LoteVigencia } from '@/modules/presupuesto/data/presupuesto'
 import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
 
 type Programa = { id: number; codigo: string; nombre: string }
@@ -46,6 +47,8 @@ const EMPTY_FORM = {
   descripcionTecnica: '',
   unidadMedida: 'Unidad',
   cantidadBase: '1',
+  valorUnitario: '',
+  loteId: '',
   caracter: '',
   observaciones: '',
 }
@@ -63,6 +66,7 @@ export default function ListasMaestrasMaterialPage() {
   const [programas, setProgramas] = useState<Programa[]>([])
   const programaId = searchParams.get('programaId') ?? ''
   const [items, setItems] = useState<ListaMaestraItem[]>([])
+  const [lotes, setLotes] = useState<LoteVigencia[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -75,6 +79,13 @@ export default function ListasMaestrasMaterialPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+
+  useEffect(() => {
+    const anio = new Date().getFullYear()
+    getLotes(anio)
+      .then(setLotes)
+      .catch(() => setLotes([]))
+  }, [])
 
   useEffect(() => {
     const previousTitle = document.title
@@ -153,6 +164,8 @@ export default function ListasMaestrasMaterialPage() {
             descripcionTecnica: item.descripcionTecnica ?? '',
             unidadMedida: item.unidadMedida ?? 'Unidad',
             cantidadBase: String(item.cantidadBase),
+            valorUnitario: item.valorUnitario == null ? '' : String(item.valorUnitario),
+            loteId: item.loteId == null ? '' : String(item.loteId),
             caracter: item.caracter ?? '',
             observaciones: item.observaciones ?? '',
           }
@@ -202,6 +215,8 @@ export default function ListasMaestrasMaterialPage() {
         descripcionTecnica: form.descripcionTecnica.trim() || null,
         unidadMedida: form.unidadMedida.trim() || null,
         cantidadBase: Number(form.cantidadBase) || 1,
+        valorUnitario: form.valorUnitario.trim() === '' ? null : Number(form.valorUnitario),
+        loteId: form.loteId ? Number(form.loteId) : null,
         caracter: (form.caracter || null) as ListaMaestraItem['caracter'],
         observaciones: form.observaciones.trim() || null,
       }
@@ -333,6 +348,8 @@ export default function ListasMaestrasMaterialPage() {
                     <TableHeader>Producto</TableHeader>
                     <TableHeader width="w-[12%]">Unidad</TableHeader>
                     <TableHeader width="w-[12%]">Cantidad base</TableHeader>
+                    <TableHeader width="w-[12%]">Valor unitario</TableHeader>
+                    <TableHeader width="w-[12%]">Lote</TableHeader>
                     <TableHeader>Observaciones</TableHeader>
                     <TableHeader align="center" width={tableColumns.actions}>
                       Acciones
@@ -341,7 +358,7 @@ export default function ListasMaestrasMaterialPage() {
                 </thead>
                 <tbody>
                   {pageItems.length === 0 ? (
-                    <TableEmpty colSpan={6}>
+                    <TableEmpty colSpan={8}>
                       {!programaId
                         ? 'Abra la lista desde acciones del programa.'
                         : items.length === 0
@@ -362,6 +379,8 @@ export default function ListasMaestrasMaterialPage() {
                         <td>
                           <StatusPill tone="ok">{String(item.cantidadBase)}</StatusPill>
                         </td>
+                        <td>{item.valorUnitario == null ? '—' : item.valorUnitario.toLocaleString('es-CO')}</td>
+                        <td className="truncate">{item.lote?.nombre ?? '—'}</td>
                         <td className="truncate text-sena-text/70">{item.observaciones ?? '—'}</td>
                         <td>
                           <RowActions>
@@ -458,6 +477,24 @@ export default function ListasMaestrasMaterialPage() {
               label="Unidad de medida"
               value={form.unidadMedida}
               onChange={(event) => patchForm('unidadMedida', event.target.value)}
+            />
+            <TextField
+              id="lm-valor"
+              label="Valor unitario"
+              type="number"
+              min={0}
+              step="0.01"
+              value={form.valorUnitario}
+              onChange={(event) => patchForm('valorUnitario', event.target.value)}
+            />
+            <SelectField
+              id="lm-lote"
+              label="Lote"
+              value={form.loteId}
+              onChange={(value) => patchForm('loteId', value)}
+              placeholder="Sin lote"
+              required={false}
+              options={lotes.map((lote) => ({ value: String(lote.id), label: lote.nombre }))}
             />
             <SelectField
               id="lm-caracter"

@@ -789,6 +789,9 @@ export default function SolicitudMaterialFormacionPage() {
                       {ya > 0 ? ` · ya autorizados ${ya}` : ''}
                       {` · faltan ${restante}`}
                       {tope !== null ? ` · lista maestra ${tope}` : ''}
+                      {item.material?.caracter === 'consumo' && item.material.valorUnitario != null
+                        ? ` · ${item.material.valorUnitario.toLocaleString('es-CO')} c/u`
+                        : ''}
                     </p>
                     {pideMas ? (
                       <p className="mt-1 text-sm text-sena-warn-text">
@@ -890,6 +893,12 @@ export default function SolicitudMaterialFormacionPage() {
                   {autorizadoDe(item) > 0 ? ` · autorizado ${autorizadoDe(item)}` : ''}
                   {item.estado === 'pendiente' ? ` · faltan ${restanteDe(item)}` : ''}
                   {topeDe(item) !== null ? ` · lista maestra ${topeDe(item)}` : ''}
+                  {item.material?.caracter === 'consumo' && item.material.valorUnitario != null
+                    ? ` · ${item.material.valorUnitario.toLocaleString('es-CO')} c/u · total ${(
+                        item.cantidadSolicitada * item.material.valorUnitario
+                      ).toLocaleString('es-CO')}`
+                    : ''}
+                  {item.material?.lote ? ` · lote ${item.material.lote.nombre}` : ''}
                 </p>
                 {item.observacionCoordinador ? (
                   <p className="mt-1 text-sena-strong">Motivo: {item.observacionCoordinador}</p>

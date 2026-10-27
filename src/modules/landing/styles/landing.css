@@ -26,7 +26,7 @@
     --lp-ink-2: #14654a;
     --lp-body: #5b7368;
     --lp-line: #dcece4;
-    --lp-bar-h: 66px;
+    --lp-bar-h: 78px;
 
     color: var(--lp-body);
     /* El recurso de fondo es el mismo verde menta difuminado que usan el
@@ -118,6 +118,7 @@
     display: inline-flex;
     flex: none;
     align-items: center;
+    gap: 12px;
     filter: drop-shadow(0 2px 8px rgba(2, 32, 20, 0.45));
   }
 
@@ -127,9 +128,19 @@
     object-fit: contain;
   }
 
+  .lp-logo .lp-logo-fabrica {
+    height: 48px;
+    max-width: 52vw;
+  }
+
   @media (min-width: 768px) {
     .lp-logo img {
-      height: 48px;
+      height: 52px;
+    }
+
+    .lp-logo .lp-logo-fabrica {
+      height: 66px;
+      max-width: none;
     }
   }
 
@@ -444,6 +455,44 @@
     padding-top: var(--lp-bar-h);
   }
 
+  .lp-hero-slide {
+    position: absolute;
+    inset: 0;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 700ms cubic-bezier(0.77, 0, 0.175, 1);
+  }
+
+  .lp-hero-slide.is-active {
+    opacity: 1;
+  }
+
+  .lp-hero-dots {
+    position: absolute;
+    z-index: 10;
+    left: 50%;
+    bottom: 22px;
+    display: flex;
+    gap: 8px;
+    transform: translateX(-50%);
+  }
+
+  .lp-hero-dot {
+    width: 8px;
+    height: 8px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.45);
+    cursor: pointer;
+  }
+
+  .lp-hero-dot.is-active {
+    width: 22px;
+    background: #fff;
+  }
+
   .lp-hero-scrim {
     position: absolute;
     inset: 0;
@@ -481,6 +530,12 @@
 
   .lp-hero-text {
     color: rgba(255, 255, 255, 0.9);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lp-hero-slide {
+      transition: none;
+    }
   }
 
   /* ============================================================
@@ -978,26 +1033,163 @@
   }
 
   .lp-footer {
-    color: rgba(255, 255, 255, 0.76);
-    background-color: #05291d;
-    background-image: linear-gradient(180deg, #073a28 0%, #042418 100%);
+    color: rgba(232, 248, 239, 0.82);
+    background-color: #042418;
+  }
+
+  .lp-footer-rule {
+    height: 3px;
+    background-image: linear-gradient(90deg, #12b35f 0%, #a6e93e 100%);
+  }
+
+  .lp-footer-main {
+    display: grid;
+    gap: 40px;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding: 56px 20px 48px;
+  }
+
+  .lp-footer-logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+  }
+
+  .lp-footer-marks {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .lp-footer-fabrica {
+    height: 58px;
+    width: auto;
+    object-fit: contain;
+    background: transparent;
+  }
+
+  .lp-footer-name {
+    margin-top: 16px;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  .lp-footer-lead {
+    max-width: 34ch;
+    margin-top: 10px;
+    font-size: 15px;
+    line-height: 1.55;
+    color: rgba(214, 242, 226, 0.78);
+  }
+
+  .lp-footer-social {
+    margin-top: 28px;
+  }
+
+  .lp-footer-social p {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #86f0aa;
+  }
+
+  .lp-footer-social div {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .lp-footer-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px 24px;
+  }
+
+  .lp-footer-heading {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .lp-footer-nav ul {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .lp-footer-nav a {
+    font-size: 14px;
+    line-height: 1.4;
+    color: rgba(214, 242, 226, 0.78);
+    text-underline-offset: 3px;
+  }
+
+  .lp-footer-nav a:hover {
+    color: #fff;
+  }
+
+  .lp-footer-nav a:focus-visible,
+  .lp-social:focus-visible {
+    outline: 2px solid #86f0aa;
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .lp-footer-bar {
+    display: grid;
+    gap: 8px;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding: 18px 20px 22px;
+    border-top: 1px solid rgba(166, 233, 62, 0.22);
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(214, 242, 226, 0.7);
+  }
+
+  @media (min-width: 900px) {
+    .lp-footer-main {
+      grid-template-columns: minmax(240px, 320px) 1fr;
+      gap: 72px;
+      align-items: start;
+      padding: 64px 40px 52px;
+    }
+
+    .lp-footer-nav {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 28px;
+    }
+
+    .lp-footer-bar {
+      grid-template-columns: 1.2fr 1fr;
+      align-items: center;
+      justify-content: space-between;
+      padding-inline: 40px;
+    }
+
+    .lp-footer-bar p:last-child {
+      text-align: right;
+    }
   }
 
   .lp-social {
     display: grid;
     place-items: center;
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
     border-radius: 999px;
     color: #fff;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(166, 233, 62, 0.28);
     transition: background-color 0.18s ease, border-color 0.18s ease;
   }
 
   .lp-social:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.34);
+    background-color: rgba(18, 179, 95, 0.28);
+    border-color: rgba(166, 233, 62, 0.7);
   }
 
   /* ============================================================

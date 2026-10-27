@@ -10,6 +10,7 @@ import RequireAuth from '@/modules/auth/guards/RequireAuth'
 import RequireModule from '@/modules/auth/guards/RequireModule'
 import { AuthProvider } from '@/modules/auth/context/auth'
 import { NotificationsProvider } from '@/modules/notificaciones/context/notifications'
+import { FlashNotice } from '@/shared/components/ui/Toast'
 
 import ActivitiesPage from '@/modules/actividades/pages/ActivitiesPage'
 import RoleModuleCreatePage from '@/modules/administracion/pages/RoleModuleCreatePage'
@@ -27,6 +28,7 @@ import MaterialesFormacionPage from '@/modules/materiales-formacion/pages/Materi
 import ListasMaestrasMaterialPage from '@/modules/materiales-formacion/pages/ListasMaestrasMaterialPage'
 import SolicitudMaterialFormacionPage from '@/modules/materiales-formacion/pages/SolicitudMaterialFormacionPage'
 import ComprasFormacionPage from '@/modules/materiales-formacion/pages/ComprasFormacionPage'
+import PresupuestoPage from '@/modules/presupuesto/pages/PresupuestoPage'
 import EnvironmentalPage from '@/modules/ambiental/pages/EnvironmentalPage'
 
 import HomePage from '@/modules/inicio/pages/HomePage'
@@ -135,6 +137,7 @@ function AdminRoute({
 function App() {
   return (
     <BrowserRouter>
+      <FlashNotice />
       <SessionProviders>
         <Routes>
 
@@ -226,6 +229,15 @@ function App() {
           {/* =========================
               VIGENCIAS
           ========================== */}
+          <Route
+            path="/presupuesto-formacion/*"
+            element={
+              <ModuleRoute>
+                <PresupuestoPage />
+              </ModuleRoute>
+            }
+          />
+
           <Route
             path="/vigencias"
             element={
