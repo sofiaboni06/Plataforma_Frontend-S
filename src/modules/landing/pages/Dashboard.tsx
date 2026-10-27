@@ -248,7 +248,7 @@ function Colombia() {
         {/* Contenedor del mapa. No se aplica ningún estilo a `ColombiaMap`
             ni a sus elementos internos: solo se decora la caja que lo envuelve. */}
         <div className="lp-map-card">
-          <ColombiaMap className="h-80 w-auto max-w-full lg:h-90" />
+          <ColombiaMap className="w-full max-w-full" />
         </div>
 
         <ul className="space-y-4">
