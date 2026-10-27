@@ -1,10 +1,42 @@
+import { useEffect, useState } from 'react'
+
+const SLIDES = [
+  '/img/imageninicio.jpg',
+  '/img/fondo-vistas.jpg',
+  '/img/cta-futuro.jpg',
+  '/img/programa-tecnologia.jpg',
+  '/img/noticia-tecnologia.jpg',
+]
+
 export default function Hero() {
+  const [index, setIndex] = useState(0)
+  const [paused, setPaused] = useState(false)
+
+  useEffect(() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce || paused) return
+    const timer = window.setInterval(() => {
+      setIndex((current) => (current + 1) % SLIDES.length)
+    }, 6500)
+    return () => window.clearInterval(timer)
+  }, [paused])
+
   return (
     <section
       id="inicio"
-      className="lp-hero relative flex min-h-150 items-center overflow-hidden bg-cover bg-center bg-no-repeat lg:min-h-160"
-      style={{ backgroundImage: "url('/img/imageninicio.jpg')" }}
+      className="lp-hero relative flex min-h-150 items-center overflow-hidden lg:min-h-160"
+      aria-roledescription="carrusel"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
     >
+      {SLIDES.map((src, slide) => (
+        <div
+          key={src}
+          className={`lp-hero-slide${slide === index ? ' is-active' : ''}`}
+          style={{ backgroundImage: `url('${src}')` }}
+          aria-hidden={slide !== index}
+        />
+      ))}
       <div className="lp-hero-scrim" />
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-16 pt-10 lg:px-10">
@@ -30,6 +62,20 @@ export default function Hero() {
             <ArrowGlyph />
           </a>
         </div>
+      </div>
+
+      <div className="lp-hero-dots" role="tablist" aria-label="Imágenes del SENA">
+        {SLIDES.map((src, slide) => (
+          <button
+            key={src}
+            type="button"
+            role="tab"
+            className={`lp-hero-dot${slide === index ? ' is-active' : ''}`}
+            aria-label={`Imagen ${slide + 1}`}
+            aria-selected={slide === index}
+            onClick={() => setIndex(slide)}
+          />
+        ))}
       </div>
     </section>
   )

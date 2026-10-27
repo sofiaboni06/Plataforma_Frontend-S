@@ -107,6 +107,17 @@ export function canOpenPath(
     return canOpenFormacionPath(path, { isAdmin, permissions })
   }
 
+  if (path === '/presupuesto-formacion' || path.startsWith('/presupuesto-formacion/')) {
+    return isAdmin || permissions?.includes('solicitud_programa.editar') === true
+  }
+
+  if (path === '/vigencias' || path.startsWith('/vigencias/')) {
+    if (isAdmin) return true
+    if (path === '/vigencias/crear') return permissions?.includes('vigencia.crear') === true
+    if (path.endsWith('/editar')) return permissions?.includes('vigencia.editar') === true
+    return permissions?.includes('vigencia.ver') === true
+  }
+
   if (
     isAdmin &&
     (path === '/usuarios' || path === '/perfiles' || path === '/programas-formacion')

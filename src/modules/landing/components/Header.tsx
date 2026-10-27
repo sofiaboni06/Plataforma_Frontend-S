@@ -169,8 +169,9 @@ export default function Header() {
   return (
     <header className="lp-bar">
       <div className="lp-bar-inner">
-        <Link to={sectionLink('#inicio')} aria-label="SENA, inicio" className="lp-logo">
+        <Link to={sectionLink('#inicio')} aria-label="SENA y Fábrica de Software, inicio" className="lp-logo">
           <img src="/img/logo-sena.svg" alt="SENA" />
+          <img src="/img/logo-fabrica-software.png" alt="Fábrica de Software" className="lp-logo-fabrica" />
         </Link>
 
         <nav className="lp-nav" ref={navRef} style={{ position: 'relative' }}>

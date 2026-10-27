@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { EyeIcon, EyeOffIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError, shouldRememberSession } from '@/shared/lib/api'
 import { useAuth } from '@/modules/auth/context/auth'
+import { leaveNotice } from '@/shared/components/ui/Toast'
 
 function loginError(error: unknown) {
   if (error instanceof ApiError) {
@@ -110,6 +111,7 @@ export default function LoginPage() {
         remember,
       })
 
+      leaveNotice('Inicio de sesión exitoso')
       navigate(nextPath, { replace: true })
     } catch (caught) {
       setError(loginError(caught))
@@ -303,16 +305,17 @@ export default function LoginPage() {
   </div>
 
   {/* Identidad institucional */}
-  <div className="mt-6 flex flex-col items-center">
+  <div className="mt-6 flex items-center justify-center gap-4">
     <img
       src="/img/logo-sena.svg"
       alt="SENA"
       className="h-14 w-auto brightness-0 invert sm:h-16"
     />
-    <div className="mt-3 flex items-center gap-3">
-      <span className="h-px w-7 bg-white/50" />
-      <span className="h-px w-7 bg-white/50" />
-    </div>
+    <img
+      src="/img/logo-fabrica-software.png"
+      alt="Fábrica de Software"
+      className="h-12 w-auto sm:h-14"
+    />
   </div>
 </section>
         {/* Formulario de acceso */}

@@ -180,10 +180,7 @@ export function visibleFormacionMenuScreens(access: FormacionCaller = {}) {
     if (screen.hideFromNav || screen.staffOnly) return false
     if (access.isAdmin) return true
     if (CATALOG_FORMACION.includes(screen.code)) {
-      return (
-        canFormacionAction(screen.code, 'create', access) ||
-        canFormacionAction(screen.code, 'edit', access)
-      )
+      return canFormacionAction(screen.code, 'list', access)
     }
     return true
   })

@@ -31,6 +31,9 @@ export type SolicitudPrograma = {
       producto: string
       unidadMedida: string | null
       cantidadBase: number
+      caracter: 'consumo' | 'devolutivo' | 'software' | null
+      valorUnitario: number | null
+      lote: { id: number; nombre: string } | null
     } | null
   }>
 }
