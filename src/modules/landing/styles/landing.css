@@ -2202,4 +2202,44 @@
       transition: none;
     }
   }
+
+    /* --- Ajustes para el diseño "Split Card" (Misión y Visión) --- */
+  .lp-flip-front {
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff !important;
+  }
+
+  .lp-flip-front:hover {
+    transform: none !important;
+    box-shadow: inherit;
+  }
+
+  /* NUEVO ESTILO PARA EL ICONO SUPERPUESTO */
+  .lp-icon-tile.lp-explore-badge {
+    width: 60px;
+    height: 60px;
+    border-radius: 999px;
+    /* Color verde sólido similar al de la imagen de referencia */
+    background-color: #0a7f4a !important; 
+    background-image: none !important; /* Quita los degradados de cristal */
+    color: #ffffff; /* Icono blanco */
+    border: 4px solid #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Quita el destello blanco (::after) que traía el icono original por defecto */
+  .lp-icon-tile.lp-explore-badge::after {
+    display: none;
+  }
+
+  .lp-icon-tile.lp-explore-badge svg {
+    width: 28px;
+    height: 28px;
+    stroke: #ffffff;
+    z-index: 2;
+  }
 }
