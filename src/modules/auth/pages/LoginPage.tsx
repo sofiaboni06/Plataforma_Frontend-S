@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { EyeIcon, EyeOffIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError, shouldRememberSession } from '@/shared/lib/api'
 import { useAuth } from '@/modules/auth/context/auth'
+import { leaveNotice } from '@/shared/components/ui/Toast'
 
 function loginError(error: unknown) {
   if (error instanceof ApiError) {
@@ -68,7 +69,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     const previousTitle = document.title
-    document.title = 'Iniciar sesión | GlasmoFimos'
+    document.title = 'Iniciar sesión | SIGMA'
 
     return () => {
       document.title = previousTitle
@@ -110,6 +111,7 @@ export default function LoginPage() {
         remember,
       })
 
+      leaveNotice('Inicio de sesión exitoso')
       navigate(nextPath, { replace: true })
     } catch (caught) {
       setError(loginError(caught))
@@ -175,54 +177,20 @@ export default function LoginPage() {
 
       <div className="relative z-10 mx-auto grid min-h-svh w-full max-w-360 grid-cols-1 items-center gap-8 px-5 py-8 sm:px-10 lg:grid-cols-[1fr_0.9fr] lg:gap-12 lg:px-16 xl:px-24">
        
-{/* Marca y presentación GESNOVA */}
+{/* Marca y presentación sigma */}
 <section className="relative flex flex-col items-center justify-center text-center text-white lg:px-6 lg:scale-90">
 
   {/* Logotipo original */}
-  <div className="mb-5 flex justify-center">
-   <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-md sm:h-20 sm:w-20">
-      <div className="absolute inset-2 rounded-3xl bg-linear-to-br from-sky-400/20 to-lime-400/20 blur-xl" />
-
-      <svg
-        viewBox="0 0 100 100"
-        className="relative h-14 w-14 sm:h-16 sm:w-16"
-        fill="none"
-        role="img"
-        aria-label="Logotipo de GESNOVA"
-      >
-        <defs>
-          <linearGradient id="gesnova-blue" x1="15" y1="10" x2="55" y2="65" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#38BDF8" />
-            <stop offset="1" stopColor="#0759D6" />
-          </linearGradient>
-          <linearGradient id="gesnova-green" x1="45" y1="25" x2="90" y2="90" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#BEF264" />
-            <stop offset="1" stopColor="#16A34A" />
-          </linearGradient>
-        </defs>
-
-        <path
-          d="M75 21A36 36 0 1 0 80 64"
-          stroke="url(#gesnova-blue)"
-          strokeWidth="13"
-          strokeLinecap="round"
-        />
-        <path
-          d="M79 39A26 26 0 0 0 42 36"
-          stroke="url(#gesnova-green)"
-          strokeWidth="11"
-          strokeLinecap="round"
-        />
-        <path
-          d="M78 42L52 62L38 50"
-          stroke="url(#gesnova-green)"
-          strokeWidth="10"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
+  {/* Logotipo SIGMA */}
+<div className="mb-5 flex justify-center">
+  <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-md sm:h-20 sm:w-20">
+    <img
+      src="/img/logo-sigma.png"
+      alt="Logotipo de SIGMA"
+      className="relative h-14 w-14 object-contain sm:h-16 sm:w-16"
+    />
   </div>
+</div>
 
   {/* Nombre con degradados independientes */}
   <h1 className="text-4xl font-black leading-none tracking-tight sm:text-5xl xl:text-6xl">
@@ -303,16 +271,17 @@ export default function LoginPage() {
   </div>
 
   {/* Identidad institucional */}
-  <div className="mt-6 flex flex-col items-center">
+  <div className="mt-6 flex items-center justify-center gap-4">
     <img
       src="/img/logo-sena.svg"
       alt="SENA"
       className="h-14 w-auto brightness-0 invert sm:h-16"
     />
-    <div className="mt-3 flex items-center gap-3">
-      <span className="h-px w-7 bg-white/50" />
-      <span className="h-px w-7 bg-white/50" />
-    </div>
+    <img
+      src="/img/logo-fabrica-software.png"
+      alt="Fábrica de Software"
+      className="h-12 w-auto sm:h-14"
+    />
   </div>
 </section>
         {/* Formulario de acceso */}

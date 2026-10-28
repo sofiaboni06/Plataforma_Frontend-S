@@ -12,6 +12,7 @@ import ColombiaMap from '@/modules/landing/components/ColombiaMap'
 import Header from '@/modules/landing/components/Header'
 import Hero from '@/modules/landing/components/Hero'
 import ProgramCard from '@/modules/landing/components/ProgramCard'
+import SiteFooter from '@/modules/landing/components/SiteFooter'
 import '@/modules/landing/styles/landing.css'
 
 const categories = [
@@ -71,90 +72,55 @@ const presence = [
  */
 const exploreCards = [
   {
-    id: 'proyectos',
-    title: 'Proyectos de aprendices',
-    text: 'Descubre proyectos innovadores creados por aprendices e instructores de todo el país.',
-    icon: 'bulb' as const,
+    id: 'Mision',
+    title: 'Misión',
+    text: 'Centralizar y optimizar los procesos administrativos mediante una plataforma modular que facilite la gestión de la información y mejore la eficiencia institucional.',
+    icon: 'target' as const,
     gallery: true,
-    backTitle: 'Lo que encontrarás',
+    backTitle: 'Nuestro propósito',
     back: [
-      { icon: 'badge' as const, label: 'Nombre del proyecto y programa asociado' },
-      { icon: 'wrench' as const, label: 'Descripción del problema que resuelve' },
-      { icon: 'monitor' as const, label: 'Tecnologías utilizadas' },
+      {
+        icon: 'layers' as const,
+        label: 'Integrar diferentes módulos administrativos',
+      },
+      {
+        icon: 'database' as const,
+        label: 'Centralizar y organizar la información',
+      },
+      {
+        icon: 'zap' as const,
+        label: 'Optimizar los procesos institucionales',
+      },
     ],
   },
   {
-    id: 'comunidad',
-    title: 'Comunidad SENA',
-    text: 'Conecta, colabora y comparte con otros aprendices.',
-    icon: 'users' as const,
+    id: 'Vision',
+    title: 'Visión',
+    text: 'Ser una plataforma administrativa innovadora, segura y escalable, capaz de integrar nuevos módulos y responder a las necesidades futuras de la institución.',
+    icon: 'eye' as const,
     gallery: false,
-    backTitle: 'Lo que encontrarás',
+    backTitle: 'Hacia dónde vamos',
     back: [
-      { icon: 'users' as const, label: 'Grupos por programa y especialidad' },
-      { icon: 'people' as const, label: 'Publicaciones y preguntas' },
-      { icon: 'pin' as const, label: 'Encuentra compañeros de estudio' },
-      { icon: 'briefcase' as const, label: 'Equipos para proyectos colaborativos' },
+      {
+        icon: 'trending-up' as const,
+        label: 'Impulsar la mejora continua',
+      },
+      {
+        icon: 'shield-check' as const,
+        label: 'Fortalecer la seguridad de la información',
+      },
+      {
+        icon: 'blocks' as const,
+        label: 'Incorporar nuevos módulos administrativos',
+      },
+      {
+        icon: 'lightbulb' as const,
+        label: 'Promover la innovación tecnológica',
+      },
     ],
   },
-  {
-    id: 'academyex',
-    title: 'AcademyEX',
-    text: 'Cursos, rutas y contenidos digitales para potenciar tus habilidades.',
-    icon: 'monitor' as const,
-    gallery: false,
-    backTitle: 'Lo que encontrarás',
-    back: [
-      { icon: 'hat' as const, label: 'Cursos disponibles' },
-      { icon: 'pin' as const, label: 'Rutas de aprendizaje' },
-      { icon: 'monitor' as const, label: 'Contenidos digitales' },
-      { icon: 'bulb' as const, label: 'Cómo acceder a los recursos formativos' },
-    ],
-  },
-  {
-    id: 'agenda',
-    title: 'Mi agenda SENA',
-    text: 'Todas tus actividades, entregas, evaluaciones y eventos en un solo lugar.',
-    icon: 'clock' as const,
-    gallery: false,
-    backTitle: 'Lo que encontrarás',
-    back: [
-      { icon: 'clock' as const, label: 'Calendario semanal y mensual' },
-      { icon: 'briefcase' as const, label: 'Actividades y entregas' },
-      { icon: 'badge' as const, label: 'Evaluaciones y tutorías' },
-      { icon: 'pin' as const, label: 'Eventos del centro de formación' },
-      { icon: 'heart' as const, label: 'Recordatorios personales' },
-    ],
-  },
-  {
-    id: 'perfil',
-    title: 'Mi perfil de competencias',
-    text: 'Construye tu portafolio y muestra tus habilidades y proyectos.',
-    icon: 'badge' as const,
-    gallery: false,
-    backTitle: 'Lo que encontrarás',
-    back: [
-      { icon: 'wrench' as const, label: 'Habilidades técnicas y personales' },
-      { icon: 'briefcase' as const, label: 'Portafolio de proyectos' },
-      { icon: 'monitor' as const, label: 'Herramientas y tecnologías que dominas' },
-      { icon: 'heart' as const, label: 'Competencias por fortalecer' },
-    ],
-  },
-  {
-    id: 'ayuda',
-    title: 'Centro de ayuda inteligente',
-    text: 'Resuelve tus dudas, consulta guías y recibe orientación personalizada.',
-    icon: 'heart' as const,
-    gallery: false,
-    backTitle: 'Lo que encontrarás',
-    back: [
-      { icon: 'monitor' as const, label: 'Buscador de preguntas frecuentes' },
-      { icon: 'hat' as const, label: 'Guías paso a paso' },
-      { icon: 'building' as const, label: 'Orientación sobre trámites' },
-      { icon: 'people' as const, label: 'Canales oficiales de atención' },
-    ],
-  },
-]
+];
+
 
 /* Número fijo de indicadores de posición del carrusel. */
 const EXPLORE_DOT_COUNT = 3
@@ -165,25 +131,6 @@ const services = [
   { title: 'Emprendimiento', text: 'Convierte tus ideas en empresas.', icon: 'bulb' as const },
   { title: 'Certificación', text: 'Reconoce tus competencias.', icon: 'badge' as const },
   { title: 'Bienestar', text: 'Cuida tu salud física, mental y social.', icon: 'heart' as const },
-]
-
-const footerColumns = [
-  {
-    title: 'Institucional',
-    links: ['Quiénes somos', 'Misión y visión', 'Transparencia'],
-  },
-  {
-    title: 'Atención al ciudadano',
-    links: ['PQRS', 'Trámites y servicios', 'Canales de atención'],
-  },
-  {
-    title: 'Transparencia',
-    links: ['Datos abiertos', 'Contratación', 'Rendición de cuentas'],
-  },
-  {
-    title: 'Operación',
-    links: ['Sede principal', 'Línea de atención', 'Correo institucional'],
-  },
 ]
 
 export default function Dashboard() {
@@ -266,7 +213,7 @@ function Colombia() {
         {/* Contenedor del mapa. No se aplica ningún estilo a `ColombiaMap`
             ni a sus elementos internos: solo se decora la caja que lo envuelve. */}
         <div className="lp-map-card">
-          <ColombiaMap className="h-80 w-auto max-w-full lg:h-90" />
+          <ColombiaMap className="w-full max-w-full" />
         </div>
 
         <ul className="space-y-4">
@@ -712,68 +659,6 @@ function FutureBanner() {
   )
 }
 
-function SiteFooter() {
-  return (
-    <footer id="contacto" className="lp-footer">
-      <div className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:grid-cols-2 lg:grid-cols-[1.05fr_repeat(5,1fr)] lg:px-10">
-        <div>
-          <img src="/img/logo-sena.svg" alt="SENA" className="h-14 w-auto object-contain" />
-          <p className="mt-4 max-w-55 text-[13px] leading-5">
-            Servicio Nacional de Aprendizaje. Formación gratuita y de calidad para quien la necesita.
-          </p>
-        </div>
-        {footerColumns.map((column) => (
-          <div key={column.title}>
-            <p className="text-[14px] font-bold text-white">{column.title}</p>
-            <ul className="mt-3 space-y-2">
-              {column.links.map((link) => (
-                <li key={link}>
-                  <a href="#contacto" className="text-[13px] transition-colors hover:text-white">
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-        <div>
-          <p className="text-[14px] font-bold text-white">Síguenos en</p>
-          <div className="mt-3 flex gap-2">
-            <a href="#contacto" className="lp-social" aria-label="Facebook">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M14.5 8.5V6.8c0-.7.5-1 1.2-1H17V3h-2.4C12.2 3 11 4.4 11 6.6v1.9H9v2.7h2V21h3.5v-9.8h2.3l.4-2.7h-2.7Z" />
-              </svg>
-            </a>
-            <a href="#contacto" className="lp-social" aria-label="Instagram">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" strokeWidth="1.8" />
-                <circle cx="12" cy="12" r="3.4" stroke="currentColor" strokeWidth="1.8" />
-                <circle cx="16.6" cy="7.4" r="1" fill="currentColor" />
-              </svg>
-            </a>
-            <a href="#contacto" className="lp-social" aria-label="X">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M17.8 3H20l-6.2 7.1L21 21h-5.5l-4.3-6.3L6.2 21H4l6.7-7.6L3 3h5.6l3.9 5.8L17.8 3Zm-1 16.2h1.5L7.3 4.7H5.7l11.1 14.5Z" />
-              </svg>
-            </a>
-            <a href="#contacto" className="lp-social" aria-label="YouTube">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M22 12.2s0-3.2-.4-4.6c-.2-.9-.9-1.6-1.8-1.8C18.2 5.4 12 5.4 12 5.4s-6.2 0-7.8.4c-.9.2-1.6.9-1.8 1.8C2 9 2 12.2 2 12.2s0 3.2.4 4.6c.2.9.9 1.6 1.8 1.8 1.6.4 7.8.4 7.8.4s6.2 0 7.8-.4c.9-.2 1.6-.9 1.8-1.8.4-1.4.4-4.6.4-4.6ZM10 15.2V9.2l5.2 3-5.2 3Z" />
-              </svg>
-            </a>
-          </div>
-        </div>
-      </div>
-      <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-4 text-[12px] text-white/70 lg:flex-row lg:items-center lg:justify-between lg:px-10">
-          <p>© 2025 Servicio Nacional de Aprendizaje - SENA. Todos los derechos reservados.</p>
-          <p>El SENA es un establecimiento público del orden nacional, adscrito al Ministerio del Trabajo.</p>
-        </div>
-      </div>
-    </footer>
-  )
-}
-
 function ArrowGlyph() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
@@ -792,6 +677,15 @@ type GlyphName =
   | 'pin'
   | 'building'
   | 'hat'
+  | 'target'
+  | 'eye'
+  | 'layers'
+  | 'database'
+  | 'zap'
+  | 'trending-up'
+  | 'shield-check'
+  | 'blocks'
+  | 'lightbulb'
   | 'people'
   | 'wrench'
   | 'monitor'
@@ -811,6 +705,70 @@ function Glyph({ name }: { name: GlyphName }) {
     viewBox: '0 0 24 24',
     fill: 'none',
     'aria-hidden': true as const,
+  }
+
+  if (name === 'target') {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="12" cy="12" r="1" fill="currentColor" />
+      </svg>
+    )
+  }
+  if (name === 'eye') {
+    return (
+      <svg {...common}>
+        <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    )
+  }
+  if (name === 'layers') {
+    return (
+      <svg {...common}>
+        <path d="m12 3 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16l9 5 9-5" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (name === 'database') {
+    return (
+      <svg {...common}>
+        <ellipse cx="12" cy="5" rx="8" ry="3" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    )
+  }
+  if (name === 'zap') {
+    return (
+      <svg {...common}>
+        <path d="m13 2-9 12h7l-1 8 10-13h-7l0-7Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (name === 'trending-up') {
+    return (
+      <svg {...common}>
+        <path d="M3 17 9 11l4 4 8-8M15 7h6v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (name === 'blocks') {
+    return (
+      <svg {...common}>
+        <rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    )
+  }
+  if (name === 'lightbulb') {
+    return (
+      <svg {...common}>
+        <path d="M9 18h6M10 21h4M8.5 14.5a6 6 0 1 1 7 0c-.8.6-1.2 1.3-1.2 2.5h-3.6c0-1.2-.4-1.9-1.2-2.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
   }
 
   if (name === 'pin') {
@@ -903,7 +861,7 @@ function Glyph({ name }: { name: GlyphName }) {
       </svg>
     )
   }
-  if (name === 'shield') {
+  if (name === 'shield' || name === 'shield-check') {
     return (
       <svg {...common}>
         <path

@@ -8,6 +8,7 @@ import {
   SearchInput,
 } from '@/shared/components/DataTable'
 import { PlusIcon, ReportIcon } from '@/shared/components/icons/AppIcons'
+import CatalogoEstructuraNav from '@/modules/materiales-formacion/components/CatalogoEstructuraNav'
 import RedesTab from '@/modules/materiales-formacion/components/RedesTab'
 import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
 import type { FormacionTabHandle } from '@/modules/materiales-formacion/components/types'
@@ -43,6 +44,8 @@ export default function RedesConocimientoPage() {
           ) : undefined
         }
       />
+
+      <CatalogoEstructuraNav />
 
       <FilterCard>
         <SearchInput

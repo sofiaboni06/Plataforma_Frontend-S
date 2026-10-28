@@ -42,8 +42,18 @@ const INVENTORY_ENTRY: AppModule = {
  * el Administrador de la plataforma recibe `material_formacion.*` del
  * catálogo; el resto necesita el permiso concedido en su perfil.
  */
+function normalizeNavPath(path: string) {
+  if (path === '/materiales-formacion') return '/materiales'
+  return path.replace(/\/+$/, '') || '/'
+}
+
 function puedeVerMaterialesFormacion(isAdmin: boolean, permissions?: string[]) {
-  return isAdmin || permissions?.includes('material_formacion.ver') === true
+  return (
+    isAdmin ||
+    permissions?.includes('lista_maestra.ver') === true ||
+    permissions?.includes('solicitud_programa.ver') === true ||
+    permissions?.includes('programa_formacion.ver') === true
+  )
 }
 
 export function grantedModuleLinks(
@@ -58,7 +68,7 @@ export function grantedModuleLinks(
     .filter((item) => !isInventoryDescendantPath(item.to as string))
     .filter((item) => item.to !== '/materiales' || puedeVerMaterialesFormacion(isAdmin, permissions))
     .filter((item) => {
-      const path = item.to as string
+      const path = normalizeNavPath(item.to as string)
 
       if (seen.has(path)) {
         return false
@@ -95,6 +105,17 @@ export function canOpenPath(
 
   if (isFormacionPath(path)) {
     return canOpenFormacionPath(path, { isAdmin, permissions })
+  }
+
+  if (path === '/presupuesto-formacion' || path.startsWith('/presupuesto-formacion/')) {
+    return isAdmin || permissions?.includes('solicitud_programa.editar') === true
+  }
+
+  if (path === '/vigencias' || path.startsWith('/vigencias/')) {
+    if (isAdmin) return true
+    if (path === '/vigencias/crear') return permissions?.includes('vigencia.crear') === true
+    if (path.endsWith('/editar')) return permissions?.includes('vigencia.editar') === true
+    return permissions?.includes('vigencia.ver') === true
   }
 
   if (

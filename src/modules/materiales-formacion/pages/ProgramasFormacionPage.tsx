@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
@@ -20,9 +21,9 @@ import {
   TablePagination,
   TableRow,
   tableClass,
-  tableColumns,
 } from '@/shared/components/DataTable'
 import {
+  ExcelIcon,
   PencilIcon,
   PlusIcon,
   ProgramIcon,
@@ -253,7 +254,7 @@ export default function ProgramasFormacionPage() {
       <PageHeader
         icon={<ProgramIcon />}
         title="Programas de formación"
-        description="Cree y edite los programas: código, versión, nivel, red, línea, duración y cupo base. Los centros se derivan de las fichas."
+        description="Cree y edite los programas: código, versión, nivel, red, línea, duración y cupo. Cada programa tiene su lista maestra: ábrala en Acciones."
         action={
           can('programas', 'create') ? (
             <Button type="button" icon={<PlusIcon className="size-4" />} onClick={openCreateProgram}>
@@ -300,7 +301,7 @@ export default function ProgramasFormacionPage() {
                     <TableHeader align="center" width="w-[7%]">
                       Cupo
                     </TableHeader>
-                    <TableHeader align="center" width={tableColumns.actions}>
+                    <TableHeader align="center" width="w-[22%]">
                       Acciones
                     </TableHeader>
                   </tr>
@@ -308,7 +309,7 @@ export default function ProgramasFormacionPage() {
 
                 <tbody>
                   {pagePrograms.length === 0 ? (
-                    <TableEmpty colSpan={7}>
+                    <TableEmpty colSpan={6}>
                       {programs.length === 0
                         ? 'Aún no hay programas activos. Asegure primero una red con líneas en Redes y Líneas; luego use «Nuevo programa».'
                         : 'No hay programas que coincidan con la búsqueda.'}
@@ -369,6 +370,17 @@ export default function ProgramasFormacionPage() {
 
                         <td>
                           <RowActions>
+                            {can('listas', 'view') ? (
+                              <Link
+                                to={`/formacion/listas-maestras-material?programaId=${programa.id}`}
+                                title="Cargar el anexo Excel o completar materiales uno a uno"
+                                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-sena-line bg-white px-3 text-xs font-semibold text-sena-dark shadow-hairline transition hover:border-sena/45 hover:text-sena"
+                              >
+                                <ExcelIcon className="size-[14px]" />
+                                Gestionar lista
+                              </Link>
+                            ) : null}
+
                             {can('programas', 'edit') ? (
                               <ActionButton
                                 title="Editar programa"

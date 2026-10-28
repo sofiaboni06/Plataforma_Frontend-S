@@ -28,6 +28,7 @@ import {
   TrashIcon,
 } from '@/shared/components/icons/AppIcons'
 import { ApiError, api } from '@/shared/lib/api'
+import CatalogoEstructuraNav from '@/modules/materiales-formacion/components/CatalogoEstructuraNav'
 import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
 import type { NivelPrograma } from '@/modules/materiales-formacion/types/formacion'
 
@@ -194,6 +195,8 @@ export default function NivelesProgramaPage() {
           ) : undefined
         }
       />
+
+      <CatalogoEstructuraNav />
 
       {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}
 

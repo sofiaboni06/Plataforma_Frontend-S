@@ -10,6 +10,7 @@ import RequireAuth from '@/modules/auth/guards/RequireAuth'
 import RequireModule from '@/modules/auth/guards/RequireModule'
 import { AuthProvider } from '@/modules/auth/context/auth'
 import { NotificationsProvider } from '@/modules/notificaciones/context/notifications'
+import { FlashNotice } from '@/shared/components/ui/Toast'
 
 import ActivitiesPage from '@/modules/actividades/pages/ActivitiesPage'
 import RoleModuleCreatePage from '@/modules/administracion/pages/RoleModuleCreatePage'
@@ -24,9 +25,14 @@ import LineasTematicasPage from '@/modules/materiales-formacion/pages/LineasTema
 import NivelesProgramaPage from '@/modules/materiales-formacion/pages/NivelesProgramaPage'
 import FichasPage from '@/modules/materiales-formacion/pages/FichasPage'
 import MaterialesFormacionPage from '@/modules/materiales-formacion/pages/MaterialesFormacionPage'
+import ListasMaestrasMaterialPage from '@/modules/materiales-formacion/pages/ListasMaestrasMaterialPage'
+import SolicitudMaterialFormacionPage from '@/modules/materiales-formacion/pages/SolicitudMaterialFormacionPage'
+import ComprasFormacionPage from '@/modules/materiales-formacion/pages/ComprasFormacionPage'
+import PresupuestoPage from '@/modules/presupuesto/pages/PresupuestoPage'
 import EnvironmentalPage from '@/modules/ambiental/pages/EnvironmentalPage'
 
 import HomePage from '@/modules/inicio/pages/HomePage'
+import NotFoundPage from '@/modules/inicio/pages/NotFoundPage'
 import AlertsPage from '@/modules/alertas/pages/AlertsPage'
 
 import InventoryCenterLayout from '@/modules/inventario/centerScope'
@@ -61,10 +67,9 @@ import SolicitudesHomePage from '@/modules/solicitudes/pages/SolicitudesHomePage
 import SolicitudesPage from '@/modules/solicitudes/pages/SolicitudesPage'
 import PrestamosPage from '@/modules/solicitudes/pages/PrestamosPage'
 import ProfilePage from '@/modules/perfil/pages/ProfilePage'
+import NotificacionesPage from '@/modules/notificaciones/pages/NotificacionesPage'
 import RecoverPasswordPage from '@/modules/auth/pages/RecoverPasswordPage'
 import ReportsPage from '@/modules/reportes/pages/ReportsPage'
-import ViewMaterialFormacionPage from '@/modules/materiales-formacion/pages/ViewMaterialFormacionPage'
-import SolicitudMaterialFormacionPage from '@/modules/materiales-formacion/pages/SolicitudMaterialFormacionPage'
 
 import VigenciasPage from '@/modules/vigencias/pages/VigenciasPage'
 import VigenciaFormPage from '@/modules/vigencias/pages/VigenciaFormPage'
@@ -132,6 +137,7 @@ function AdminRoute({
 function App() {
   return (
     <BrowserRouter>
+      <FlashNotice />
       <SessionProviders>
         <Routes>
 
@@ -217,11 +223,21 @@ function App() {
                 </Suspense>
               }
             />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
 
-          {/*=========================
+          {/* =========================
               VIGENCIAS
           ========================== */}
+          <Route
+            path="/presupuesto-formacion/*"
+            element={
+              <ModuleRoute>
+                <PresupuestoPage />
+              </ModuleRoute>
+            }
+          />
+
           <Route
             path="/vigencias"
             element={
@@ -249,32 +265,11 @@ function App() {
           
           {/* =========================
               MATERIALES
-
           ========================== */}
 
           <Route
             path="/materiales"
-            element={
-              <ModuleRoute>
-                <MaterialesFormacionPage />
-              </ModuleRoute>
-            }
-          />
-          <Route
-            path="/materiales/:id"
-            element={
-              <ModuleRoute>
-                <ViewMaterialFormacionPage />
-              </ModuleRoute>
-            }
-          />
-          <Route
-            path="/materiales/solicitudes"
-            element={
-              <ModuleRoute>
-                <SolicitudMaterialFormacionPage />
-              </ModuleRoute>
-            }
+            element={<Navigate to="/inventario/solicitudes" replace />}
           />
 
           {/* =========================
@@ -325,6 +320,22 @@ function App() {
             element={
               <Private>
                 <ProfilePage />
+              </Private>
+            }
+          />
+          <Route
+            path="/notificaciones"
+            element={
+              <Private>
+                <NotificacionesPage />
+              </Private>
+            }
+          />
+          <Route
+            path="/notificaciones/:id"
+            element={
+              <Private>
+                <NotificacionesPage />
               </Private>
             }
           />
@@ -422,6 +433,33 @@ function App() {
           />
 
           <Route
+            path="/formacion/listas-maestras-material"
+            element={
+              <ModuleRoute>
+                <ListasMaestrasMaterialPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/formacion/solicitudes"
+            element={
+              <ModuleRoute>
+                <SolicitudMaterialFormacionPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/formacion/compras"
+            element={
+              <ModuleRoute>
+                <ComprasFormacionPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
             path="/perfiles"
             element={
               <AdminRoute>
@@ -462,15 +500,7 @@ function App() {
               RUTA NO ENCONTRADA
           ========================== */}
 
-          <Route
-            path="*"
-            element={
-              <Navigate
-                to="/"
-                replace
-              />
-            }
-          />
+          <Route path="*" element={<NotFoundPage />} />
 
         </Routes>
       </SessionProviders>

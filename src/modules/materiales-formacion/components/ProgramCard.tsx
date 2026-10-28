@@ -1,8 +1,10 @@
+import { Link } from 'react-router-dom'
 import type { ProgramaFormacion } from '@/modules/materiales-formacion/types/formacion'
 
 export default function ProgramCard({ programa }: { programa: ProgramaFormacion }) {
   return (
-    <article className="flex h-full flex-col rounded-[22px] bg-white/90 px-6 py-5 shadow-card ring-1 ring-sena-line backdrop-blur-glass-sm">
+    <Link to={`/formacion/listas-maestras-material?programaId=${programa.id}`} className="block">
+      <article className="flex h-full flex-col rounded-[22px] bg-white/90 px-6 py-5 shadow-card ring-1 ring-sena-line backdrop-blur-glass-sm hover:border-sena/40 hover:shadow-card-md transition duration-150">
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-2 rounded-full bg-sena-soft px-3 py-1 text-[0.6875rem] font-bold tracking-[0.08em] text-sena-dark uppercase">
           <span aria-hidden="true" className="size-1.5 rounded-full bg-sena" />
@@ -47,6 +49,7 @@ export default function ProgramCard({ programa }: { programa: ProgramaFormacion 
           </dd>
         </div>
       </dl>
-    </article>
+      </article>
+    </Link>
   )
 }

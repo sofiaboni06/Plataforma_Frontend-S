@@ -5,6 +5,9 @@ export type FormacionScreenCode =
   | 'lineas'
   | 'niveles'
   | 'instructores'
+  | 'listas'
+  | 'solicitudes'
+  | 'compras'
 
 export type FormacionAction = 'list' | 'view' | 'create' | 'edit' | 'delete'
 
@@ -14,6 +17,10 @@ export type FormacionScreen = {
   label: string
   /* Asignar programas usa /users, que por ahora es solo del administrador. */
   adminOnly?: boolean
+  /* Lista, solicitudes y compras las opera instructor / coordinador / compras. */
+  staffOnly?: boolean
+  /* Vive en acciones del programa; no abre una entrada extra en el menú. */
+  hideFromNav?: boolean
 }
 
 export type FormacionCaller = {
@@ -29,17 +36,38 @@ export const FORMACION_SCREENS: FormacionScreen[] = [
   { code: 'programas', to: '/formacion/programas', label: 'Programas de formación' },
   { code: 'fichas', to: '/formacion/fichas', label: 'Fichas' },
   { code: 'redes', to: '/formacion/redes', label: 'Redes de conocimiento' },
-  { code: 'lineas', to: '/formacion/lineas', label: 'Líneas temáticas' },
-  { code: 'niveles', to: '/formacion/niveles', label: 'Niveles de formación' },
+  { code: 'lineas', to: '/formacion/lineas', label: 'Líneas temáticas', hideFromNav: true },
+  { code: 'niveles', to: '/formacion/niveles', label: 'Niveles de formación', hideFromNav: true },
   {
     code: 'instructores',
     to: '/formacion/instructores',
     label: 'Asignar programas',
     adminOnly: true,
   },
+  {
+    code: 'listas',
+    to: '/formacion/listas-maestras-material',
+    label: 'Lista de materiales',
+    hideFromNav: true,
+  },
+  {
+    code: 'solicitudes',
+    to: '/formacion/solicitudes',
+    label: 'Solicitar materiales',
+    staffOnly: true,
+  },
+  {
+    code: 'compras',
+    to: '/formacion/compras',
+    label: 'Consolidado de compras',
+    staffOnly: true,
+  },
 ]
 
-type PermissionScreen = Exclude<FormacionScreenCode, 'instructores'>
+type PermissionScreen = Exclude<
+  FormacionScreenCode,
+  'instructores' | 'listas' | 'solicitudes' | 'compras'
+>
 
 const VIEW_CODE: Record<PermissionScreen, string> = {
   programas: 'programa_formacion.ver',
@@ -78,10 +106,20 @@ const WRITE_CODE: Record<PermissionScreen, Partial<Record<FormacionAction, strin
 }
 
 function isPermissionScreen(code: FormacionScreenCode): code is PermissionScreen {
-  return code !== 'instructores'
+  return (
+    code !== 'instructores' &&
+    code !== 'listas' &&
+    code !== 'solicitudes' &&
+    code !== 'compras'
+  )
 }
 
+const STAFF_FORMACION_PREFIXES = ['solicitud_programa.', 'proceso_compra.']
+
 export function allowsFormacionPermission(access: FormacionCaller, code: string) {
+  if (STAFF_FORMACION_PREFIXES.some((prefix) => code.startsWith(prefix))) {
+    return access.isAdmin !== true && access.permissions?.includes(code) === true
+  }
   if (access.isAdmin) return true
   return access.permissions?.includes(code) === true
 }
@@ -99,6 +137,25 @@ export function canFormacionAction(
   access: FormacionCaller = {},
 ) {
   if (code === 'instructores') return access.isAdmin === true
+  if (code === 'listas') {
+    if (access.isAdmin) return true
+    const write: Record<FormacionAction, string> = {
+      list: 'lista_maestra.ver',
+      view: 'lista_maestra.ver',
+      create: 'lista_maestra.crear',
+      edit: 'lista_maestra.editar',
+      delete: 'lista_maestra.eliminar',
+    }
+    return allowsFormacionPermission(access, write[action])
+  }
+  if (code === 'solicitudes') {
+    if (action === 'edit') return allowsFormacionPermission(access, 'solicitud_programa.editar')
+    if (action === 'create' || action === 'delete') {
+      return allowsFormacionPermission(access, 'solicitud_programa.crear')
+    }
+    return allowsFormacionPermission(access, 'solicitud_programa.ver')
+  }
+  if (code === 'compras') return allowsFormacionPermission(access, 'proceso_compra.ver')
   if (!isPermissionScreen(code)) return access.isAdmin === true
   if (!canSeeFormacionScreen(code, access)) return false
 
@@ -110,15 +167,44 @@ export function canFormacionAction(
   return allowsFormacionPermission(access, write)
 }
 
-export function visibleFormacionScreens(access: FormacionCaller = {}) {
-  if (access.isAdmin) return FORMACION_SCREENS
+const CATALOG_FORMACION: FormacionScreenCode[] = [
+  'programas',
+  'fichas',
+  'redes',
+  'lineas',
+  'niveles',
+]
 
-  return FORMACION_SCREENS.filter(
+export function visibleFormacionMenuScreens(access: FormacionCaller = {}) {
+  return visibleFormacionScreens(access).filter((screen) => {
+    if (screen.hideFromNav || screen.staffOnly) return false
+    if (access.isAdmin) return true
+    if (CATALOG_FORMACION.includes(screen.code)) {
+      return canFormacionAction(screen.code, 'list', access)
+    }
+    return true
+  })
+}
+
+export function visibleFormacionScreens(access: FormacionCaller = {}) {
+  if (access.isAdmin) {
+    return FORMACION_SCREENS.filter((screen) => !screen.staffOnly)
+  }
+
+  const base = FORMACION_SCREENS.filter(
     (screen) =>
       !screen.adminOnly &&
+      !screen.staffOnly &&
       isPermissionScreen(screen.code) &&
       allowsFormacionPermission(access, VIEW_CODE[screen.code]),
   )
+  for (const extra of ['listas', 'solicitudes', 'compras'] as const) {
+    if (canFormacionAction(extra, 'list', access)) {
+      const screen = FORMACION_SCREENS.find((item) => item.code === extra)
+      if (screen && !base.some((item) => item.code === extra)) base.push(screen)
+    }
+  }
+  return base
 }
 
 export function hasFormacionAccess(access: FormacionCaller = {}) {
@@ -140,4 +226,10 @@ export function canOpenFormacionPath(path: string, access: FormacionCaller = {})
 
 export function isFormacionPath(pathname: string) {
   return pathname === '/formacion' || pathname.startsWith('/formacion/')
+}
+
+const ESTRUCTURA_PATHS = ['/formacion/redes', '/formacion/lineas', '/formacion/niveles'] as const
+
+export function isEstructuraFormacionPath(pathname: string) {
+  return ESTRUCTURA_PATHS.includes(pathname as (typeof ESTRUCTURA_PATHS)[number])
 }

@@ -5,12 +5,15 @@ import SenaMark from '@/shared/components/icons/SenaMark'
 import { useAuth } from '@/modules/auth/context/auth'
 import { useNotifications } from '@/modules/notificaciones/context/notifications'
 import {
+  notificationDetailPath,
   notificationMark,
-  notificationPath,
+  notificationPreview,
   timeAgo,
 } from '@/modules/notificaciones/lib/presentacion'
 import type { NotificacionApi } from '@/modules/notificaciones/types'
 import Sidebar from './Sidebar'
+import SiteFooter from '@/modules/landing/components/SiteFooter'
+import { leaveNotice } from '@/shared/components/ui/Toast'
 
 type AppLayoutProps = {
   title: string
@@ -38,9 +41,8 @@ export default function AppLayout({
 
   const openNotification = (notification: NotificacionApi) => {
     void notifications.markRead(notification.id)
-    const path = notificationPath(notification)
     setIsNotificationsOpen(false)
-    if (path) navigate(path)
+    navigate(notificationDetailPath(notification.id))
   }
   const closeSidebar = useCallback(() => setIsSidebarOpen(false), [])
   const today = new Intl.DateTimeFormat('es-CO', {
@@ -118,6 +120,7 @@ export default function AppLayout({
 
   const signOut = () => {
     setIsProfileOpen(false)
+    leaveNotice('Sesión cerrada')
     void logout().then(() => navigate('/login'))
   }
 
@@ -174,6 +177,11 @@ export default function AppLayout({
             <span className="truncate text-sm font-semibold tracking-tight text-sena-dark md:text-[0.9375rem]">
               {title}
             </span>
+            <img
+              src="/img/logo-fabrica-oscuro.png"
+              alt="Fábrica de Software"
+              className="h-11 w-auto max-w-[42vw] shrink-0 object-contain sm:h-14 sm:max-w-none"
+            />
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-4">
@@ -209,7 +217,7 @@ export default function AppLayout({
                   {isNotificationsOpen ? (
                     <section
                       id="notifications-popover"
-                      className="absolute top-full right-0 z-50 mt-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-[14px] border border-white/80 bg-[#f6fff9]/95 text-sena-dark shadow-[0_18px_48px_rgba(0,70,42,0.24)] backdrop-blur-2xl"
+                      className="absolute top-full right-0 z-50 mt-3 w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-[14px] border border-white/80 bg-[#f6fff9]/95 text-sena-dark shadow-[0_18px_48px_rgba(0,70,42,0.24)] backdrop-blur-2xl"
                       aria-label="Notificaciones"
                     >
                       <div className="flex items-center justify-between gap-2 border-b border-sena-line/70 px-4 py-3">
@@ -251,16 +259,16 @@ export default function AppLayout({
                                     {mark.icon}
                                   </span>
                                   <span className="min-w-0 flex-1">
-                                    <span className="flex items-center gap-1.5 text-[10px] font-bold leading-4">
+                                    <span className="flex items-center gap-1.5 text-sm font-semibold leading-5">
                                       {notification.titulo}
                                       {!notification.leida ? (
-                                        <span className="size-1.5 rounded-full bg-red-500" aria-label="No leída" />
+                                        <span className="size-1.5 rounded-full bg-sena-danger-text" aria-label="No leída" />
                                       ) : null}
                                     </span>
-                                    <span className="mt-0.5 block text-[9px] leading-[1.35] whitespace-pre-line text-sena-text">
-                                      {notification.mensaje}
+                                    <span className="mt-1 block text-xs leading-5 text-sena-strong">
+                                      {notificationPreview(notification.mensaje, 80)}
                                     </span>
-                                    <span className="mt-1 block text-[8px] text-sena-text-soft">
+                                    <span className="mt-1 block text-xs text-sena-strong">
                                       {timeAgo(notification.fecha)}
                                     </span>
                                   </span>
@@ -279,7 +287,7 @@ export default function AppLayout({
                         className="flex w-full items-center justify-center gap-1.5 bg-[#e2f7e9] px-3 py-2.5 text-[10px] font-bold text-sena-dark transition hover:bg-[#d6f1df]"
                         onClick={() => {
                           setIsNotificationsOpen(false)
-                          navigate('/perfil', { state: { tab: 'notifications' } })
+                          navigate('/notificaciones')
                         }}
                       >
                         Ver todas las notificaciones
@@ -373,6 +381,8 @@ export default function AppLayout({
         >
           {children}
         </main>
+
+        <SiteFooter className="mt-auto" />
       </div>
     </div>
   )

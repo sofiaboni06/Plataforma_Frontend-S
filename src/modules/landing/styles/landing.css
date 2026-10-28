@@ -26,7 +26,7 @@
     --lp-ink-2: #14654a;
     --lp-body: #5b7368;
     --lp-line: #dcece4;
-    --lp-bar-h: 66px;
+    --lp-bar-h: 78px;
 
     color: var(--lp-body);
     /* El recurso de fondo es el mismo verde menta difuminado que usan el
@@ -118,6 +118,7 @@
     display: inline-flex;
     flex: none;
     align-items: center;
+    gap: 12px;
     filter: drop-shadow(0 2px 8px rgba(2, 32, 20, 0.45));
   }
 
@@ -127,9 +128,19 @@
     object-fit: contain;
   }
 
+  .lp-logo .lp-logo-fabrica {
+    height: 48px;
+    max-width: 52vw;
+  }
+
   @media (min-width: 768px) {
     .lp-logo img {
-      height: 48px;
+      height: 52px;
+    }
+
+    .lp-logo .lp-logo-fabrica {
+      height: 66px;
+      max-width: none;
     }
   }
 
@@ -444,6 +455,44 @@
     padding-top: var(--lp-bar-h);
   }
 
+  .lp-hero-slide {
+    position: absolute;
+    inset: 0;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 700ms cubic-bezier(0.77, 0, 0.175, 1);
+  }
+
+  .lp-hero-slide.is-active {
+    opacity: 1;
+  }
+
+  .lp-hero-dots {
+    position: absolute;
+    z-index: 10;
+    left: 50%;
+    bottom: 22px;
+    display: flex;
+    gap: 8px;
+    transform: translateX(-50%);
+  }
+
+  .lp-hero-dot {
+    width: 8px;
+    height: 8px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.45);
+    cursor: pointer;
+  }
+
+  .lp-hero-dot.is-active {
+    width: 22px;
+    background: #fff;
+  }
+
   .lp-hero-scrim {
     position: absolute;
     inset: 0;
@@ -481,6 +530,12 @@
 
   .lp-hero-text {
     color: rgba(255, 255, 255, 0.9);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lp-hero-slide {
+      transition: none;
+    }
   }
 
   /* ============================================================
@@ -643,6 +698,268 @@
   .lp-map-card > * {
     position: relative;
     z-index: 1;
+  }
+
+  .lp-colombia {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  .lp-colombia.is-large {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: 12px 20px;
+    height: 100vh;
+    padding: 22px 28px 28px;
+    background: rgba(236, 248, 241, 0.97);
+  }
+
+  .lp-map-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .lp-colombia.is-large .lp-map-toolbar {
+    grid-column: 1 / -1;
+  }
+
+  .lp-screen-btn {
+    border: 0;
+    border-radius: 999px;
+    padding: 8px 14px;
+    background: #0a4030;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .lp-screen-btn:active {
+    transform: scale(0.97);
+  }
+
+  .lp-colombia-stage {
+    position: relative;
+    width: 100%;
+    height: 320px;
+    overflow: hidden;
+  }
+
+  .lp-colombia.is-large .lp-colombia-stage {
+    height: auto;
+    min-height: 0;
+  }
+
+  .lp-colombia-zoom {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform: scale(1);
+    contain: layout paint;
+  }
+
+  .lp-colombia-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .lp-colombia-host,
+  .lp-colombia-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .lp-colombia-svg {
+    display: block;
+  }
+
+  .lp-pin {
+    position: absolute;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: max-content;
+    max-width: 140px;
+    margin: 0;
+    pointer-events: none;
+    opacity: 1;
+    transform: translate(-50%, -100%);
+    animation: lp-pin-in 200ms cubic-bezier(0.23, 1, 0.32, 1) both;
+    filter: drop-shadow(0 3px 4px rgba(120, 8, 18, 0.5));
+  }
+
+  .lp-pin svg {
+    width: 28px;
+    height: 36px;
+  }
+
+  .lp-pin em {
+    margin-top: 2px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: #fff;
+    color: #9f1239;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  @keyframes lp-pin-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -78%);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -100%);
+    }
+  }
+
+  .lp-dep {
+    cursor: pointer;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .lp-dep:hover,
+    .lp-dep.is-active {
+      fill: #facc15;
+    }
+  }
+
+  .lp-dep:focus-visible {
+    fill: #facc15;
+    outline: none;
+  }
+
+  .lp-sede-list {
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lp-sede-list li {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+    border-top: 1px solid rgba(10, 64, 48, 0.08);
+    color: #0a4030;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.25;
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  .lp-sede-card.is-visible .lp-sede-list li {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 180ms cubic-bezier(0.23, 1, 0.32, 1),
+      transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .lp-sede-card.is-visible .lp-sede-list li:nth-child(2) {
+    transition-delay: 40ms;
+  }
+
+  .lp-sede-card.is-visible .lp-sede-list li:nth-child(3) {
+    transition-delay: 80ms;
+  }
+
+  .lp-sede-card.is-visible .lp-sede-list li:nth-child(4) {
+    transition-delay: 120ms;
+  }
+
+  .lp-sede-list svg {
+    flex: none;
+    width: 16px;
+    height: 22px;
+    margin-top: 1px;
+  }
+
+  .lp-sede-list span {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lp-sede-list small {
+    color: #5b7368;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .lp-colombia.is-large .lp-sede-card {
+    width: 100%;
+    max-height: 100%;
+    overflow: auto;
+    align-self: start;
+  }
+
+  .lp-sede-card {
+    width: min(100%, 320px);
+    min-height: 52px;
+    margin-top: 8px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 10px 24px -16px rgba(4, 80, 48, 0.45);
+    opacity: 0.72;
+    transform: translateY(4px);
+    transition:
+      opacity 160ms cubic-bezier(0.23, 1, 0.32, 1),
+      transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .lp-sede-card.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .lp-sede-hint,
+  .lp-sede-kicker,
+  .lp-sede-detail {
+    margin: 0;
+    color: #5b7368;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .lp-sede-city {
+    margin: 1px 0 2px;
+    color: #0a4030;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lp-dep,
+    .lp-sede-card {
+      transition: none;
+    }
+
+    .lp-sede-list li,
+    .lp-pin {
+      transition: none;
+      animation: none;
+    }
   }
 
   /* Filo interior: da la sensacion de cristal sin cobrir el mapa. */
@@ -978,76 +1295,211 @@
   }
 
   .lp-footer {
-    color: rgba(255, 255, 255, 0.76);
-    background-color: #05291d;
-    background-image: linear-gradient(180deg, #073a28 0%, #042418 100%);
+    color: rgba(232, 248, 239, 0.82);
+    background-color: #042418;
+  }
+
+  .lp-footer-rule {
+    height: 3px;
+    background-image: linear-gradient(90deg, #12b35f 0%, #a6e93e 100%);
+  }
+
+  .lp-footer-main {
+    display: grid;
+    gap: 40px;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding: 56px 20px 48px;
+  }
+
+  .lp-footer-logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+  }
+
+  .lp-footer-marks {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .lp-footer-fabrica {
+    height: 58px;
+    width: auto;
+    object-fit: contain;
+    background: transparent;
+  }
+
+  .lp-footer-name {
+    margin-top: 16px;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  .lp-footer-lead {
+    max-width: 34ch;
+    margin-top: 10px;
+    font-size: 15px;
+    line-height: 1.55;
+    color: rgba(214, 242, 226, 0.78);
+  }
+
+  .lp-footer-social {
+    margin-top: 28px;
+  }
+
+  .lp-footer-social p {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #86f0aa;
+  }
+
+  .lp-footer-social div {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .lp-footer-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px 24px;
+  }
+
+  .lp-footer-heading {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .lp-footer-nav ul {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .lp-footer-nav a {
+    font-size: 14px;
+    line-height: 1.4;
+    color: rgba(214, 242, 226, 0.78);
+    text-underline-offset: 3px;
+  }
+
+  .lp-footer-nav a:hover {
+    color: #fff;
+  }
+
+  .lp-footer-nav a:focus-visible,
+  .lp-social:focus-visible {
+    outline: 2px solid #86f0aa;
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .lp-footer-bar {
+    display: grid;
+    gap: 8px;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding: 18px 20px 22px;
+    border-top: 1px solid rgba(166, 233, 62, 0.22);
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(214, 242, 226, 0.7);
+  }
+
+  @media (min-width: 900px) {
+    .lp-footer-main {
+      grid-template-columns: minmax(240px, 320px) 1fr;
+      gap: 72px;
+      align-items: start;
+      padding: 64px 40px 52px;
+    }
+
+    .lp-footer-nav {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 28px;
+    }
+
+    .lp-footer-bar {
+      grid-template-columns: 1.2fr 1fr;
+      align-items: center;
+      justify-content: space-between;
+      padding-inline: 40px;
+    }
+
+    .lp-footer-bar p:last-child {
+      text-align: right;
+    }
   }
 
   .lp-social {
     display: grid;
     place-items: center;
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
     border-radius: 999px;
     color: #fff;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(166, 233, 62, 0.28);
     transition: background-color 0.18s ease, border-color 0.18s ease;
   }
 
   .lp-social:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.34);
+    background-color: rgba(18, 179, 95, 0.28);
+    border-color: rgba(166, 233, 62, 0.7);
   }
 
   /* ============================================================
      8. Carrusel "Explora y conéctate" (solo sección #oferta)
      Clases con prefijo `lp-explore-`: no afectan a otras secciones.
      ============================================================ */
+ 
+/* Sección de tarjetas: Misión y Visión */
+.lp-explore-viewport {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 4px 4px 10px;
+
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+/* Cada tarjeta ocupa la mitad del contenedor */
+.lp-explore-slide {
+  width: 100%;
+  min-width: 0;
+  min-height: 300px;
+  perspective: 1200px;
+  box-sizing: border-box;
+}
+
+/* Conserva la altura de las tarjetas */
+.lp-explore-slide > article {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Mantener la adaptación para celulares */
+@media (max-width: 640px) {
   .lp-explore-viewport {
-    position: relative;
-    display: flex;
-    gap: 24px;
-    overflow-x: auto;
-    margin-inline: -4px;
-    padding: 4px 4px 10px;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    cursor: grab;
-    overscroll-behavior-x: contain;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 520px;
+    gap: 20px;
   }
+}
 
-  .lp-explore-viewport::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Durante el arrastre: sin ajuste magnético ni desplazamiento suave,
-     para que el carrusel siga al cursor de forma natural. */
-  .lp-explore-viewport.is-dragging {
-    cursor: grabbing;
-    scroll-snap-type: none;
-    scroll-behavior: auto;
-  }
-
-  /* 1 visible en móvil, 2 en tableta, exactamente 3 en escritorio. */
-  .lp-explore-slide {
-    flex: 0 0 100%;
-    min-width: 0;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-  }
-
-  .lp-explore-slide > article {
-    height: 100%;
-  }
-
-  @media (min-width: 640px) {
-    .lp-explore-slide {
-      flex-basis: calc((100% - 24px) / 2);
-    }
-  }
 
   @media (min-width: 1024px) {
     .lp-explore-slide {
