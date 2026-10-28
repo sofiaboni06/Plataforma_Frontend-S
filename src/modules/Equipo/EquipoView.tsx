@@ -95,8 +95,8 @@ function CircuitoFondo() {
     <svg className="eq-circuit" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
         <linearGradient id="eq-trace" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#00a651" stopOpacity="0.55" />
-          <stop offset="1" stopColor="#7ddc4a" stopOpacity="0.25" />
+          <stop offset="0" stopColor="#73efae" stopOpacity="0.42" />
+          <stop offset="1" stopColor="#a8f56a" stopOpacity="0.12" />
         </linearGradient>
       </defs>
       <g fill="none" stroke="url(#eq-trace)" strokeWidth="1.4" strokeLinejoin="round">
@@ -142,7 +142,7 @@ function TarjetaMiembro({ m, indice, onVerFoto }: TarjetaProps) {
     <img
       src={src}
       alt={m.nombre}
-      className="eq-person-photo"
+      className={`eq-person-photo eq-person-photo-${indice + 1}`}
       loading="lazy"
       onError={(e) => {
         e.currentTarget.onerror = null
@@ -154,6 +154,10 @@ function TarjetaMiembro({ m, indice, onVerFoto }: TarjetaProps) {
   return (
     <article className="eq-card" style={{ '--i': indice } as CSSProperties}>
       <span className="eq-card-sheen" aria-hidden="true" />
+      <div className="eq-card-index" aria-hidden="true">
+        <span>{String(indice + 1).padStart(2, '0')}</span>
+        <i />
+      </div>
       <button
         type="button"
         className="eq-person-photo-button"
@@ -198,8 +202,13 @@ export default function EquipoView() {
   useEffect(() => {
     if (!fotoGrande) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setFotoGrande(null)
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKey)
+    }
   }, [fotoGrande])
 
   return (
@@ -207,15 +216,48 @@ export default function EquipoView() {
       <CircuitoFondo />
 
       <header className="eq-intro">
-        <h1>Equipo SIGMA</h1>
-        <p>
-          Detrás de SIGMA hay un equipo de la Fábrica de Software que construye la plataforma de
-          gestión del centro: inventario, materiales de formación y el resto de módulos
-          administrativos. Esto lo hacemos juntos.
-        </p>
+        <div className="eq-intro-copy">
+          <div className="eq-system-state">
+            <span aria-hidden="true" />
+            Fábrica de Software · Núcleo operativo
+          </div>
+          <h1>Las personas detrás de <span>SIGMA</span></h1>
+          <p>
+            Un equipo multidisciplinario construye la plataforma que conecta inventario,
+            materiales de formación y los procesos administrativos del centro.
+          </p>
+        </div>
+        <aside className="eq-team-console" aria-label="Resumen del equipo">
+          <div className="eq-console-head">
+            <img src="/img/logo-fabrica-software.png" alt="Fábrica de Software" />
+            <span>Sistema / Equipo</span>
+          </div>
+          <dl>
+            <div>
+              <dt>Integrantes</dt>
+              <dd>06</dd>
+            </div>
+            <div>
+              <dt>Disciplinas</dt>
+              <dd>05</dd>
+            </div>
+            <div>
+              <dt>Objetivo</dt>
+              <dd>01</dd>
+            </div>
+          </dl>
+          <p><i /> Todos los perfiles conectados</p>
+        </aside>
       </header>
 
       <section className="eq-block">
+        <div className="eq-roster-head">
+          <div>
+            <span>Directorio de talento</span>
+            <h2>Equipo de desarrollo</h2>
+          </div>
+          <p>Selecciona una fotografía para ampliar el perfil.</p>
+        </div>
         <div className="eq-grid eq-pilares">
           {equipoActual.map((m, i) => (
             <TarjetaMiembro key={m.nombre} m={m} indice={i} onVerFoto={setFotoGrande} />
