@@ -20,22 +20,11 @@ function getErrorMessage(error: unknown) {
 function BrandLogo() {
   return (
     <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-md sm:h-20 sm:w-20">
-      <div className="absolute inset-2 rounded-3xl bg-linear-to-br from-sky-400/20 to-lime-400/20 blur-xl" />
-      <svg viewBox="0 0 100 100" className="relative h-14 w-14 sm:h-16 sm:w-16" fill="none" role="img" aria-label="Logotipo de SIGMA">
-        <defs>
-          <linearGradient id="sigma-blue" x1="15" y1="10" x2="55" y2="65" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#38BDF8" />
-            <stop offset="1" stopColor="#0759D6" />
-          </linearGradient>
-          <linearGradient id="sigma-green" x1="45" y1="25" x2="90" y2="90" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#BEF264" />
-            <stop offset="1" stopColor="#16A34A" />
-          </linearGradient>
-        </defs>
-        <path d="M75 21A36 36 0 1 0 80 64" stroke="url(#sigma-blue)" strokeWidth="13" strokeLinecap="round" />
-        <path d="M79 39A26 26 0 0 0 42 36" stroke="url(#sigma-green)" strokeWidth="11" strokeLinecap="round" />
-        <path d="M78 42L52 62L38 50" stroke="url(#sigma-green)" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <img
+        src="/img/logo-sigma.png"
+        alt="Logotipo de SIGMA"
+        className="relative h-14 w-14 object-contain sm:h-16 sm:w-16"
+      />
     </div>
   )
 }

@@ -4,7 +4,7 @@
  * al pasar el cursor y mostrar la regional y su ciudad sede.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 type Centro = { nombre: string; lugar: string }
@@ -322,13 +322,63 @@ export default function ColombiaMap({ className = '' }: { className?: string }) 
   const hostRef = useRef<HTMLDivElement>(null)
   const zoomRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
+  const pathsRef = useRef(new Map<string, SVGPathElement>())
   const [active, setActive] = useState<Sede | null>(null)
+  const [activeKey, setActiveKey] = useState<string | null>(null)
   const [pins, setPins] = useState<Pin[]>([])
   const [large, setLarge] = useState(false)
+  const [query, setQuery] = useState('')
+
+  const revealSede = useCallback((path: SVGPathElement, key: string, selected: Sede) => {
+    const host = hostRef.current
+    const zoom = zoomRef.current
+    if (!host || !zoom) return
+
+    host.querySelectorAll('.lp-dep.is-active').forEach((node) => node.classList.remove('is-active'))
+    path.classList.add('is-active')
+    const box = path.getBBox()
+    const cx = ((box.x + box.width / 2) / 1024) * 100
+    const cy = ((box.y + box.height / 2) / 1024) * 100
+    const span = Math.max(box.width, box.height)
+    const level = Math.min(2.15, Math.max(1.35, 340 / span))
+    zoom.style.transformOrigin = `${cx}% ${cy}%`
+    zoom.style.transform = `scale(${level})`
+    setActive(selected)
+    setActiveKey(key)
+
+    requestAnimationFrame(() => {
+      const stage = stageRef.current?.getBoundingClientRect()
+      const rect = path.getBoundingClientRect()
+      if (!stage) return
+      const baseX = rect.left + rect.width / 2 - stage.left
+      const baseY = rect.top + rect.height / 2 - stage.top
+      setPins(
+        selected.centros.map((centro, index) => {
+          const [dx, dy] = PIN_SPREAD[index] ?? PIN_SPREAD[0]
+          return { nombre: centro.nombre, x: baseX + dx, y: baseY + dy }
+        }),
+      )
+    })
+  }, [])
+
+  const searchResults = useMemo(() => {
+    const term = query.trim().toLocaleLowerCase('es')
+    if (term.length < 2) return []
+
+    return Object.entries(SEDES)
+      .filter(([, item]) =>
+        [item.regional, item.ciudad, ...item.centros.flatMap((centro) => [centro.nombre, centro.lugar])]
+          .join(' ')
+          .toLocaleLowerCase('es')
+          .includes(term),
+      )
+      .slice(0, 6)
+  }, [query])
 
   useEffect(() => {
     const host = hostRef.current
     if (!large || !host) return
+    const paths = pathsRef.current
     let cancelled = false
 
     loadMapSvg()
@@ -353,33 +403,11 @@ export default function ColombiaMap({ className = '' }: { className?: string }) 
             'aria-label',
             `${sede.ciudad}, ${sede.centros.length} ${sede.centros.length === 1 ? 'sede' : 'sedes'}`,
           )
-          const show = () => {
-            host.querySelectorAll('.lp-dep.is-active').forEach((node) => node.classList.remove('is-active'))
-            path.classList.add('is-active')
-            const box = path.getBBox()
-            const cx = ((box.x + box.width / 2) / 1024) * 100
-            const cy = ((box.y + box.height / 2) / 1024) * 100
-            const span = Math.max(box.width, box.height)
-            const level = Math.min(2.15, Math.max(1.35, 340 / span))
-            zoom.style.transformOrigin = `${cx}% ${cy}%`
-            zoom.style.transform = `scale(${level})`
-            setActive(sede)
-            requestAnimationFrame(() => {
-              const stage = stageRef.current?.getBoundingClientRect()
-              const rect = path.getBoundingClientRect()
-              if (!stage) return
-              const baseX = rect.left + rect.width / 2 - stage.left
-              const baseY = rect.top + rect.height / 2 - stage.top
-              setPins(
-                sede.centros.map((centro, index) => {
-                  const [dx, dy] = PIN_SPREAD[index] ?? PIN_SPREAD[0]
-                  return { nombre: centro.nombre, x: baseX + dx, y: baseY + dy }
-                }),
-              )
-            })
-          }
+          paths.set(key, path)
+          const show = () => revealSede(path, key, sede)
           path.addEventListener('pointerenter', show)
           path.addEventListener('focus', show)
+          path.addEventListener('click', show)
         })
       })
       .catch(() => {
@@ -388,9 +416,10 @@ export default function ColombiaMap({ className = '' }: { className?: string }) 
 
     return () => {
       cancelled = true
+      paths.clear()
       host.innerHTML = ''
     }
-  }, [large])
+  }, [large, revealSede])
 
   useEffect(() => {
     if (!large) return
@@ -411,6 +440,14 @@ export default function ColombiaMap({ className = '' }: { className?: string }) 
     if (zoom) zoom.style.transform = 'scale(1)'
     setPins([])
     setActive(null)
+    setActiveKey(null)
+  }
+
+  const selectResult = (key: string, selected: Sede) => {
+    const path = pathsRef.current.get(key)
+    if (!path) return
+    revealSede(path, key, selected)
+    setQuery('')
   }
 
   const map = (
@@ -419,11 +456,83 @@ export default function ColombiaMap({ className = '' }: { className?: string }) 
       onPointerLeave={large ? undefined : close}
     >
       <div className="lp-map-toolbar">
-        <button type="button" className="lp-screen-btn" onClick={() => setLarge((value) => !value)}>
-          {large ? 'Cerrar' : 'Pantalla grande'}
-        </button>
+        {large ? (
+          <>
+            <div className="lp-map-identity">
+              <span className="lp-map-signal" aria-hidden="true" />
+              <span>
+                <strong>Red territorial SENA</strong>
+                <small>Explorador nacional de sedes</small>
+              </span>
+            </div>
+            <div className="lp-map-search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="m16 16 4 4" />
+              </svg>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Busca una regional, ciudad o centro"
+                aria-label="Buscar regional, ciudad o centro de formación"
+              />
+              {query ? (
+                <button type="button" onClick={() => setQuery('')} aria-label="Limpiar búsqueda">
+                  ×
+                </button>
+              ) : null}
+              {query.trim().length >= 2 ? (
+                <div className="lp-map-results">
+                  {searchResults.length ? (
+                    searchResults.map(([key, result]) => (
+                      <button key={key} type="button" onClick={() => selectResult(key, result)}>
+                        <span>{result.regional}</span>
+                        <small>{result.ciudad} · {result.centros.length} centros</small>
+                      </button>
+                    ))
+                  ) : (
+                    <p>No encontramos coincidencias</p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+            <div className="lp-map-actions">
+              {active ? (
+                <button type="button" className="lp-map-reset" onClick={close}>
+                  Restablecer
+                </button>
+              ) : null}
+              <button type="button" className="lp-screen-btn" onClick={() => setLarge(false)}>
+                Cerrar <kbd>Esc</kbd>
+              </button>
+            </div>
+          </>
+        ) : (
+          <button type="button" className="lp-screen-btn" onClick={() => setLarge(true)}>
+            Explorar mapa
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
+            </svg>
+          </button>
+        )}
       </div>
       <div ref={stageRef} className="lp-colombia-stage">
+        {large ? (
+          <>
+            <div className="lp-map-orbit lp-map-orbit-one" aria-hidden="true" />
+            <div className="lp-map-orbit lp-map-orbit-two" aria-hidden="true" />
+            <div className="lp-map-scan" aria-hidden="true" />
+            <div className="lp-map-readout lp-map-readout-top">
+              <span>CO / 32 REGIONES</span>
+              <b>COBERTURA ACTIVA</b>
+            </div>
+            <div className="lp-map-readout lp-map-readout-bottom">
+              <span>04°35′N 74°04′W</span>
+              <b>SELECCIONA UN TERRITORIO</b>
+            </div>
+          </>
+        ) : null}
         {large ? (
           <div ref={zoomRef} className="lp-colombia-zoom">
             <div ref={hostRef} className="lp-colombia-host" />
@@ -450,10 +559,11 @@ export default function ColombiaMap({ className = '' }: { className?: string }) 
       <div className={`lp-sede-card${active ? ' is-visible' : ''}`} aria-live="polite">
         {active ? (
           <>
+            {large ? <span className="lp-sede-status">Regional conectada</span> : null}
+            <p className="lp-sede-city">Regional {active.regional}</p>
             <p className="lp-sede-kicker">
               {active.ciudad} · {active.centros.length} {active.centros.length === 1 ? 'sede' : 'sedes'}
             </p>
-            <p className="lp-sede-city">Regional {active.regional}</p>
             <ul className="lp-sede-list">
               {active.centros.map((centro) => (
                 <li key={centro.nombre}>
@@ -467,9 +577,24 @@ export default function ColombiaMap({ className = '' }: { className?: string }) 
             </ul>
           </>
         ) : (
-          <p className="lp-sede-hint">Abre pantalla grande y pasa el cursor por una ciudad</p>
+          <div className="lp-sede-empty">
+            <span aria-hidden="true">+</span>
+            <p className="lp-sede-city">{large ? 'Explora el territorio' : 'Mapa interactivo nacional'}</p>
+            <p className="lp-sede-hint">
+              {large
+                ? 'Busca una ciudad o selecciona un departamento para descubrir sus centros.'
+                : 'Abre el explorador y consulta regionales, ciudades y centros de formación.'}
+            </p>
+          </div>
         )}
       </div>
+      {large ? (
+        <div className="lp-map-footer">
+          <span><i /> Sistema operativo</span>
+          <span>{activeKey ? `REGIÓN / ${activeKey.toLocaleUpperCase('es')}` : 'VISTA / NACIONAL'}</span>
+          <span>Cursor para explorar · Clic para fijar</span>
+        </div>
+      ) : null}
     </div>
   )
 
