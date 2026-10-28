@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import InventoryCenterBadge from '@/modules/inventario/components/InventoryCenterBadge'
 import {
+  ExcelIcon,
   EyeIcon,
   InventoryIcon,
   PencilIcon,
@@ -41,7 +42,9 @@ import { getAllCategorias } from '@/modules/inventario/data/categoria'
 import { getAllItems } from '@/modules/inventario/data/item'
 import {
   createElemento,
+  downloadPlantillaElementos,
   getClasificacionesActivas,
+  importElementos,
   getCodigosEstandar,
   getElementos,
   getUnidadesMedida,
@@ -156,6 +159,9 @@ export default function ElementosPage() {
   const canEdit = permit('elemento.editar', 'elementos', 'edit')
   const canView = permit('elemento.ver', 'elementos', 'view')
   const canReport = canGenerateReports(isAdmin, user?.permissions)
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [erroresExcel, setErroresExcel] = useState<string[]>([])
 
   const { search, setSearch, page, setPage, resetPage } = useTableState()
 
@@ -741,29 +747,88 @@ export default function ElementosPage() {
       <PageHeader
         icon={<InventoryIcon />}
         title="Gestionar elementos"
-        description="El elemento es el stock de un ítem. La cantidad en el stand es mínimo 10. La cantidad mínima es solo la alerta."
+        description="El elemento es el stock de un ítem. Descarga la plantilla, elige las listas y súbela en Excel, o crea elementos uno a uno."
         context={<InventoryCenterBadge />}
-        action={
-          <div className="flex gap-2">
-            {canReport ? (
-              <FieldSelector
-                onExport={handleExport}
-                nombreReporte="materiales"
-                disabled={loading}
-              />
-            ) : null}
-            {canCreate ? (
+      />
+      {canReport || canCreate ? (
+        <div className="mb-4 flex items-center gap-2 overflow-x-auto [&_button]:h-10 [&_button]:shrink-0">
+          {canReport ? (
+            <FieldSelector
+              onExport={handleExport}
+              nombreReporte="materiales"
+              disabled={loading}
+            />
+          ) : null}
+          {canCreate ? (
+            <>
               <Button
                 type="button"
+                size="sm"
+                variant="secondary"
+                icon={<ExcelIcon className="size-4" />}
+                onClick={() => {
+                  void downloadPlantillaElementos().catch((caught) => {
+                    setError(caught instanceof ApiError ? caught.message : 'No se pudo descargar la plantilla.')
+                  })
+                }}
+              >
+                Descargar plantilla
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                icon={<ExcelIcon className="size-4" />}
+                disabled={uploading}
+                onClick={() => fileInput.current?.click()}
+              >
+                {uploading ? 'Cargando Excel…' : 'Subir Excel'}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="ml-auto shrink-0"
                 icon={<PlusIcon className="size-4" />}
                 onClick={openCreate}
               >
                 Nuevo elemento
               </Button>
-            ) : null}
-          </div>
-        }
+            </>
+          ) : null}
+        </div>
+      ) : null}
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          if (!file) return
+          setUploading(true)
+          setError(null)
+          setErroresExcel([])
+          void importElementos(file)
+            .then(async (result) => {
+              setErroresExcel(result.errores)
+              setNotice(
+                result.errores.length
+                  ? `Se crearon ${result.creados} elementos. Quedaron ${result.errores.length} filas por revisar.`
+                  : `Se crearon ${result.creados} elementos desde el Excel.`,
+              )
+              await loadData()
+            })
+            .catch((caught) => {
+              setError(caught instanceof ApiError ? caught.message : 'No se pudo importar el Excel.')
+            })
+            .finally(() => setUploading(false))
+        }}
       />
+
+      {erroresExcel.length ? (
+        <ErrorBanner message={erroresExcel.slice(0, 8).join(' ')} />
+      ) : null}
 
       {notice ? <Toast message={notice} onClose={clearNotice} /> : null}
 

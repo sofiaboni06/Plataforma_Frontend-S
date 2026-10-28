@@ -2,10 +2,19 @@ import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const apiTarget = env.VITE_API_URL
+  if (!apiTarget) {
+    throw new Error(
+      'Define VITE_API_URL en .env con la URL del backend (por ejemplo http://localhost:3333).',
+    )
+  }
+
+  return {
   plugins: [
     react(),
     babel({ presets: [reactCompilerPreset()] }),
@@ -26,13 +35,14 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3333/',
+        target: apiTarget,
         changeOrigin: true,
       },
       '/__transmit': {
-        target: 'http://localhost:3333/',
+        target: apiTarget,
         changeOrigin: true,
       },
     },
   },
+}
 })
