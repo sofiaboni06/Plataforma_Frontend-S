@@ -3,19 +3,35 @@ import '@/modules/landing/styles/landing.css'
 const footerColumns = [
   {
     title: 'Institucional',
-    links: ['Quiénes somos', 'Misión y visión', 'Transparencia'],
+    links: [
+      { label: 'Quiénes somos', href: '#contacto' },
+      { label: 'Misión y visión', href: '#oferta' },
+      { label: 'Transparencia', href: '#contacto' },
+    ],
   },
   {
     title: 'Atención al ciudadano',
-    links: ['PQRS', 'Trámites y servicios', 'Canales de atención'],
+    links: [
+      { label: 'PQRS', href: '#contacto' },
+      { label: 'Trámites y servicios', href: '#contacto' },
+      { label: 'Canales de atención', href: '#contacto' },
+    ],
   },
   {
     title: 'Transparencia',
-    links: ['Datos abiertos', 'Contratación', 'Rendición de cuentas'],
+    links: [
+      { label: 'Datos abiertos', href: '#contacto' },
+      { label: 'Contratación', href: '#contacto' },
+      { label: 'Rendición de cuentas', href: '#contacto' },
+    ],
   },
   {
     title: 'Operación',
-    links: ['Sede principal', 'Línea de atención', 'Correo institucional'],
+    links: [
+      { label: 'Sede principal', href: '#contacto' },
+      { label: 'Línea de atención', href: '#contacto' },
+      { label: 'Correo institucional', href: '#contacto' },
+    ],
   },
 ]
 
@@ -73,8 +89,8 @@ export default function SiteFooter({ className = '' }: { className?: string }) {
               <p className="lp-footer-heading">{column.title}</p>
               <ul>
                 {column.links.map((link) => (
-                  <li key={link}>
-                    <a href="#contacto">{link}</a>
+                  <li key={link.label}>
+                    <a href={link.href}>{link.label}</a>
                   </li>
                 ))}
               </ul>

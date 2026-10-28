@@ -62,6 +62,16 @@ const presence = [
   },
 ]
 
+const missionImages = [
+  '/img/mision-1.jpg', // Reemplaza con tus rutas reales
+  '/img/mision-2.jpg',
+  '/img/mision-3.png',
+];
+const visionImages = [
+  '/img/vision-1.jpg', // Reemplaza con tus rutas reales
+  '/img/vision-2.png',
+  '/img/vision-3.jpg',
+];
 /**
  * Tarjetas de la sección "Explora y conéctate".
  *
@@ -76,6 +86,7 @@ const exploreCards = [
     title: 'Misión',
     text: 'Centralizar y optimizar los procesos administrativos mediante una plataforma modular que facilite la gestión de la información y mejore la eficiencia institucional.',
     icon: 'target' as const,
+    images: missionImages,
     gallery: true,
     backTitle: 'Nuestro propósito',
     back: [
@@ -98,6 +109,7 @@ const exploreCards = [
     title: 'Visión',
     text: 'Ser una plataforma administrativa innovadora, segura y escalable, capaz de integrar nuevos módulos y responder a las necesidades futuras de la institución.',
     icon: 'eye' as const,
+    images: visionImages,
     gallery: false,
     backTitle: 'Hacia dónde vamos',
     back: [
@@ -132,6 +144,52 @@ const services = [
   { title: 'Certificación', text: 'Reconoce tus competencias.', icon: 'badge' as const },
   { title: 'Bienestar', text: 'Cuida tu salud física, mental y social.', icon: 'heart' as const },
 ]
+
+function ImageCarousel({ images }: { images: string[] }) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [images.length])
+
+  return (
+    <div className="relative w-full h-48 sm:h-52 overflow-hidden group">
+      {images.map((img, index) => (
+        <img
+          key={img}
+          src={img}
+          alt={`Foto ${index + 1}`}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
+            index === currentIndex ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      ))}
+      {/* Degradado para que los puntos blancos se vean bien sobre fotos claras */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+      
+      {/* Indicadores */}
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+        {images.map((_, idx) => (
+          <button
+            key={idx}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setCurrentIndex(idx);
+            }}
+            className={`h-1.5 rounded-full transition-all ${
+              idx === currentIndex ? 'bg-white w-4' : 'bg-white/60 w-1.5'
+            }`}
+            aria-label={`Ver imagen ${idx + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function Dashboard() {
   return (
@@ -476,28 +534,41 @@ function FormationOffer() {
                 className="lp-explore-slide"
               >
                 <div className={`lp-flip-inner${isFlipped ? ' is-flipped' : ''}`}>
-                  <article
-                    aria-hidden={isFlipped}
-                    inert={isFlipped}
-                    className="lp-card lp-flip-face lp-flip-front flex flex-col px-6 py-7"
-                  >
-                    <span className="lp-icon-tile">
-                      <Glyph name={card.icon} />
-                    </span>
-                    <h3 className="mt-5 text-[18px] font-bold text-[#0a4030]">{card.title}</h3>
-                    <p className="mt-2 mb-6 min-h-12 text-[14px] leading-6 text-[#5b7368]">
-                      {card.text}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setFlip(card.id, true)}
-                      aria-label={`Explorar ${card.title}`}
-                      className="lp-btn lp-btn-primary lp-btn-block mt-auto"
-                    >
-                      Explorar
-                      <ArrowGlyph />
-                    </button>
-                  </article>
+                
+<article
+  aria-hidden={isFlipped}
+  inert={isFlipped}
+  className="lp-card lp-flip-face lp-flip-front overflow-hidden bg-white/70"
+>
+  {/* 1. Imagen del carrusel arriba */}
+  {card.images && <ImageCarousel images={card.images} />}
+
+  {/* 2. Contenido de texto abajo */}
+  <div className="px-6 py-6 flex flex-col relative bg-white/50 backdrop-blur-sm">
+    {/* 3. Icono superpuesto */}
+<span className="lp-icon-tile lp-explore-badge absolute -top-8 left-6 z-10">
+  <Glyph name={card.icon} />
+</span>
+    
+    {/* Espacio para que el título no choque con el icono */}
+    <div className="pt-6">
+      <h3 className="text-[20px] font-bold text-[#0a4030]">{card.title}</h3>
+      <p className="mt-2 text-[14px] leading-6 text-[#5b7368]">
+        {card.text}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      onClick={() => setFlip(card.id, true)}
+      aria-label={`Explorar ${card.title}`}
+      className="lp-btn lp-btn-primary mt-6 w-fit px-6"
+    >
+      Explorar
+      <ArrowGlyph />
+    </button>
+  </div>
+</article>
                   <article
                     aria-hidden={!isFlipped}
                     inert={!isFlipped}
@@ -567,10 +638,7 @@ function FormationOffer() {
 }
 
 /**
- * SIMA — Sistema Integral de Módulos Administrativos.
- * Ocupa el lugar de las anteriores secciones de búsqueda y noticias.
- * Las tarjetas son visuales: no existen destinos SIMA implementados y no se
- * les atribuyen acciones ni rutas inexistentes.
+ 
  */
 const simaCards = [
   { title: 'Panel central', icon: 'monitor' as const },
@@ -583,7 +651,7 @@ function Sima() {
     <section id="sima" className="scroll-mt-8 mx-auto max-w-7xl px-5 pb-16 lg:px-10">
       <h2 className="lp-h2 text-[27px] lg:text-[32px]">SIGMA</h2>
       <p className="mt-3 text-[18px] font-bold text-[#0a4030]">
-        SISTEMA INTEGRAL DE GESTION DE MODULOS
+        SISTEMA INTEGRAL PARA LA GESTIÓN DE MÓDULOS
         <br />
         ADMINISTRATIVOS
       </p>
