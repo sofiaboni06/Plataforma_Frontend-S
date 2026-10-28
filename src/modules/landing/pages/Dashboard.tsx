@@ -72,90 +72,55 @@ const presence = [
  */
 const exploreCards = [
   {
-    id: 'proyectos',
-    title: 'Proyectos de aprendices',
-    text: 'Descubre proyectos innovadores creados por aprendices e instructores de todo el país.',
-    icon: 'bulb' as const,
+    id: 'Mision',
+    title: 'Misión',
+    text: 'Centralizar y optimizar los procesos administrativos mediante una plataforma modular que facilite la gestión de la información y mejore la eficiencia institucional.',
+    icon: 'target' as const,
     gallery: true,
-    backTitle: 'Lo que encontrarás',
+    backTitle: 'Nuestro propósito',
     back: [
-      { icon: 'badge' as const, label: 'Nombre del proyecto y programa asociado' },
-      { icon: 'wrench' as const, label: 'Descripción del problema que resuelve' },
-      { icon: 'monitor' as const, label: 'Tecnologías utilizadas' },
+      {
+        icon: 'layers' as const,
+        label: 'Integrar diferentes módulos administrativos',
+      },
+      {
+        icon: 'database' as const,
+        label: 'Centralizar y organizar la información',
+      },
+      {
+        icon: 'zap' as const,
+        label: 'Optimizar los procesos institucionales',
+      },
     ],
   },
   {
-    id: 'comunidad',
-    title: 'Comunidad SENA',
-    text: 'Conecta, colabora y comparte con otros aprendices.',
-    icon: 'users' as const,
+    id: 'Vision',
+    title: 'Visión',
+    text: 'Ser una plataforma administrativa innovadora, segura y escalable, capaz de integrar nuevos módulos y responder a las necesidades futuras de la institución.',
+    icon: 'eye' as const,
     gallery: false,
-    backTitle: 'Lo que encontrarás',
+    backTitle: 'Hacia dónde vamos',
     back: [
-      { icon: 'users' as const, label: 'Grupos por programa y especialidad' },
-      { icon: 'people' as const, label: 'Publicaciones y preguntas' },
-      { icon: 'pin' as const, label: 'Encuentra compañeros de estudio' },
-      { icon: 'briefcase' as const, label: 'Equipos para proyectos colaborativos' },
+      {
+        icon: 'trending-up' as const,
+        label: 'Impulsar la mejora continua',
+      },
+      {
+        icon: 'shield-check' as const,
+        label: 'Fortalecer la seguridad de la información',
+      },
+      {
+        icon: 'blocks' as const,
+        label: 'Incorporar nuevos módulos administrativos',
+      },
+      {
+        icon: 'lightbulb' as const,
+        label: 'Promover la innovación tecnológica',
+      },
     ],
   },
-  {
-    id: 'academyex',
-    title: 'AcademyEX',
-    text: 'Cursos, rutas y contenidos digitales para potenciar tus habilidades.',
-    icon: 'monitor' as const,
-    gallery: false,
-    backTitle: 'Lo que encontrarás',
-    back: [
-      { icon: 'hat' as const, label: 'Cursos disponibles' },
-      { icon: 'pin' as const, label: 'Rutas de aprendizaje' },
-      { icon: 'monitor' as const, label: 'Contenidos digitales' },
-      { icon: 'bulb' as const, label: 'Cómo acceder a los recursos formativos' },
-    ],
-  },
-  {
-    id: 'agenda',
-    title: 'Mi agenda SENA',
-    text: 'Todas tus actividades, entregas, evaluaciones y eventos en un solo lugar.',
-    icon: 'clock' as const,
-    gallery: false,
-    backTitle: 'Lo que encontrarás',
-    back: [
-      { icon: 'clock' as const, label: 'Calendario semanal y mensual' },
-      { icon: 'briefcase' as const, label: 'Actividades y entregas' },
-      { icon: 'badge' as const, label: 'Evaluaciones y tutorías' },
-      { icon: 'pin' as const, label: 'Eventos del centro de formación' },
-      { icon: 'heart' as const, label: 'Recordatorios personales' },
-    ],
-  },
-  {
-    id: 'perfil',
-    title: 'Mi perfil de competencias',
-    text: 'Construye tu portafolio y muestra tus habilidades y proyectos.',
-    icon: 'badge' as const,
-    gallery: false,
-    backTitle: 'Lo que encontrarás',
-    back: [
-      { icon: 'wrench' as const, label: 'Habilidades técnicas y personales' },
-      { icon: 'briefcase' as const, label: 'Portafolio de proyectos' },
-      { icon: 'monitor' as const, label: 'Herramientas y tecnologías que dominas' },
-      { icon: 'heart' as const, label: 'Competencias por fortalecer' },
-    ],
-  },
-  {
-    id: 'ayuda',
-    title: 'Centro de ayuda inteligente',
-    text: 'Resuelve tus dudas, consulta guías y recibe orientación personalizada.',
-    icon: 'heart' as const,
-    gallery: false,
-    backTitle: 'Lo que encontrarás',
-    back: [
-      { icon: 'monitor' as const, label: 'Buscador de preguntas frecuentes' },
-      { icon: 'hat' as const, label: 'Guías paso a paso' },
-      { icon: 'building' as const, label: 'Orientación sobre trámites' },
-      { icon: 'people' as const, label: 'Canales oficiales de atención' },
-    ],
-  },
-]
+];
+
 
 /* Número fijo de indicadores de posición del carrusel. */
 const EXPLORE_DOT_COUNT = 3
@@ -712,6 +677,15 @@ type GlyphName =
   | 'pin'
   | 'building'
   | 'hat'
+  | 'target'
+  | 'eye'
+  | 'layers'
+  | 'database'
+  | 'zap'
+  | 'trending-up'
+  | 'shield-check'
+  | 'blocks'
+  | 'lightbulb'
   | 'people'
   | 'wrench'
   | 'monitor'
@@ -731,6 +705,70 @@ function Glyph({ name }: { name: GlyphName }) {
     viewBox: '0 0 24 24',
     fill: 'none',
     'aria-hidden': true as const,
+  }
+
+  if (name === 'target') {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="12" cy="12" r="1" fill="currentColor" />
+      </svg>
+    )
+  }
+  if (name === 'eye') {
+    return (
+      <svg {...common}>
+        <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    )
+  }
+  if (name === 'layers') {
+    return (
+      <svg {...common}>
+        <path d="m12 3 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16l9 5 9-5" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (name === 'database') {
+    return (
+      <svg {...common}>
+        <ellipse cx="12" cy="5" rx="8" ry="3" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    )
+  }
+  if (name === 'zap') {
+    return (
+      <svg {...common}>
+        <path d="m13 2-9 12h7l-1 8 10-13h-7l0-7Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (name === 'trending-up') {
+    return (
+      <svg {...common}>
+        <path d="M3 17 9 11l4 4 8-8M15 7h6v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (name === 'blocks') {
+    return (
+      <svg {...common}>
+        <rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    )
+  }
+  if (name === 'lightbulb') {
+    return (
+      <svg {...common}>
+        <path d="M9 18h6M10 21h4M8.5 14.5a6 6 0 1 1 7 0c-.8.6-1.2 1.3-1.2 2.5h-3.6c0-1.2-.4-1.9-1.2-2.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
   }
 
   if (name === 'pin') {
@@ -823,7 +861,7 @@ function Glyph({ name }: { name: GlyphName }) {
       </svg>
     )
   }
-  if (name === 'shield') {
+  if (name === 'shield' || name === 'shield-check') {
     return (
       <svg {...common}>
         <path

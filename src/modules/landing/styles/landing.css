@@ -1458,50 +1458,48 @@
      8. Carrusel "Explora y conéctate" (solo sección #oferta)
      Clases con prefijo `lp-explore-`: no afectan a otras secciones.
      ============================================================ */
+ 
+/* Sección de tarjetas: Misión y Visión */
+.lp-explore-viewport {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 4px 4px 10px;
+
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+/* Cada tarjeta ocupa la mitad del contenedor */
+.lp-explore-slide {
+  width: 100%;
+  min-width: 0;
+  min-height: 300px;
+  perspective: 1200px;
+  box-sizing: border-box;
+}
+
+/* Conserva la altura de las tarjetas */
+.lp-explore-slide > article {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Mantener la adaptación para celulares */
+@media (max-width: 640px) {
   .lp-explore-viewport {
-    position: relative;
-    display: flex;
-    gap: 24px;
-    overflow-x: auto;
-    margin-inline: -4px;
-    padding: 4px 4px 10px;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    cursor: grab;
-    overscroll-behavior-x: contain;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 520px;
+    gap: 20px;
   }
+}
 
-  .lp-explore-viewport::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Durante el arrastre: sin ajuste magnético ni desplazamiento suave,
-     para que el carrusel siga al cursor de forma natural. */
-  .lp-explore-viewport.is-dragging {
-    cursor: grabbing;
-    scroll-snap-type: none;
-    scroll-behavior: auto;
-  }
-
-  /* 1 visible en móvil, 2 en tableta, exactamente 3 en escritorio. */
-  .lp-explore-slide {
-    flex: 0 0 100%;
-    min-width: 0;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-  }
-
-  .lp-explore-slide > article {
-    height: 100%;
-  }
-
-  @media (min-width: 640px) {
-    .lp-explore-slide {
-      flex-basis: calc((100% - 24px) / 2);
-    }
-  }
 
   @media (min-width: 1024px) {
     .lp-explore-slide {
