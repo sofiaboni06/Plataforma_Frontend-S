@@ -34,6 +34,8 @@ import {
   updateListaMaestra,
   type ListaMaestraItem,
 } from '@/modules/materiales-formacion/data/listaMaestra'
+import { getCodigosEstandar, getUnidadesMedida } from '@/modules/inventario/data/elemento'
+import type { CodigoEstandarApi, UnidadMedidaApi } from '@/modules/inventario/types/elemento'
 import { getLotes, type LoteVigencia } from '@/modules/presupuesto/data/presupuesto'
 import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
 
@@ -45,7 +47,7 @@ const EMPTY_FORM = {
   codigoUnspsc: '',
   producto: '',
   descripcionTecnica: '',
-  unidadMedida: 'Unidad',
+  unidadMedida: '',
   cantidadBase: '1',
   valorUnitario: '',
   loteId: '',
@@ -67,6 +69,8 @@ export default function ListasMaestrasMaterialPage() {
   const programaId = searchParams.get('programaId') ?? ''
   const [items, setItems] = useState<ListaMaestraItem[]>([])
   const [lotes, setLotes] = useState<LoteVigencia[]>([])
+  const [unidades, setUnidades] = useState<UnidadMedidaApi[]>([])
+  const [codigos, setCodigos] = useState<CodigoEstandarApi[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -85,6 +89,12 @@ export default function ListasMaestrasMaterialPage() {
     getLotes(anio)
       .then(setLotes)
       .catch(() => setLotes([]))
+    getUnidadesMedida()
+      .then(setUnidades)
+      .catch(() => setUnidades([]))
+    getCodigosEstandar()
+      .then(setCodigos)
+      .catch(() => setCodigos([]))
   }, [])
 
   useEffect(() => {
@@ -436,13 +446,21 @@ export default function ListasMaestrasMaterialPage() {
                 {formError}
               </p>
             ) : null}
-            <TextField
+            <SelectField
               id="lm-unspsc"
               label="Código UNSPSC"
               value={form.codigoUnspsc}
-              onChange={(event) => patchForm('codigoUnspsc', event.target.value)}
-              maxLength={20}
-              required
+              onChange={(value) => patchForm('codigoUnspsc', value)}
+              placeholder="Elija un código"
+              options={[
+                ...(form.codigoUnspsc && !codigos.some((codigo) => codigo.codigo === form.codigoUnspsc)
+                  ? [{ value: form.codigoUnspsc, label: form.codigoUnspsc }]
+                  : []),
+                ...codigos.map((codigo) => ({
+                  value: codigo.codigo,
+                  label: `${codigo.codigo} · ${codigo.nombre}`,
+                })),
+              ]}
             />
             <TextField
               id="lm-cantidad"
@@ -472,11 +490,32 @@ export default function ListasMaestrasMaterialPage() {
                 onChange={(event) => patchForm('descripcionTecnica', event.target.value)}
               />
             </div>
-            <TextField
+            <SelectField
               id="lm-unidad"
               label="Unidad de medida"
               value={form.unidadMedida}
-              onChange={(event) => patchForm('unidadMedida', event.target.value)}
+              onChange={(value) => patchForm('unidadMedida', value)}
+              placeholder="Elija una unidad"
+              required={false}
+              options={[
+                ...unidades.map((unidad) => {
+                  const label =
+                    unidad.abreviatura && unidad.abreviatura.toLowerCase() !== unidad.nombre.toLowerCase()
+                      ? `${unidad.nombre} (${unidad.abreviatura})`
+                      : unidad.nombre
+                  return { value: label, label }
+                }),
+                ...(form.unidadMedida &&
+                !unidades.some((unidad) => {
+                  const label =
+                    unidad.abreviatura && unidad.abreviatura.toLowerCase() !== unidad.nombre.toLowerCase()
+                      ? `${unidad.nombre} (${unidad.abreviatura})`
+                      : unidad.nombre
+                  return label === form.unidadMedida
+                })
+                  ? [{ value: form.unidadMedida, label: form.unidadMedida }]
+                  : []),
+              ]}
             />
             <TextField
               id="lm-valor"

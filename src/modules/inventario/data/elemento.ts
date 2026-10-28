@@ -1,4 +1,5 @@
-import { api } from '@/shared/lib/api'
+import { api, apiBlob } from '@/shared/lib/api'
+import { descargarArchivo } from '@/modules/reportes/lib/export'
 import type {
   ClasificacionElementoApi,
   CodigoEstandarApi,
@@ -33,6 +34,26 @@ export function getElementos(): Promise<ElementoApi[]> {
 
 export function getElemento(id: string | number): Promise<ElementoApi> {
   return api<ElementoApi>(`/inventario/elementos/${id}`)
+}
+
+export type ImportElementosResult = {
+  creados: number
+  errores: string[]
+  items: ElementoApi[]
+}
+
+export async function downloadPlantillaElementos() {
+  const blob = await apiBlob('/inventario/elementos/plantilla')
+  descargarArchivo(blob, 'plantilla-elementos.xlsx')
+}
+
+export function importElementos(file: File) {
+  const form = new FormData()
+  form.append('archivo', file)
+  return api<ImportElementosResult>('/inventario/elementos/importar', {
+    method: 'POST',
+    body: form,
+  })
 }
 
 export function createElemento(payload: CreateElementoPayload): Promise<ElementoApi> {
