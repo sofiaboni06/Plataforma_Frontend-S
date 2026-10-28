@@ -46,6 +46,18 @@ function iconoEtiqueta(etiqueta: string): ReactNode {
 const avatarFallback = (nombre: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(nombre)}&background=0B3D2E&color=fff&size=176&bold=true&format=png`
 
+function iconoEtiqueta(etiqueta: string) {
+  if (etiqueta === "Móvil") {
+    return <FaMobileAlt aria-hidden="true" />;
+  }
+
+  if (["Web", "Full Stack", "Api"].includes(etiqueta)) {
+    return <FaLaptopCode aria-hidden="true" />;
+  }
+
+  return null;
+}
+
 const equipoActual: Miembro[] = [
   {
     nombre: 'Henry Bastidas',

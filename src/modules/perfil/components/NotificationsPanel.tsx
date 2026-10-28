@@ -7,44 +7,69 @@ import {
   notificationPreview,
   timeAgo,
 } from '@/modules/notificaciones/lib/presentacion'
+import { BellIcon } from '@/modules/perfil/components/icons'
 
 export default function NotificationsPanel() {
   const navigate = useNavigate()
-  const { items, unread, loading, error, hasMore, loadMore, markRead, markAllRead } = useNotifications()
+  const { items, unread, loading, error, hasMore, loadMore, markRead, markAllRead } =
+    useNotifications()
 
   return (
-    <div className="mt-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-sena-text/70">
-          {unread ? `Tienes ${unread} sin leer.` : 'Estás al día.'}
-        </p>
+    <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-base font-semibold text-sena-text">Notificaciones</h3>
+          <p className="mt-0.5 text-sm text-sena-text/55">
+            {unread ? `Tienes ${unread} sin leer.` : 'Estás al día.'}
+          </p>
+        </div>
         <Button variant="secondary" size="sm" disabled={!unread} onClick={() => void markAllRead()}>
           Marcar todas como leídas
         </Button>
       </div>
 
-      {error ? <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+      {error ? (
+        <div className="perfil-pop mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
 
       {items.length === 0 ? (
-        <p className="rounded-xl bg-sena-muted px-4 py-8 text-center text-sm text-sena-text/60">
-          {loading ? 'Cargando notificaciones…' : 'No tienes notificaciones.'}
-        </p>
+        <div className="mt-5 flex flex-col items-center rounded-xl border border-dashed border-sena-dark/15 bg-sena-muted/40 px-4 py-12 text-center">
+          <span className="grid size-12 place-items-center rounded-full bg-white text-sena shadow-sm ring-1 ring-sena-dark/10">
+            <BellIcon className="size-6" />
+          </span>
+          <p className="mt-3 text-sm text-sena-text/60">
+            {loading ? 'Cargando notificaciones…' : 'No tienes notificaciones.'}
+          </p>
+        </div>
       ) : (
-        <ul className="divide-y divide-sena-dark/8 overflow-hidden rounded-xl border border-sena-dark/10">
-          {items.map((notification) => {
+        <ul className="mt-5 space-y-2.5">
+          {items.map((notification, index) => {
             const mark = notificationMark(notification.tipo, notification.titulo)
             return (
-              <li key={notification.id}>
+              <li
+                key={notification.id}
+                className="perfil-rise"
+                style={{ ['--delay' as string]: `${Math.min(index, 8) * 45}ms` }}
+              >
                 <button
                   type="button"
                   onClick={() => {
                     void markRead(notification.id)
                     navigate(notificationDetailPath(notification.id))
                   }}
-                  className={`flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-sena-muted/60 ${notification.leida ? '' : 'bg-emerald-50/50'}`}
+                  className={`group relative flex w-full items-start gap-3.5 overflow-hidden rounded-xl border px-4 py-3.5 text-left transition hover:-translate-y-0.5 hover:shadow-md ${
+                    notification.leida
+                      ? 'border-sena-dark/10 bg-white hover:bg-sena-muted/50'
+                      : 'border-sena/25 bg-emerald-50/60'
+                  }`}
                 >
+                  {!notification.leida ? (
+                    <span className="absolute inset-y-0 left-0 w-1 bg-sena" aria-hidden="true" />
+                  ) : null}
                   <span
-                    className={`mt-0.5 grid size-7 shrink-0 place-items-center rounded-full text-sm font-bold ${mark.color}`}
+                    className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold ${mark.color}`}
                     aria-hidden="true"
                   >
                     {mark.icon}
@@ -69,7 +94,7 @@ export default function NotificationsPanel() {
       )}
 
       {hasMore ? (
-        <div className="mt-4 flex justify-center">
+        <div className="mt-5 flex justify-center">
           <Button variant="secondary" size="sm" disabled={loading} onClick={() => void loadMore()}>
             {loading ? 'Cargando…' : 'Cargar más'}
           </Button>
