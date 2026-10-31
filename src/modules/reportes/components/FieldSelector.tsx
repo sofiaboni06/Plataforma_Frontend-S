@@ -61,8 +61,7 @@ export default function FieldSelector({ onExport, nombreReporte, disabled = fals
       const nombre = nombreArchivoReporte(nombreReporte, formato)
       descargarArchivo(blob, nombre)
       setIsOpen(false)
-    } catch (error) {
-      console.error('Error al exportar:', error)
+    } catch {
       alert('No se pudo generar el reporte. Intente nuevamente.')
     } finally {
       setExporting(null)
@@ -110,8 +109,8 @@ export default function FieldSelector({ onExport, nombreReporte, disabled = fals
         </button>
       </div>
 
-      {isOpen
-        ? createPortal(
+      {isOpen &&
+        createPortal(
             <Modal
               title="Seleccionar campos del reporte"
               description="Marca las columnas que quieres incluir. Si no eliges ninguna, no se genera el archivo."
@@ -189,8 +188,7 @@ export default function FieldSelector({ onExport, nombreReporte, disabled = fals
               </div>
             </Modal>,
             document.body,
-          )
-        : null}
+          )}
     </>
   )
 }

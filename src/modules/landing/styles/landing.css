@@ -71,6 +71,50 @@
     }
   }
 
+  
+/* CONTACTO - FÁBRICA DE SOFTWARE */
+.lp-footer-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-top: 22px;
+}
+
+.lp-footer-contact-title {
+  margin: 0 0 3px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.lp-footer-contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.83rem;
+  text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.lp-footer-contact-link:hover {
+  color: #fff;
+  transform: translateX(3px);
+}
+
+.lp-footer-contact-link svg {
+  flex-shrink: 0;
+  color: #39b96b;
+}
+
+@media (max-width: 640px) {
+  .lp-footer-contact-link {
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+  }
+}
+
   /* ============================================================
      2. Barra superior — cristal verde esmerilado
      ============================================================ */

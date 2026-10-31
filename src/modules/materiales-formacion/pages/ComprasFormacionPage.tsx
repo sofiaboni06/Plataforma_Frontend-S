@@ -78,7 +78,7 @@ export default function ComprasFormacionPage() {
         icon={<ProgramIcon />}
         title="Consolidado de compras"
         description="Compras unifica lo que el coordinador ya aprobó en la vigencia y genera el proceso."
-        actions={
+        action={
           <Button type="button" onClick={() => void handleGenerar()} disabled={!vigencia || rows.length === 0}>
             Generar proceso
           </Button>

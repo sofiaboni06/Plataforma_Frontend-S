@@ -454,7 +454,7 @@ export default function FichasPage() {
                           <RowActions>
                             {can('fichas', 'edit') ? (
                               <ActionButton title="Editar ficha" onClick={() => openEdit(ficha)}>
-                                <PencilIcon className="size-[18px]" />
+                                <PencilIcon className="size-4.5" />
                               </ActionButton>
                             ) : null}
 
@@ -464,7 +464,7 @@ export default function FichasPage() {
                                 danger
                                 onClick={() => setToDelete(ficha)}
                               >
-                                <TrashIcon className="size-[18px]" />
+                                <TrashIcon className="size-4.5" />
                               </ActionButton>
                             ) : null}
                           </RowActions>
@@ -564,7 +564,7 @@ export default function FichasPage() {
             <label className="flex items-center gap-3 self-end pb-2 text-sm font-medium text-sena-text">
               <input
                 type="checkbox"
-                className="size-4 accent-[#00a651]"
+                className="size-4 accent-sena"
                 checked={form.estado}
                 onChange={(event) => patchForm('estado', event.target.checked)}
               />

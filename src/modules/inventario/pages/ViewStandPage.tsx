@@ -107,8 +107,6 @@ export default function ViewStandPage() {
         setStand(standResult)
         setElementos(elementoList.filter((elemento) => elemento.idStand === standResult.id))
       } catch (loadError) {
-        console.error('Error al cargar el stand:', loadError)
-
         setError(
           loadError instanceof Error
             ? loadError.message

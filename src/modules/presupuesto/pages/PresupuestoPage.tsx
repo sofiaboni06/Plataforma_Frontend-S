@@ -355,7 +355,7 @@ function ResumenView() {
               {acciones.map((accion) => (
                 <article
                   key={accion.to}
-                  className="flex flex-col rounded-[24px] border border-sena-line bg-white p-5"
+                  className="flex flex-col rounded-3xl border border-sena-line bg-white p-5"
                 >
                   <p className="text-xs font-semibold uppercase tracking-wide text-sena-strong">{accion.detalle}</p>
                   <h2 className="mt-1 text-base font-bold text-sena-dark">{accion.titulo}</h2>
@@ -413,7 +413,7 @@ function MontoView() {
       title="Monto de la vigencia"
       description="Valor que llega para el año. Solo el consumo descuenta lo disponible."
     >
-      <section className="rounded-[24px] border border-sena-line bg-white p-5">
+      <section className="rounded-3xl border border-sena-line bg-white p-5">
         <div className="flex flex-wrap items-end gap-3">
           <TextField
             id="monto-vigencia"
@@ -462,7 +462,7 @@ function RepartoView() {
           : 'Asigna el monto entre fichas.'
       }
     >
-      <section className="rounded-[24px] border border-sena-line bg-white p-5">
+      <section className="rounded-3xl border border-sena-line bg-white p-5">
         {puedeEditar ? (
           <div className="mb-4 flex flex-wrap items-end gap-3">
             <label className="grid min-w-56 gap-1 text-sm font-semibold text-sena-dark">
@@ -494,7 +494,7 @@ function RepartoView() {
                 <TableHeader>Asignado</TableHeader>
                 <TableHeader>Aprobado</TableHeader>
                 <TableHeader>Queda</TableHeader>
-                <TableHeader />
+                <TableHeader children={undefined} />
               </tr>
             </thead>
             <tbody>
@@ -558,7 +558,7 @@ function LotesView() {
       title="Lotes de la vigencia"
       description="Informática, papelería, herramientas. Se eligen en cada material de la lista maestra."
     >
-      <section className="rounded-[24px] border border-sena-line bg-white p-5">
+      <section className="rounded-3xl border border-sena-line bg-white p-5">
         {puedeEditar ? (
           <div className="flex flex-wrap items-end gap-3">
             <TextField

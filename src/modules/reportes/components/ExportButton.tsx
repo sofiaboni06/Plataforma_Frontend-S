@@ -65,8 +65,7 @@ export default function ExportButton({
       const blob = await onExport(formato)
       const nombre = nombreArchivoReporte(nombreReporte, formato)
       descargarArchivo(blob, nombre)
-    } catch (error) {
-      console.error('Error al exportar:', error)
+    } catch {
       alert('No se pudo generar el reporte. Intente nuevamente.')
     } finally {
       setExportando(null)
