@@ -1,4 +1,5 @@
 import { api, apiBlob } from '@/shared/lib/api'
+import { descargarArchivo } from '@/modules/reportes/lib/export'
 
 export type SolicitudPrograma = {
   id: number
@@ -88,12 +89,18 @@ export function decidirSolicitudPrograma(
 }
 
 export type ConsolidadoCompra = {
+  solicitudId: number
+  numeroFicha: string
+  instructor: string
+  coordinador: string | null
   codigoUnspsc: string
   producto: string
   unidadMedida: string | null
   caracter: string | null
+  lote: string | null
   codigoPrograma: string
   nombrePrograma: string
+  cantidadSolicitada: number
   cantidadAprobada: number
 }
 
@@ -101,14 +108,10 @@ export function getConsolidadoCompras(vigencia: number) {
   return api<ConsolidadoCompra[]>(`/procesos-compra/consolidado?vigencia=${vigencia}`)
 }
 
-export async function descargarConsolidadoPdf(vigencia: number) {
-  const blob = await apiBlob(`/procesos-compra/descargar?vigencia=${vigencia}&formato=pdf`)
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `pedido-aprobado-${vigencia}.pdf`
-  link.click()
-  URL.revokeObjectURL(url)
+export async function descargarConsolidado(vigencia: number, formato: 'pdf' | 'excel') {
+  const blob = await apiBlob(`/procesos-compra/descargar?vigencia=${vigencia}&formato=${formato}`)
+  const extension = formato === 'pdf' ? 'pdf' : 'xlsx'
+  descargarArchivo(blob, `pedido-aprobado-${vigencia}.${extension}`)
 }
 
 export function generarProcesoCompra(payload: {

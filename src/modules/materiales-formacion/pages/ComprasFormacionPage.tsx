@@ -14,7 +14,7 @@ import {
 import { ProgramIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError, api } from '@/shared/lib/api'
 import {
-  descargarConsolidadoPdf,
+  descargarConsolidado,
   generarProcesoCompra,
   getConsolidadoCompras,
   type ConsolidadoCompra,
@@ -58,12 +58,12 @@ export default function ComprasFormacionPage() {
     void load(vigencia)
   }, [vigencia])
 
-  const handlePdf = async () => {
+  const handleDescarga = async (formato: 'pdf' | 'excel') => {
     if (!vigencia) return
     try {
-      await descargarConsolidadoPdf(Number(vigencia))
+      await descargarConsolidado(Number(vigencia), formato)
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'No se pudo descargar el PDF.')
+      setError(caught instanceof ApiError ? caught.message : 'No se pudo descargar el consolidado.')
     }
   }
 
@@ -93,7 +93,15 @@ export default function ComprasFormacionPage() {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => void handlePdf()}
+              onClick={() => void handleDescarga('excel')}
+              disabled={!vigencia || rows.length === 0}
+            >
+              Descargar Excel
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void handleDescarga('pdf')}
               disabled={!vigencia || rows.length === 0}
             >
               Descargar PDF
@@ -133,23 +141,34 @@ export default function ComprasFormacionPage() {
             <table className={tableClass}>
               <thead>
                 <tr className="border-b border-sena-hairline bg-sena-soft/85">
-                  <TableHeader>UNSPSC</TableHeader>
-                  <TableHeader>Producto</TableHeader>
+                  <TableHeader>Solicitud</TableHeader>
+                  <TableHeader>Ficha</TableHeader>
+                  <TableHeader>Instructor</TableHeader>
+                  <TableHeader>Coordinador</TableHeader>
                   <TableHeader>Programa</TableHeader>
-                  <TableHeader>Cantidad aprobada</TableHeader>
+                  <TableHeader>Producto</TableHeader>
+                  <TableHeader>Pidió</TableHeader>
+                  <TableHeader>Aprobó</TableHeader>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
-                  <TableEmpty colSpan={4}>No hay ítems aprobados en esa vigencia.</TableEmpty>
+                  <TableEmpty colSpan={8}>No hay ítems aprobados en esa vigencia.</TableEmpty>
                 ) : (
-                  rows.map((row) => (
-                    <TableRow key={`${row.codigoUnspsc}-${row.codigoPrograma}-${row.producto}`}>
-                      <td className="font-semibold">{row.codigoUnspsc}</td>
-                      <td>{row.producto}</td>
+                  rows.map((row, index) => (
+                    <TableRow key={`${row.solicitudId}-${row.codigoUnspsc}-${index}`}>
+                      <td className="font-semibold">{row.solicitudId}</td>
+                      <td>{row.numeroFicha}</td>
+                      <td>{row.instructor}</td>
+                      <td>{row.coordinador ?? '—'}</td>
                       <td>
                         {row.codigoPrograma} {row.nombrePrograma}
                       </td>
+                      <td>
+                        {row.producto}
+                        {row.lote ? <p className="text-xs text-sena-text/60">{row.lote}</p> : null}
+                      </td>
+                      <td>{row.cantidadSolicitada}</td>
                       <td>{row.cantidadAprobada}</td>
                     </TableRow>
                   ))
