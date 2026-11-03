@@ -13,14 +13,14 @@ type ButtonProps = {
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
   primary:
-    'bg-sena text-white shadow-brand transition duration-200 hover:-translate-y-0.5 hover:bg-sena-bright hover:shadow-[0_16px_30px_rgba(0,166,81,0.32)] focus-visible:ring-sena disabled:hover:translate-y-0 disabled:hover:bg-sena disabled:hover:shadow-none',
+    'bg-[#128a45] text-white shadow-[0_8px_18px_rgba(16,120,60,0.22)] transition duration-150 hover:bg-[#0f7a3d] focus-visible:ring-[#128a45] disabled:hover:bg-[#128a45]',
   secondary:
-    'border border-sena-line bg-glass-strong text-sena-dark shadow-hairline backdrop-blur-glass-sm hover:border-sena/45 hover:bg-white/90 hover:text-sena-dark focus-visible:ring-sena',
+    'border border-[#d5e6dc] bg-white text-[#1b5c40] shadow-none hover:border-[#b7d8c6] hover:bg-[#f4faf6] focus-visible:ring-[#128a45]',
 }
 
 const SIZE_CLASS: Record<ButtonSize, string> = {
-  sm: 'h-10 gap-2 rounded-xl px-5 text-sm',
-  md: 'h-[56px] gap-2.5 rounded-2xl px-8 text-[0.9375rem]',
+  sm: 'h-10 gap-2 rounded-xl px-4 text-sm',
+  md: 'h-11 gap-2 rounded-xl px-5 text-sm',
 }
 
 export default function Button({

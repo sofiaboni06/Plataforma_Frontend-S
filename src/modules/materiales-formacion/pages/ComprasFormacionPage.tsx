@@ -14,6 +14,7 @@ import {
 import { ProgramIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError, api } from '@/shared/lib/api'
 import {
+  descargarConsolidadoPdf,
   generarProcesoCompra,
   getConsolidadoCompras,
   type ConsolidadoCompra,
@@ -57,6 +58,15 @@ export default function ComprasFormacionPage() {
     void load(vigencia)
   }, [vigencia])
 
+  const handlePdf = async () => {
+    if (!vigencia) return
+    try {
+      await descargarConsolidadoPdf(Number(vigencia))
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : 'No se pudo descargar el PDF.')
+    }
+  }
+
   const handleGenerar = async () => {
     if (!vigencia) return
     try {
@@ -78,10 +88,20 @@ export default function ComprasFormacionPage() {
         icon={<ProgramIcon />}
         title="Consolidado de compras"
         description="Compras unifica lo que el coordinador ya aprobó en la vigencia y genera el proceso."
-        actions={
-          <Button type="button" onClick={() => void handleGenerar()} disabled={!vigencia || rows.length === 0}>
-            Generar proceso
-          </Button>
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void handlePdf()}
+              disabled={!vigencia || rows.length === 0}
+            >
+              Descargar PDF
+            </Button>
+            <Button type="button" onClick={() => void handleGenerar()} disabled={!vigencia || rows.length === 0}>
+              Generar proceso
+            </Button>
+          </div>
         }
       />
       {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}

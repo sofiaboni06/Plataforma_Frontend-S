@@ -26,6 +26,7 @@ import NivelesProgramaPage from '@/modules/materiales-formacion/pages/NivelesPro
 import FichasPage from '@/modules/materiales-formacion/pages/FichasPage'
 import MaterialesFormacionPage from '@/modules/materiales-formacion/pages/MaterialesFormacionPage'
 import ListasMaestrasMaterialPage from '@/modules/materiales-formacion/pages/ListasMaestrasMaterialPage'
+import AlertasFormacionPage from '@/modules/materiales-formacion/pages/AlertasFormacionPage'
 import SolicitudMaterialFormacionPage from '@/modules/materiales-formacion/pages/SolicitudMaterialFormacionPage'
 import ComprasFormacionPage from '@/modules/materiales-formacion/pages/ComprasFormacionPage'
 import PresupuestoPage from '@/modules/presupuesto/pages/PresupuestoPage'
@@ -446,6 +447,15 @@ function App() {
             element={
               <ModuleRoute>
                 <SolicitudMaterialFormacionPage />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
+            path="/formacion/alertas"
+            element={
+              <ModuleRoute>
+                <AlertasFormacionPage />
               </ModuleRoute>
             }
           />

@@ -51,18 +51,18 @@ export default function Modal({
         aria-modal="true"
         aria-labelledby="dialog-title"
         className={cn(
-          'relative z-10 flex w-full max-h-[min(92vh,880px)] flex-col overflow-hidden rounded-[26px] border border-glass-line bg-glass-strong shadow-modal backdrop-blur-glass',
+          'relative z-10 flex w-full max-h-[min(92vh,880px)] flex-col overflow-hidden rounded-[28px] border border-white/80 bg-[#f7fbf8] shadow-[0_28px_70px_rgba(0,50,30,0.22)]',
           chart ? 'max-w-[min(96vw,1600px)]' : wide ? 'max-w-3xl' : 'max-w-2xl',
         )}
       >
         <div
           className={cn(
-            'flex items-start justify-between gap-4 border-b border-sena-hairline bg-glass-strong px-6 text-sena-dark sm:px-8',
+            'flex items-start justify-between gap-4 px-6 text-sena-dark sm:px-8',
             spacious ? 'py-5 sm:py-6' : 'py-4',
           )}
         >
           <div>
-            <h2 id="dialog-title" className="text-lg font-bold text-sena-text">
+            <h2 id="dialog-title" className="text-xl font-bold tracking-tight text-[#145c3e]">
               {title}
             </h2>
             {description ? (

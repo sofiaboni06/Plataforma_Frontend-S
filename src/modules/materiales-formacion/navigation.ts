@@ -8,6 +8,7 @@ export type FormacionScreenCode =
   | 'listas'
   | 'solicitudes'
   | 'compras'
+  | 'alertas'
 
 export type FormacionAction = 'list' | 'view' | 'create' | 'edit' | 'delete'
 
@@ -62,11 +63,17 @@ export const FORMACION_SCREENS: FormacionScreen[] = [
     label: 'Consolidado de compras',
     staffOnly: true,
   },
+  {
+    code: 'alertas',
+    to: '/formacion/alertas',
+    label: 'Alertas',
+    staffOnly: true,
+  },
 ]
 
 type PermissionScreen = Exclude<
   FormacionScreenCode,
-  'instructores' | 'listas' | 'solicitudes' | 'compras'
+  'instructores' | 'listas' | 'solicitudes' | 'compras' | 'alertas'
 >
 
 const VIEW_CODE: Record<PermissionScreen, string> = {
@@ -110,7 +117,8 @@ function isPermissionScreen(code: FormacionScreenCode): code is PermissionScreen
     code !== 'instructores' &&
     code !== 'listas' &&
     code !== 'solicitudes' &&
-    code !== 'compras'
+    code !== 'compras' &&
+    code !== 'alertas'
   )
 }
 
@@ -156,6 +164,7 @@ export function canFormacionAction(
     return allowsFormacionPermission(access, 'solicitud_programa.ver')
   }
   if (code === 'compras') return allowsFormacionPermission(access, 'proceso_compra.ver')
+  if (code === 'alertas') return allowsFormacionPermission(access, 'solicitud_programa.editar')
   if (!isPermissionScreen(code)) return access.isAdmin === true
   if (!canSeeFormacionScreen(code, access)) return false
 

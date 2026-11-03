@@ -23,8 +23,9 @@ export type ImportListaMaestraResult = {
   errores: string[]
 }
 
-export function getListaMaestra(programaId: number) {
-  return api<ListaMaestraItem[]>(`/listas-maestras-material?programaId=${programaId}`)
+export function getListaMaestra(programaId: number, loteId?: number) {
+  const lote = loteId ? `&loteId=${loteId}` : ''
+  return api<ListaMaestraItem[]>(`/listas-maestras-material?programaId=${programaId}${lote}`)
 }
 
 export function createListaMaestra(payload: {

@@ -21,6 +21,8 @@ import {
 import { ApiError, api } from '@/shared/lib/api'
 import { usePagination } from '@/shared/lib/table'
 import { getListaMaestra, type ListaMaestraItem } from '@/modules/materiales-formacion/data/listaMaestra'
+import { getLotes, type LoteVigencia } from '@/modules/presupuesto/data/presupuesto'
+import { getVigencias } from '@/modules/vigencias/data/vigencia'
 import {
   createSolicitudPrograma,
   decidirSolicitudPrograma,
@@ -41,7 +43,24 @@ type Programa = {
 type Ficha = { id: number; programaId: number; numeroFicha: string; centroFormacionId?: number }
 type LineaCarrito = { material: ListaMaestraItem; cantidad: number }
 type AccionItem = 'entregar' | 'pendiente' | 'rechazar'
-type DecisionLinea = { accion: AccionItem; cantidad: string; motivo: string }
+type DecisionLinea = { accion: AccionItem; cantidad: string; motivo: string; pedida: string }
+
+function pesos(valor: number) {
+  return valor.toLocaleString('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  })
+}
+
+function corteDeArea(solicitudes: SolicitudPrograma[]) {
+  const suma = solicitudes.reduce((total, solicitud) => total + Number(solicitud.valorAproximado ?? 0), 0)
+  const tope = solicitudes.reduce(
+    (maximo, solicitud) => Math.max(maximo, solicitud.presupuestoFicha?.asignado ?? 0),
+    0,
+  )
+  return { suma, tope, sePasa: suma > tope }
+}
 
 type ProgramaGrupo = {
   id: number
@@ -75,8 +94,9 @@ function sugerida(item: SolicitudPrograma['items'][number]) {
 
 function pendienteDeRevision(solicitud: SolicitudPrograma) {
   return (
-    (solicitud.estado === 'enviada' || solicitud.estado === 'parcial') &&
-    solicitud.items.some((item) => item.estado === 'pendiente')
+    solicitud.estado === 'anulada' ||
+    ((solicitud.estado === 'enviada' || solicitud.estado === 'parcial') &&
+      solicitud.items.some((item) => item.estado === 'pendiente'))
   )
 }
 
@@ -102,6 +122,8 @@ export default function SolicitudMaterialFormacionPage() {
   const [programas, setProgramas] = useState<Programa[]>([])
   const [fichas, setFichas] = useState<Ficha[]>([])
   const [materiales, setMateriales] = useState<ListaMaestraItem[]>([])
+  const [lotes, setLotes] = useState<LoteVigencia[]>([])
+  const [loteId, setLoteId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -142,16 +164,26 @@ export default function SolicitudMaterialFormacionPage() {
   }, [])
 
   useEffect(() => {
+    getVigencias()
+      .then((lista) => {
+        const activa = lista.find((item) => item.activa)
+        return getLotes(activa?.anio ?? new Date().getFullYear())
+      })
+      .then(setLotes)
+      .catch(() => setLotes([]))
+  }, [])
+
+  useEffect(() => {
     if (!programaId) {
       setMateriales([])
       return
     }
-    void getListaMaestra(Number(programaId))
+    void getListaMaestra(Number(programaId), loteId ? Number(loteId) : undefined)
       .then(setMateriales)
       .catch((caught) => {
         setError(caught instanceof ApiError ? caught.message : 'No se pudo cargar la lista maestra.')
       })
-  }, [programaId])
+  }, [programaId, loteId])
 
   const fichasDelPrograma = fichas.filter((ficha) => {
     if (String(ficha.programaId) !== programaId) return false
@@ -206,7 +238,7 @@ export default function SolicitudMaterialFormacionPage() {
       })
       await enviarSolicitudPrograma(creada.id)
       setCarritoOpen(false)
-      setMessage('El carrito se envió a coordinación. Te avisamos cuando revisen cada material.')
+      setMessage('La solicitud se envió a coordinación. Te avisamos cuando revisen cada material.')
       await load()
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'No se pudo enviar la solicitud.')
@@ -237,7 +269,7 @@ export default function SolicitudMaterialFormacionPage() {
   const patchDecision = (id: number, patch: Partial<DecisionLinea>) => {
     setDecisiones((current) => ({
       ...current,
-      [id]: { ...(current[id] ?? { accion: 'pendiente', cantidad: '0', motivo: '' }), ...patch },
+      [id]: { ...(current[id] ?? { accion: 'pendiente', cantidad: '0', motivo: '', pedida: '' }), ...patch },
     }))
   }
 
@@ -245,6 +277,7 @@ export default function SolicitudMaterialFormacionPage() {
     items: Array<{
       id: number
       accion: AccionItem
+      cantidadSolicitada?: number
       cantidadAprobada?: number
       observacionCoordinador?: string
     }>,
@@ -259,7 +292,9 @@ export default function SolicitudMaterialFormacionPage() {
       })
       setRevision(null)
       setMessage(
-        'El instructor ya recibió el aviso: qué se autorizó, qué se ajustó y por qué, y qué sigue pendiente.',
+        items.every((item) => item.accion === 'pendiente')
+          ? 'Cantidades actualizadas. La suma del área ya usa estos valores.'
+          : 'El instructor ya recibió el aviso: qué se autorizó, qué se ajustó y por qué, y qué sigue pendiente.',
       )
       await load()
     } catch (caught) {
@@ -311,6 +346,19 @@ export default function SolicitudMaterialFormacionPage() {
     await enviarDecision(payload)
   }
 
+  const guardarCantidades = async () => {
+    if (!revision) return
+    const items = resumenRevision.map((item) => {
+      const pedida = Number(decisiones[item.id]?.pedida ?? item.cantidadSolicitada)
+      return { id: item.id, accion: 'pendiente' as const, cantidadSolicitada: pedida }
+    })
+    if (items.some((item) => !Number.isFinite(item.cantidadSolicitada) || item.cantidadSolicitada <= 0)) {
+      setError('La cantidad pedida tiene que ser mayor que cero.')
+      return
+    }
+    await enviarDecision(items)
+  }
+
   const entregarTodo = async () => {
     if (!revision) return
     const pendientes = revision.items.filter((item) => item.estado === 'pendiente')
@@ -325,6 +373,7 @@ export default function SolicitudMaterialFormacionPage() {
 
   const resumenRevision = useMemo(() => {
     if (!revision) return []
+    if (revision.estado === 'anulada') return revision.items
     return revision.items.filter((item) => item.estado === 'pendiente')
   }, [revision])
 
@@ -421,6 +470,15 @@ export default function SolicitudMaterialFormacionPage() {
         <StatusPill tone={estadoTone[solicitud.estado]}>{solicitud.estado}</StatusPill>
       </td>
       <td>{solicitud.items.length}</td>
+      <td>
+        {solicitud.valorAproximado
+          ? solicitud.valorAproximado.toLocaleString('es-CO', {
+              style: 'currency',
+              currency: 'COP',
+              maximumFractionDigits: 0,
+            })
+          : '—'}
+      </td>
       {accionesSolicitud(solicitud)}
     </TableRow>
   )
@@ -436,6 +494,15 @@ export default function SolicitudMaterialFormacionPage() {
         <StatusPill tone={estadoTone[solicitud.estado]}>{solicitud.estado}</StatusPill>
       </td>
       <td>{solicitud.items.length}</td>
+      <td>
+        {solicitud.valorAproximado
+          ? solicitud.valorAproximado.toLocaleString('es-CO', {
+              style: 'currency',
+              currency: 'COP',
+              maximumFractionDigits: 0,
+            })
+          : '—'}
+      </td>
       {accionesSolicitud(solicitud)}
     </TableRow>
   )
@@ -447,14 +514,14 @@ export default function SolicitudMaterialFormacionPage() {
         title="Solicitudes de materiales de formación"
         description={
           vistaCoordinador
-            ? `En ${user?.trainingCenter ?? 'tu centro'} ves tu red, tu línea y los programas a cargo. El punto rojo marca el programa que tiene solicitudes; cada ficha es un pedido aparte.`
-            : 'Arma el pedido como un carrito, producto a producto. Coordinación de tu red aprueba o ajusta cada línea.'
+            ? 'Entra a un área y mira los pedidos de sus instructores. El aviso sale solo si, sumados, se pasan de lo asignado a esa área.'
+            : 'Arma la solicitud con los materiales de la lista maestra. Coordinación de tu red revisa cada línea.'
         }
         context={<InventoryCenterBadge />}
         action={
           puedePedir ? (
             <Button type="button" icon={<PlusIcon className="size-4" />} onClick={abrirCarrito}>
-              Armar carrito
+              Nueva solicitud
             </Button>
           ) : undefined
         }
@@ -494,9 +561,16 @@ export default function SolicitudMaterialFormacionPage() {
                 icon={<ReturnIcon className="size-4" />}
                 onClick={() => setProgramaAbiertoId(null)}
               >
-                Volver a programas
+                Volver a áreas
               </Button>
             </div>
+            {corteDeArea(programaAbierto.solicitudes).sePasa ? (
+              <p className="mx-6 my-4 rounded-2xl border border-sena-warn-line bg-white px-4 py-3 text-sm text-sena-text">
+                Sumando los pedidos de {programaAbierto.nombre} da{' '}
+                {pesos(corteDeArea(programaAbierto.solicitudes).suma)}. El tope asignado es{' '}
+                {pesos(corteDeArea(programaAbierto.solicitudes).tope)}. Ajusta las cantidades.
+              </p>
+            ) : null}
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>
@@ -506,12 +580,13 @@ export default function SolicitudMaterialFormacionPage() {
                     <TableHeader>Vigencia</TableHeader>
                     <TableHeader>Estado</TableHeader>
                     <TableHeader>Ítems</TableHeader>
+                    <TableHeader>Valor aprox.</TableHeader>
                     <TableHeader>Acciones</TableHeader>
                   </tr>
                 </thead>
                 <tbody>
                   {programaAbierto.solicitudes.length === 0 ? (
-                    <TableEmpty colSpan={6}>Este programa todavía no tiene solicitudes.</TableEmpty>
+                    <TableEmpty colSpan={7}>Este programa todavía no tiene solicitudes.</TableEmpty>
                   ) : (
                     programaAbierto.solicitudes.map((solicitud) => filaFichaCoordinador(solicitud))
                   )}
@@ -537,6 +612,7 @@ export default function SolicitudMaterialFormacionPage() {
                     <ul>
                       {linea.programas.map((programa) => {
                         const pendientes = programa.solicitudes.filter(pendienteDeRevision).length
+                        const sePasa = corteDeArea(programa.solicitudes).sePasa
                         return (
                           <li key={programa.id} className="border-b border-sena-hairline last:border-b-0">
                             <button
@@ -546,26 +622,20 @@ export default function SolicitudMaterialFormacionPage() {
                             >
                               <span>
                                 <span className="flex items-center gap-2">
-                                  {pendientes > 0 ? (
-                                    <span
-                                      className="size-2.5 shrink-0 rounded-full bg-sena-danger-text"
-                                      aria-hidden="true"
-                                    />
-                                  ) : (
-                                    <span className="size-2.5 shrink-0 rounded-full bg-sena-line" aria-hidden="true" />
-                                  )}
+                                  {sePasa ? (
+                                    <span className="size-3 shrink-0 rounded-full bg-[#d14343]" aria-hidden="true" />
+                                  ) : null}
                                   <span className="font-semibold text-sena-text">{programa.nombre}</span>
                                 </span>
-                                <span className="mt-1 block pl-[1.125rem] text-sm text-sena-strong">
+                                <span className={`mt-1 block text-sm text-sena-strong ${sePasa ? 'pl-5' : ''}`}>
                                   {programa.codigo}
                                   {pendientes > 0
-                                    ? ` · ${pendientes} solicitud${pendientes === 1 ? '' : 'es'} por revisar`
-                                    : ' · sin solicitudes por revisar'}
+                                    ? ` · ${pendientes} pedido${pendientes === 1 ? '' : 's'} por revisar`
+                                    : ' · sin pedidos por revisar'}
+                                  {sePasa ? ' · sumando los pedidos se pasa del tope' : ''}
                                 </span>
                               </span>
-                              <span className="shrink-0 text-sm font-semibold text-sena-text">
-                                Ver fichas
-                              </span>
+                              <span className="shrink-0 text-sm font-semibold text-sena-text">Ver pedidos</span>
                             </button>
                           </li>
                         )
@@ -592,6 +662,7 @@ export default function SolicitudMaterialFormacionPage() {
                     <TableHeader>Vigencia</TableHeader>
                     <TableHeader>Estado</TableHeader>
                     <TableHeader>Ítems</TableHeader>
+                    <TableHeader>Valor aprox.</TableHeader>
                     <TableHeader>Acciones</TableHeader>
                   </tr>
                 </thead>
@@ -620,8 +691,8 @@ export default function SolicitudMaterialFormacionPage() {
 
       {carritoOpen ? (
         <Modal
-          title="Carrito de materiales"
-          description="Elige el programa y la ficha, y ve sumando un material a la vez. Al enviar, coordinación recibe el pedido."
+          title="Solicitud de materiales"
+          description="Elige el programa y la ficha, y agrega cada material con su cantidad. Al enviar, coordinación recibe la solicitud."
           onClose={() => setCarritoOpen(false)}
           wide
           spacious
@@ -635,6 +706,7 @@ export default function SolicitudMaterialFormacionPage() {
                 setProgramaId(value)
                 setFichaId('')
                 setMaterialId('')
+                setLoteId('')
                 setCarrito([])
               }}
               placeholder="Seleccione"
@@ -669,6 +741,22 @@ export default function SolicitudMaterialFormacionPage() {
             </p>
           ) : null}
 
+          <div className="mt-4 max-w-xs">
+            <SelectField
+              id="sol-lote"
+              label="Lote"
+              value={loteId}
+              onChange={(value) => {
+                setLoteId(value)
+                setMaterialId('')
+              }}
+              placeholder="Todos los lotes"
+              disabled={!programaId}
+              required={false}
+              options={lotes.map((lote) => ({ value: String(lote.id), label: lote.nombre }))}
+            />
+          </div>
+
           <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end" onSubmit={agregarLinea}>
             <SelectField
               id="sol-material"
@@ -693,7 +781,7 @@ export default function SolicitudMaterialFormacionPage() {
               onChange={(event) => setCantidad(event.target.value)}
             />
             <Button type="submit" variant="secondary" disabled={!materialId}>
-              Agregar al carrito
+              Agregar a la solicitud
             </Button>
           </form>
 
@@ -710,13 +798,14 @@ export default function SolicitudMaterialFormacionPage() {
                 <tr className="border-b border-sena-hairline bg-sena-soft/85">
                   <TableHeader>Producto</TableHeader>
                   <TableHeader>Pedida</TableHeader>
+                  <TableHeader>Valor aprox.</TableHeader>
                   <TableHeader>Lista maestra</TableHeader>
                   <TableHeader>Quitar</TableHeader>
                 </tr>
               </thead>
               <tbody>
                 {carrito.length === 0 ? (
-                  <TableEmpty colSpan={4}>Todavía no hay productos. Agrégalos uno a uno.</TableEmpty>
+                  <TableEmpty colSpan={5}>Todavía no hay materiales. Agrégalos a la solicitud.</TableEmpty>
                 ) : (
                   carrito.map((linea) => (
                     <TableRow key={linea.material.id}>
@@ -725,6 +814,15 @@ export default function SolicitudMaterialFormacionPage() {
                         <p className="text-xs text-sena-text/60">{linea.material.codigoUnspsc}</p>
                       </td>
                       <td>{linea.cantidad}</td>
+                      <td>
+                        {linea.material.caracter === 'consumo' && linea.material.valorUnitario != null
+                          ? (linea.cantidad * linea.material.valorUnitario).toLocaleString('es-CO', {
+                              style: 'currency',
+                              currency: 'COP',
+                              maximumFractionDigits: 0,
+                            })
+                          : '—'}
+                      </td>
                       <td>{linea.material.cantidadBase}</td>
                       <td>
                         <button
@@ -745,6 +843,34 @@ export default function SolicitudMaterialFormacionPage() {
               </tbody>
             </table>
           </div>
+
+          {carrito.length > 0 ? (
+            <p className="mt-3 text-sm text-sena-text">
+              Valor aproximado del pedido:{' '}
+              <strong>
+                {carrito
+                  .filter((linea) => linea.material.caracter === 'consumo')
+                  .reduce((suma, linea) => suma + linea.cantidad * (linea.material.valorUnitario ?? 0), 0)
+                  .toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+              </strong>
+              . Promedio por material:{' '}
+              <strong>
+                {(() => {
+                  const conValor = carrito.filter(
+                    (linea) => linea.material.caracter === 'consumo' && linea.material.valorUnitario != null,
+                  )
+                  if (!conValor.length) return '—'
+                  const promedio =
+                    conValor.reduce((suma, linea) => suma + (linea.material.valorUnitario ?? 0), 0) / conValor.length
+                  return promedio.toLocaleString('es-CO', {
+                    style: 'currency',
+                    currency: 'COP',
+                    maximumFractionDigits: 0,
+                  })
+                })()}
+              </strong>
+            </p>
+          ) : null}
 
           <div className="mt-4 flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setCarritoOpen(false)}>
@@ -767,6 +893,15 @@ export default function SolicitudMaterialFormacionPage() {
         >
           <form className="grid gap-4" onSubmit={handleDecidir}>
             {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}
+            {corteDeArea(solicitudes.filter((solicitud) => solicitud.programaId === revision.programaId)).sePasa ? (
+              <p className="rounded-2xl border border-sena-warn-line bg-white px-4 py-3 text-sm text-sena-text">
+                Sumando los pedidos de {revision.programa?.nombre ?? 'esta área'} da{' '}
+                {pesos(corteDeArea(solicitudes.filter((solicitud) => solicitud.programaId === revision.programaId)).suma)}
+                . El tope asignado es{' '}
+                {pesos(corteDeArea(solicitudes.filter((solicitud) => solicitud.programaId === revision.programaId)).tope)}
+                . Ajusta las cantidades.
+              </p>
+            ) : null}
             {resumenRevision.length === 0 ? (
               <p className="text-sm text-sena-text/70">No quedan líneas pendientes en este pedido.</p>
             ) : (
@@ -778,6 +913,7 @@ export default function SolicitudMaterialFormacionPage() {
                   accion: 'pendiente' as const,
                   cantidad: String(restante),
                   motivo: '',
+                  pedida: String(item.cantidadSolicitada),
                 }
                 const pideMas = tope !== null && item.cantidadSolicitada > tope
                 return (
@@ -798,6 +934,17 @@ export default function SolicitudMaterialFormacionPage() {
                         Pidió más de la lista maestra. Puedes autorizar menos y dejar el resto pendiente.
                       </p>
                     ) : null}
+                    <div className="mt-3 max-w-[14rem]">
+                      <TextField
+                        id={`ped-${item.id}`}
+                        label="Cantidad pedida"
+                        type="number"
+                        min={0.001}
+                        step="0.001"
+                        value={decision.pedida || String(item.cantidadSolicitada)}
+                        onChange={(event) => patchDecision(item.id, { pedida: event.target.value })}
+                      />
+                    </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(
                         [
@@ -868,6 +1015,14 @@ export default function SolicitudMaterialFormacionPage() {
                 onClick={() => void entregarTodo()}
               >
                 Autorizar todo lo pendiente
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={saving || resumenRevision.length === 0}
+                onClick={() => void guardarCantidades()}
+              >
+                Guardar cantidades
               </Button>
               <Button type="submit" disabled={saving || resumenRevision.length === 0}>
                 {saving ? 'Guardando…' : 'Guardar selección'}

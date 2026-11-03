@@ -1,4 +1,4 @@
-import { api } from '@/shared/lib/api'
+import { api, apiBlob } from '@/shared/lib/api'
 
 export type SolicitudPrograma = {
   id: number
@@ -17,6 +17,15 @@ export type SolicitudPrograma = {
     lineaTematica?: { id: number; nombre: string } | null
   } | null
   ficha: { id: number; numeroFicha: string } | null
+  presupuestoFicha: {
+    asignado: number
+    pedido: number
+    aprobado: number
+    queda: number
+    sePasa: boolean
+  } | null
+  valorAproximado: number
+  valorPromedio: number
   items: Array<{
     id: number
     listaMaestraId: number
@@ -25,6 +34,7 @@ export type SolicitudPrograma = {
     cantidadMaestraReferencia: number | null
     estado: string
     observacionCoordinador: string | null
+    valorAproximado: number
     material: {
       id: number
       codigoUnspsc: string
@@ -65,6 +75,7 @@ export function decidirSolicitudPrograma(
     items: Array<{
       id: number
       accion: 'entregar' | 'pendiente' | 'rechazar'
+      cantidadSolicitada?: number
       cantidadAprobada?: number
       observacionCoordinador?: string
     }>
@@ -88,6 +99,16 @@ export type ConsolidadoCompra = {
 
 export function getConsolidadoCompras(vigencia: number) {
   return api<ConsolidadoCompra[]>(`/procesos-compra/consolidado?vigencia=${vigencia}`)
+}
+
+export async function descargarConsolidadoPdf(vigencia: number) {
+  const blob = await apiBlob(`/procesos-compra/descargar?vigencia=${vigencia}&formato=pdf`)
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `pedido-aprobado-${vigencia}.pdf`
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 export function generarProcesoCompra(payload: {

@@ -101,7 +101,7 @@ export default function SubBodegaForm({
       >
         <div className="flex items-start justify-between border-b border-sena-hairline px-7 py-6">
           <div className="flex items-start gap-3">
-            <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-sena text-white shadow-brand-sm">
+            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#e5f6ec] text-[#128a45]">
               <WarehouseIcon />
             </div>
 
@@ -138,6 +138,7 @@ export default function SubBodegaForm({
             </div>
           ) : null}
 
+          <div className="form-fields space-y-4">
           <label className="flex flex-col gap-1.5">
             <span className="form-label">Nombre de la sub-bodega *</span>
             <input
@@ -175,6 +176,7 @@ export default function SubBodegaForm({
                 />
               </button>
             </div>
+          </div>
           </div>
         </div>
 
