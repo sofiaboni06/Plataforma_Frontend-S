@@ -54,12 +54,12 @@ function pesos(valor: number) {
 }
 
 function corteDeArea(solicitudes: SolicitudPrograma[]) {
+  const corte = solicitudes.find((solicitud) => solicitud.presupuestoFicha)?.presupuestoFicha
+  if (corte) {
+    return { suma: corte.pedido, tope: corte.asignado, sePasa: corte.pedido > corte.asignado }
+  }
   const suma = solicitudes.reduce((total, solicitud) => total + Number(solicitud.valorAproximado ?? 0), 0)
-  const tope = solicitudes.reduce(
-    (maximo, solicitud) => Math.max(maximo, solicitud.presupuestoFicha?.asignado ?? 0),
-    0,
-  )
-  return { suma, tope, sePasa: suma > tope }
+  return { suma, tope: 0, sePasa: suma > 0 }
 }
 
 type ProgramaGrupo = {
@@ -566,7 +566,7 @@ export default function SolicitudMaterialFormacionPage() {
             </div>
             {corteDeArea(programaAbierto.solicitudes).sePasa ? (
               <p className="mx-6 my-4 rounded-2xl border border-sena-warn-line bg-white px-4 py-3 text-sm text-sena-text">
-                Sumando los pedidos de {programaAbierto.nombre} da{' '}
+                Sumando los pedidos del área {programaAbierto.red} da{' '}
                 {pesos(corteDeArea(programaAbierto.solicitudes).suma)}. El tope asignado es{' '}
                 {pesos(corteDeArea(programaAbierto.solicitudes).tope)}. Ajusta las cantidades.
               </p>
@@ -895,7 +895,7 @@ export default function SolicitudMaterialFormacionPage() {
             {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}
             {corteDeArea(solicitudes.filter((solicitud) => solicitud.programaId === revision.programaId)).sePasa ? (
               <p className="rounded-2xl border border-sena-warn-line bg-white px-4 py-3 text-sm text-sena-text">
-                Sumando los pedidos de {revision.programa?.nombre ?? 'esta área'} da{' '}
+                Sumando los pedidos del área {revision.programa?.redConocimiento?.nombre ?? 'esta área'} da{' '}
                 {pesos(corteDeArea(solicitudes.filter((solicitud) => solicitud.programaId === revision.programaId)).suma)}
                 . El tope asignado es{' '}
                 {pesos(corteDeArea(solicitudes.filter((solicitud) => solicitud.programaId === revision.programaId)).tope)}

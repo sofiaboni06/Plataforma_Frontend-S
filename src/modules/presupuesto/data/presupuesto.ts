@@ -104,7 +104,7 @@ export type VistaAreas = {
 export function asignarArea(anio: number, programaId: number, monto: number) {
   return api<VistaAreas>(`${BASE}/areas`, {
     method: 'PUT',
-    body: JSON.stringify({ anio, programaId, monto }),
+    body: JSON.stringify({ anio, redId: programaId, monto }),
   })
 }
 

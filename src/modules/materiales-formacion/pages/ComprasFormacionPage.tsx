@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
 import {
@@ -21,6 +21,11 @@ import {
 } from '@/modules/materiales-formacion/data/solicitudPrograma'
 import type { VigenciaApi } from '@/modules/vigencias/types/vigencia'
 
+function pesos(valor: number | null) {
+  if (valor == null) return '—'
+  return valor.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
+}
+
 export default function ComprasFormacionPage() {
   const [vigencias, setVigencias] = useState<VigenciaApi[]>([])
   const [vigencia, setVigencia] = useState('')
@@ -28,6 +33,7 @@ export default function ComprasFormacionPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [busqueda, setBusqueda] = useState('')
 
   useEffect(() => {
     document.title = 'Consolidado de compras | SENA'
@@ -45,9 +51,11 @@ export default function ComprasFormacionPage() {
   const load = async (anio: string) => {
     if (!anio) return
     setLoading(true)
+    setError(null)
     try {
       setRows(await getConsolidadoCompras(Number(anio)))
     } catch (caught) {
+      setRows([])
       setError(caught instanceof ApiError ? caught.message : 'No se pudo armar el consolidado.')
     } finally {
       setLoading(false)
@@ -57,6 +65,45 @@ export default function ComprasFormacionPage() {
   useEffect(() => {
     void load(vigencia)
   }, [vigencia])
+
+  const filtradas = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase()
+    if (!texto) return rows
+    return rows.filter((row) =>
+      [
+        row.solicitudId,
+        row.numeroFicha,
+        row.instructor,
+        row.coordinador,
+        row.codigoPrograma,
+        row.nombrePrograma,
+        row.codigoUnspsc,
+        row.producto,
+        row.lote,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(texto),
+    )
+  }, [rows, busqueda])
+
+  const grupos = useMemo(() => {
+    const mapa = new Map<number, ConsolidadoCompra[]>()
+    for (const row of filtradas) {
+      const lista = mapa.get(row.solicitudId) ?? []
+      lista.push(row)
+      mapa.set(row.solicitudId, lista)
+    }
+    return [...mapa.entries()]
+  }, [filtradas])
+
+  const resumen = useMemo(() => {
+    const solicitudes = new Set(rows.map((row) => row.solicitudId)).size
+    const valor = rows.reduce((suma, row) => suma + (row.valorAprobado ?? 0), 0)
+    const unidades = rows.reduce((suma, row) => suma + (row.cantidadAprobada ?? 0), 0)
+    return { solicitudes, lineas: rows.length, valor, unidades }
+  }, [rows])
 
   const handleDescarga = async (formato: 'pdf' | 'excel') => {
     if (!vigencia) return
@@ -75,10 +122,10 @@ export default function ComprasFormacionPage() {
         codigoProceso: `PC-${vigencia}-${Date.now()}`,
         descripcion: 'Unificación de solicitudes aprobadas',
       })
-      setMessage(`Proceso ${proceso.codigoProceso} generado.`)
+      setMessage(`Pedido ${proceso.codigoProceso} juntado.`)
       await load(vigencia)
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'No se pudo generar el proceso.')
+      setError(caught instanceof ApiError ? caught.message : 'No se pudo juntar el pedido.')
     }
   }
 
@@ -87,7 +134,7 @@ export default function ComprasFormacionPage() {
       <PageHeader
         icon={<ProgramIcon />}
         title="Consolidado de compras"
-        description="Compras unifica lo que el coordinador ya aprobó en la vigencia y genera el proceso."
+        description="Junta en una sola lista lo que el coordinador ya aprobó en esta vigencia."
         action={
           <div className="flex flex-wrap gap-2">
             <Button
@@ -107,7 +154,7 @@ export default function ComprasFormacionPage() {
               Descargar PDF
             </Button>
             <Button type="button" onClick={() => void handleGenerar()} disabled={!vigencia || rows.length === 0}>
-              Generar proceso
+              Juntar pedido aprobado
             </Button>
           </div>
         }
@@ -119,88 +166,142 @@ export default function ComprasFormacionPage() {
         </p>
       ) : null}
 
-      <select
-        className="form-field form-select mb-4 w-48"
-        value={vigencia}
-        onChange={(event) => setVigencia(event.target.value)}
-      >
-        <option value="">Vigencia</option>
-        {vigencias.map((item) => (
-          <option key={item.anio} value={item.anio}>
-            {item.anio}
-            {item.activa ? ' (activa)' : ''}
-          </option>
-        ))}
-      </select>
+      <section aria-label="Resumen del consolidado" className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <article className="rounded-2xl border border-sena-hairline bg-white px-5 py-4">
+          <p className="text-xs font-medium text-sena-text-soft">Solicitudes aprobadas</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-sena-text">{resumen.solicitudes}</p>
+        </article>
+        <article className="rounded-2xl border border-sena-hairline bg-white px-5 py-4">
+          <p className="text-xs font-medium text-sena-text-soft">Ítems a comprar</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-sena-text">
+            {resumen.lineas}
+            <span className="ml-2 text-sm font-medium text-sena-text-soft">{resumen.unidades} und.</span>
+          </p>
+        </article>
+        <article className="rounded-2xl border border-sena-hairline bg-white px-5 py-4">
+          <p className="text-xs font-medium text-sena-text-soft">Valor aprobado {vigencia || ''}</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-sena-ok-text">{pesos(resumen.valor)}</p>
+        </article>
+      </section>
 
-      <TableCard>
-        {loading ? (
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <label className="text-sm font-medium text-sena-strong">
+          Vigencia
+          <select
+            className="form-field form-select mt-1 w-full sm:w-44"
+            value={vigencia}
+            onChange={(event) => setVigencia(event.target.value)}
+          >
+            <option value="">Seleccionar</option>
+            {vigencias.map((item) => (
+              <option key={item.anio} value={item.anio}>
+                {item.anio}
+                {item.activa ? ' (activa)' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="min-w-0 flex-1 text-sm font-medium text-sena-strong">
+          Buscar
+          <input
+            className="form-field mt-1 w-full"
+            placeholder="Ficha, programa, producto o UNSPSC"
+            value={busqueda}
+            onChange={(event) => setBusqueda(event.target.value)}
+          />
+        </label>
+      </div>
+
+      {loading ? (
+        <TableCard>
           <TableLoading label="Consolidando solicitudes aprobadas…" />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className={tableClass}>
-              <thead>
-                <tr className="border-b border-sena-hairline bg-sena-soft/85">
-                  <TableHeader>Solicitud</TableHeader>
-                  <TableHeader>Estado</TableHeader>
-                  <TableHeader>Ficha</TableHeader>
-                  <TableHeader>Instructor</TableHeader>
-                  <TableHeader>Coordinador</TableHeader>
-                  <TableHeader>Programa</TableHeader>
-                  <TableHeader>Red</TableHeader>
-                  <TableHeader>Línea</TableHeader>
-                  <TableHeader>Lote</TableHeader>
-                  <TableHeader>UNSPSC</TableHeader>
-                  <TableHeader>Producto</TableHeader>
-                  <TableHeader>Descripción</TableHeader>
-                  <TableHeader>Unidad</TableHeader>
-                  <TableHeader>Carácter</TableHeader>
-                  <TableHeader>Base</TableHeader>
-                  <TableHeader>Pidió</TableHeader>
-                  <TableHeader>Aprobó</TableHeader>
-                  <TableHeader>Valor unitario</TableHeader>
-                  <TableHeader>Valor pedido</TableHeader>
-                  <TableHeader>Valor aprobado</TableHeader>
-                  <TableHeader>Línea pedido</TableHeader>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length === 0 ? (
-                  <TableEmpty colSpan={21}>No hay ítems aprobados en esa vigencia.</TableEmpty>
-                ) : (
-                  rows.map((row, index) => (
-                    <TableRow key={`${row.solicitudId}-${row.codigoUnspsc}-${index}`}>
-                      <td className="font-semibold">{row.solicitudId}</td>
-                      <td>{row.estadoSolicitud}</td>
-                      <td>{row.numeroFicha}</td>
-                      <td>{row.instructor}</td>
-                      <td>{row.coordinador ?? '—'}</td>
-                      <td>
-                        {row.codigoPrograma} {row.nombrePrograma}
-                      </td>
-                      <td>{row.red ?? '—'}</td>
-                      <td>{row.linea ?? '—'}</td>
-                      <td>{row.lote ?? '—'}</td>
-                      <td>{row.codigoUnspsc}</td>
-                      <td>{row.producto}</td>
-                      <td>{row.descripcionTecnica ?? '—'}</td>
-                      <td>{row.unidadMedida ?? '—'}</td>
-                      <td>{row.caracter ?? '—'}</td>
-                      <td>{row.cantidadBase}</td>
-                      <td>{row.cantidadSolicitada}</td>
-                      <td>{row.cantidadAprobada}</td>
-                      <td>{row.valorUnitario ?? '—'}</td>
-                      <td>{row.valorPedido ?? '—'}</td>
-                      <td>{row.valorAprobado ?? '—'}</td>
-                      <td>{row.estadoLinea}</td>
-                    </TableRow>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </TableCard>
+        </TableCard>
+      ) : grupos.length === 0 ? (
+        <TableCard>
+          <table className={tableClass}>
+            <tbody>
+              <TableEmpty colSpan={1}>
+                {rows.length === 0
+                  ? 'No hay ítems aprobados en esa vigencia.'
+                  : 'Ningún ítem coincide con la búsqueda.'}
+              </TableEmpty>
+            </tbody>
+          </table>
+        </TableCard>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {grupos.map(([solicitudId, items]) => {
+            const cabeza = items[0]
+            const total = items.reduce((suma, item) => suma + (item.valorAprobado ?? 0), 0)
+            return (
+              <TableCard key={solicitudId}>
+                <header className="flex flex-col gap-3 border-b border-sena-hairline px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wide text-sena-text-soft">
+                      Solicitud {solicitudId}
+                      <span className="ml-2 normal-case tracking-normal">{cabeza.estadoSolicitud}</span>
+                    </p>
+                    <h2 className="mt-1 text-base font-semibold text-sena-text">
+                      Ficha {cabeza.numeroFicha}
+                      <span className="font-normal text-sena-strong">
+                        {' '}
+                        · {cabeza.codigoPrograma} {cabeza.nombrePrograma}
+                      </span>
+                    </h2>
+                    <p className="mt-1 text-sm text-sena-text-soft">
+                      Instructor {cabeza.instructor}
+                      {cabeza.coordinador ? ` · Coordinador ${cabeza.coordinador}` : ''}
+                      {cabeza.red ? ` · ${cabeza.red}` : ''}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-right">
+                    <span className="block text-xs text-sena-text-soft">{items.length} ítems</span>
+                    <span className="text-lg font-bold tabular-nums text-sena-text">{pesos(total)}</span>
+                  </p>
+                </header>
+                <div className="overflow-x-auto">
+                  <table className={tableClass}>
+                    <thead>
+                      <tr className="border-b border-sena-hairline bg-sena-soft/85">
+                        <TableHeader>Producto</TableHeader>
+                        <TableHeader>Lote</TableHeader>
+                        <TableHeader>Unidad</TableHeader>
+                        <TableHeader>Aprobó</TableHeader>
+                        <TableHeader>Valor unitario</TableHeader>
+                        <TableHeader>Valor aprobado</TableHeader>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((row, index) => (
+                        <TableRow key={`${row.solicitudId}-${row.codigoUnspsc}-${index}`}>
+                          <td>
+                            <p className="font-semibold text-sena-text">{row.producto}</p>
+                            <p className="text-xs text-sena-text-soft">
+                              {row.codigoUnspsc}
+                              {row.caracter ? ` · ${row.caracter}` : ''}
+                            </p>
+                            {row.descripcionTecnica ? (
+                              <p className="mt-0.5 max-w-md text-xs text-sena-strong">{row.descripcionTecnica}</p>
+                            ) : null}
+                          </td>
+                          <td>{row.lote ?? '—'}</td>
+                          <td>{row.unidadMedida ?? '—'}</td>
+                          <td className="tabular-nums">
+                            {row.cantidadAprobada}
+                            <span className="block text-xs text-sena-text-soft">pidió {row.cantidadSolicitada}</span>
+                          </td>
+                          <td className="tabular-nums">{pesos(row.valorUnitario)}</td>
+                          <td className="font-semibold tabular-nums">{pesos(row.valorAprobado)}</td>
+                        </TableRow>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </TableCard>
+            )
+          })}
+        </div>
+      )}
     </AppLayout>
   )
 }
