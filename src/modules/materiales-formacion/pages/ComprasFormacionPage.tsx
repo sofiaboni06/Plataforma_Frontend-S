@@ -142,34 +142,57 @@ export default function ComprasFormacionPage() {
               <thead>
                 <tr className="border-b border-sena-hairline bg-sena-soft/85">
                   <TableHeader>Solicitud</TableHeader>
+                  <TableHeader>Estado</TableHeader>
                   <TableHeader>Ficha</TableHeader>
                   <TableHeader>Instructor</TableHeader>
                   <TableHeader>Coordinador</TableHeader>
                   <TableHeader>Programa</TableHeader>
+                  <TableHeader>Red</TableHeader>
+                  <TableHeader>Línea</TableHeader>
+                  <TableHeader>Lote</TableHeader>
+                  <TableHeader>UNSPSC</TableHeader>
                   <TableHeader>Producto</TableHeader>
+                  <TableHeader>Descripción</TableHeader>
+                  <TableHeader>Unidad</TableHeader>
+                  <TableHeader>Carácter</TableHeader>
+                  <TableHeader>Base</TableHeader>
                   <TableHeader>Pidió</TableHeader>
                   <TableHeader>Aprobó</TableHeader>
+                  <TableHeader>Valor unitario</TableHeader>
+                  <TableHeader>Valor pedido</TableHeader>
+                  <TableHeader>Valor aprobado</TableHeader>
+                  <TableHeader>Línea pedido</TableHeader>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
-                  <TableEmpty colSpan={8}>No hay ítems aprobados en esa vigencia.</TableEmpty>
+                  <TableEmpty colSpan={21}>No hay ítems aprobados en esa vigencia.</TableEmpty>
                 ) : (
                   rows.map((row, index) => (
                     <TableRow key={`${row.solicitudId}-${row.codigoUnspsc}-${index}`}>
                       <td className="font-semibold">{row.solicitudId}</td>
+                      <td>{row.estadoSolicitud}</td>
                       <td>{row.numeroFicha}</td>
                       <td>{row.instructor}</td>
                       <td>{row.coordinador ?? '—'}</td>
                       <td>
                         {row.codigoPrograma} {row.nombrePrograma}
                       </td>
-                      <td>
-                        {row.producto}
-                        {row.lote ? <p className="text-xs text-sena-text/60">{row.lote}</p> : null}
-                      </td>
+                      <td>{row.red ?? '—'}</td>
+                      <td>{row.linea ?? '—'}</td>
+                      <td>{row.lote ?? '—'}</td>
+                      <td>{row.codigoUnspsc}</td>
+                      <td>{row.producto}</td>
+                      <td>{row.descripcionTecnica ?? '—'}</td>
+                      <td>{row.unidadMedida ?? '—'}</td>
+                      <td>{row.caracter ?? '—'}</td>
+                      <td>{row.cantidadBase}</td>
                       <td>{row.cantidadSolicitada}</td>
                       <td>{row.cantidadAprobada}</td>
+                      <td>{row.valorUnitario ?? '—'}</td>
+                      <td>{row.valorPedido ?? '—'}</td>
+                      <td>{row.valorAprobado ?? '—'}</td>
+                      <td>{row.estadoLinea}</td>
                     </TableRow>
                   ))
                 )}

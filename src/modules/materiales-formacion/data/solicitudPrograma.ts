@@ -90,18 +90,35 @@ export function decidirSolicitudPrograma(
 
 export type ConsolidadoCompra = {
   solicitudId: number
+  vigencia: number
+  estadoSolicitud: string
+  observacionSolicitud: string | null
+  observacionDecision: string | null
+  fechaEnvio: string | null
+  fechaDecision: string | null
   numeroFicha: string
   instructor: string
   coordinador: string | null
-  codigoUnspsc: string
-  producto: string
-  unidadMedida: string | null
-  caracter: string | null
-  lote: string | null
   codigoPrograma: string
   nombrePrograma: string
+  red: string | null
+  linea: string | null
+  codigoUnspsc: string
+  producto: string
+  descripcionTecnica: string | null
+  unidadMedida: string | null
+  valorUnitario: number | null
+  caracter: string | null
+  cantidadBase: number
+  observacionesMaterial: string | null
+  lote: string | null
+  cantidadMaestra: number | null
   cantidadSolicitada: number
   cantidadAprobada: number
+  valorPedido: number | null
+  valorAprobado: number | null
+  estadoLinea: string
+  observacionCoordinador: string | null
 }
 
 export function getConsolidadoCompras(vigencia: number) {
