@@ -5,6 +5,7 @@ import { EyeIcon, EyeOffIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError, shouldRememberSession } from '@/shared/lib/api'
 import { useAuth } from '@/modules/auth/context/auth'
 import { leaveNotice } from '@/shared/components/ui/Toast'
+import CaptchaField, { CAPTCHA_ENABLED } from '@/modules/auth/components/CaptchaField'
 
 function loginError(error: unknown) {
   if (error instanceof ApiError) {
@@ -67,6 +68,9 @@ export default function LoginPage() {
   const [saving, setSaving] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
 
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaReset, setCaptchaReset] = useState(0)
+
   useEffect(() => {
     const previousTitle = document.title
     document.title = 'Iniciar sesión | SIGMA'
@@ -100,25 +104,34 @@ export default function LoginPage() {
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setSaving(true)
-    setError(null)
+  event.preventDefault()
 
-    try {
-      await login({
-        usuario: usuario.trim(),
-        password,
-        remember,
-      })
-
-      leaveNotice('Inicio de sesión exitoso')
-      navigate(nextPath, { replace: true })
-    } catch (caught) {
-      setError(loginError(caught))
-    } finally {
-      setSaving(false)
-    }
+  if (CAPTCHA_ENABLED && !captchaToken) {
+    setError('Completa la verificación captcha')
+    return
   }
+
+  setSaving(true)
+  setError(null)
+
+  try {
+    await login({
+      usuario: usuario.trim(),
+      password,
+      remember,
+      captchaToken: captchaToken ?? undefined,
+    })
+
+    leaveNotice('Inicio de sesión exitoso')
+    navigate(nextPath, { replace: true })
+  } catch (caught) {
+    setError(loginError(caught))
+  
+    setCaptchaReset((value) => value + 1)
+  } finally {
+    setSaving(false)
+  }
+}
 
   return (
     <main className="relative isolate min-h-svh overflow-hidden bg-[#073d2b]">
@@ -394,6 +407,11 @@ export default function LoginPage() {
                   </Link>
                 </div>
 
+                {/* Verificación captcha: aparece al escribir usuario y contraseña */}
+                {usuario.trim() && password ? (
+                  <CaptchaField onToken={setCaptchaToken} resetKey={captchaReset} />
+                ) : null}
+
                 {/* Mensaje de error */}
                 {error && (
                   <div
@@ -408,7 +426,7 @@ export default function LoginPage() {
                 {/* Botón de acceso */}
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || (CAPTCHA_ENABLED && !captchaToken)}
                   className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-[#087b3e] to-[#0a9c4d] px-4 text-sm font-bold text-white shadow-[0_8px_22px_rgba(0,130,60,0.24)] transition duration-200 hover:-translate-y-0.5 hover:from-[#066a35] hover:to-[#078540] hover:shadow-[0_12px_26px_rgba(0,130,60,0.30)] focus:outline-none focus:ring-4 focus:ring-emerald-600/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                 >
                   {saving ? (
