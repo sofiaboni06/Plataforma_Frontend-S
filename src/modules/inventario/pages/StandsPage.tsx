@@ -370,7 +370,7 @@ export default function StandsPage() {
                                   navigate(`/inventario/stands/${stand.id}`)
                                 }
                               >
-                                <EyeIcon className="size-[18px]" />
+                                <EyeIcon className="size-4.5" />
                               </ActionButton>
                             ) : null}
 
@@ -381,7 +381,7 @@ export default function StandsPage() {
                                   navigate(`/inventario/stands/${stand.id}/editar`)
                                 }
                               >
-                                <PencilIcon className="size-[18px]" />
+                                <PencilIcon className="size-4.5" />
                               </ActionButton>
                             ) : null}
 
@@ -392,7 +392,7 @@ export default function StandsPage() {
                                 disabled={deletingId === stand.id}
                                 onClick={() => setStandToDelete(stand)}
                               >
-                                <TrashIcon className="size-[18px]" />
+                                <TrashIcon className="size-4.5" />
                               </ActionButton>
                             ) : null}
                           </RowActions>

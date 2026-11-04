@@ -455,6 +455,7 @@ function App() {
             path="/formacion/alertas"
             element={
               <ModuleRoute>
+                <Navigate to="/formacion" replace />
                 <AlertasFormacionPage />
               </ModuleRoute>
             }
