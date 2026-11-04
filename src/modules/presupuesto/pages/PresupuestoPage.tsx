@@ -10,10 +10,12 @@ import {
   TableEmpty,
   TableHeader,
   TableLoading,
+  TablePagination,
   TableRow,
-  tableClass,
 } from '@/shared/components/DataTable'
-import { ProgramIcon } from '@/shared/components/icons/AppIcons'
+import { InventoryIcon, ProgramIcon, ReportIcon, UserIcon } from '@/shared/components/icons/AppIcons'
+import { cn } from '@/shared/lib/cn'
+import { usePagination } from '@/shared/lib/table'
 import { ApiError } from '@/shared/lib/api'
 import { useAuth } from '@/modules/auth/context/auth'
 import { getVigencias } from '@/modules/vigencias/data/vigencia'
@@ -35,6 +37,25 @@ function pesos(valor: number) {
   return valor.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 }
 
+/**
+ * Estas vistas manejan tablas de dos o tres columnas: no necesitan el ancho
+ * mínimo de 900 px de `tableClass`. Conservan `data-table` para compartir el
+ * ritmo de fila del resto del sistema, pero se adaptan a pantallas pequeñas.
+ */
+const tablaRepartoClass = 'data-table w-full min-w-[560px] text-sm'
+const tablaLotesClass = 'data-table w-full min-w-[420px] text-sm'
+
+/**
+ * Todos los listados del módulo (coordinadores, redes, lotes y aprobados)
+ * muestran 10 registros por página. El corte es solo visual: los datos
+ * completos siguen en estado y todas las acciones siguen operando.
+ */
+const PAGE_SIZE = 10
+
+/** Campo de monto dentro de las tablas: mismos estados que el resto de formularios. */
+const montoInputClass =
+  'h-11 w-full max-w-[10rem] rounded-xl border border-sena-line bg-white px-3 text-sm font-semibold tabular-nums text-sena-text outline-none transition duration-150 hover:border-sena/40 focus:border-sena focus:ring-2 focus:ring-sena/15 disabled:cursor-not-allowed disabled:bg-sena-off-soft disabled:text-sena-text-soft disabled:hover:border-sena-line'
+
 function MontoGrande({
   total,
   queda,
@@ -47,21 +68,70 @@ function MontoGrande({
   destino: string
 }) {
   const sePasa = queda < 0
+  const repartido = Math.max(0, total - queda)
+  const avance = total > 0 ? Math.min(100, (repartido / total) * 100) : 0
+
   return (
-    <section className="mb-4 rounded-[28px] border border-[#d5e6dc] bg-[#f4faf6] px-6 py-8 text-center">
-      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#1b5c40]">{titulo}</p>
-      <p
-        className={`mt-2 text-4xl font-bold tracking-tight sm:text-6xl ${sePasa ? 'text-sena-danger-text' : 'text-[#145c3e]'}`}
-      >
-        {pesos(queda)}
-      </p>
-      <p className="mt-3 text-sm text-sena-strong">
-        {total <= 0
-          ? 'La subdirectora todavía no te asignó monto en esta vigencia.'
-          : sePasa
-            ? `Te pasaste de ${pesos(total)}.`
-            : `De ${pesos(total)}. Ya van ${pesos(total - queda)} en ${destino}.`}
-      </p>
+    <section className="relative mb-4 overflow-hidden rounded-[26px] border border-sena-line bg-white px-6 py-7 shadow-card sm:px-8">
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-sena via-sena-bright to-sena/0"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-[radial-gradient(circle,rgba(0,166,81,0.12),transparent_70%)]"
+      />
+
+      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold tracking-[0.16em] text-sena-strong uppercase">{titulo}</p>
+          <p
+            className={cn(
+              'mt-2 text-4xl font-bold tracking-tight tabular-nums sm:text-5xl',
+              sePasa ? 'text-sena-danger-text' : 'text-sena-dark',
+            )}
+          >
+            {pesos(queda)}
+          </p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-sena-strong">
+            {total <= 0
+              ? 'La subdirectora todavía no te asignó monto en esta vigencia.'
+              : sePasa
+                ? `Te pasaste de ${pesos(total)}.`
+                : `De ${pesos(total)}. Ya van ${pesos(total - queda)} en ${destino}.`}
+          </p>
+
+          <div className="mt-5 max-w-md">
+            <div
+              className="h-2 w-full overflow-hidden rounded-full bg-sena-muted"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(avance)}
+              aria-label="Proporción del monto ya repartida"
+            >
+              <span
+                className={cn(
+                  'block h-full rounded-full transition-[width] duration-500',
+                  sePasa ? 'bg-sena-danger-text' : 'bg-sena',
+                )}
+                style={{ width: `${avance}%` }}
+              />
+            </div>
+            <p className="mt-2 flex items-center justify-between text-[11px] font-medium text-sena-text-soft tabular-nums">
+              <span>Repartido</span>
+              <span>{Math.round(avance)}%</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="shrink-0 rounded-2xl border border-sena-line-soft bg-sena-muted/70 px-6 py-4 lg:min-w-[14rem]">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-sena-text-soft uppercase">
+            Monto total
+          </p>
+          <p className="mt-1 text-xl font-bold text-sena-dark tabular-nums">{pesos(total)}</p>
+        </div>
+      </div>
     </section>
   )
 }
@@ -315,7 +385,12 @@ function Avisos() {
   return (
     <>
       {error ? <ErrorBanner message={error} onClose={() => setError('')} /> : null}
-      {aviso ? <p className="mb-4 rounded-2xl bg-sena-soft px-5 py-3 text-sm text-sena-dark">{aviso}</p> : null}
+      {aviso ? (
+        <p className="mb-4 flex items-start gap-2.5 rounded-2xl border border-sena-ok-line/70 bg-sena-active-soft px-5 py-3 text-sm font-medium text-sena-ok-text">
+          <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-sena-ok-text" />
+          {aviso}
+        </p>
+      ) : null}
     </>
   )
 }
@@ -323,23 +398,28 @@ function Avisos() {
 function SelectorVigencia() {
   const { anios, anio, setAnio } = usePresupuesto()
   return (
-    <section className="form-panel mb-4 px-5 py-5 sm:px-6">
-      <div className="form-fields grid gap-4 sm:max-w-xs">
-        <label className="flex flex-col gap-1.5">
-          <span className="form-label">Vigencia</span>
-          <select
-            className="form-field form-select"
-            value={anio}
-            onChange={(event) => setAnio(Number(event.target.value))}
-          >
-            {(anios.length ? anios : [anio]).map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
+    <section className="mb-4 flex flex-col gap-4 rounded-[26px] border border-glass-line bg-glass px-5 py-4 shadow-hairline backdrop-blur-glass sm:flex-row sm:items-end sm:justify-between sm:px-6">
+      <div className="flex w-full flex-col gap-1.5 sm:max-w-[13rem]">
+        <label htmlFor="vigencia-presupuesto" className="form-label">
+          Vigencia
         </label>
+        <select
+          id="vigencia-presupuesto"
+          className="form-field form-select"
+          value={anio}
+          onChange={(event) => setAnio(Number(event.target.value))}
+        >
+          {(anios.length ? anios : [anio]).map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
       </div>
+
+      <p className="text-xs leading-5 text-sena-text-soft sm:max-w-xs sm:pb-2.5 sm:text-right">
+        El monto, el reparto y los lotes se cargan según la vigencia seleccionada.
+      </p>
     </section>
   )
 }
@@ -371,6 +451,7 @@ function ResumenView() {
           texto: 'Un solo valor para todo el centro en esta vigencia.',
           to: '/presupuesto-formacion/monto',
           cta: 'Asignar monto',
+          icono: <ReportIcon className="size-5" />,
         },
         {
           titulo: 'Reparto a coordinadores',
@@ -378,6 +459,7 @@ function ResumenView() {
           texto: resumen ? `${pesos(resumen.repartido)} repartidos · ${pesos(resumen.sinRepartir)} sin asignar` : '',
           to: '/presupuesto-formacion/reparto',
           cta: 'Repartir',
+          icono: <UserIcon className="size-5" />,
         },
         {
           titulo: 'Lotes',
@@ -385,6 +467,7 @@ function ResumenView() {
           texto: 'Informática, papelería, herramientas. Se eligen en cada material.',
           to: '/presupuesto-formacion/lotes',
           cta: 'Administrar lotes',
+          icono: <InventoryIcon className="size-5" />,
         },
       ]
     : [
@@ -394,6 +477,7 @@ function ResumenView() {
           texto: 'La red de conocimiento es el área. Reparte tu monto entre las redes que te asignaron.',
           to: '/presupuesto-formacion/reparto',
           cta: 'Repartir',
+          icono: <UserIcon className="size-5" />,
         },
         {
           titulo: 'Lotes',
@@ -401,6 +485,7 @@ function ResumenView() {
           texto: 'Informática, papelería, herramientas. Se eligen en cada material.',
           to: '/presupuesto-formacion/lotes',
           cta: 'Administrar lotes',
+          icono: <InventoryIcon className="size-5" />,
         },
       ]
 
@@ -435,15 +520,29 @@ function ResumenView() {
           destino={esAdmin ? 'coordinadores' : 'redes'}
         />
       ) : null}
-      <div className="mb-4 grid gap-3 lg:grid-cols-3">
+      <div className="mb-4 grid gap-4 lg:grid-cols-3">
         {acciones.map((accion) => (
-          <article key={accion.to} className="flex flex-col rounded-[24px] border border-sena-line bg-white p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-sena-strong">{accion.detalle}</p>
-            <h2 className="mt-1 text-base font-bold text-sena-dark">{accion.titulo}</h2>
-            <p className="mt-1 flex-1 text-sm text-sena-strong">{accion.texto}</p>
-            <div className="mt-4">
+          <article
+            key={accion.to}
+            className="group flex flex-col rounded-[26px] border border-glass-line bg-white p-6 shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover"
+          >
+            <span
+              aria-hidden="true"
+              className="grid size-11 place-items-center rounded-2xl bg-sena-soft text-sena-dark transition duration-200 group-hover:bg-sena group-hover:text-white group-hover:shadow-brand-sm"
+            >
+              {accion.icono}
+            </span>
+            <p className="mt-4 text-xs font-semibold tracking-[0.14em] text-sena-strong uppercase">
+              {accion.detalle}
+            </p>
+            <h2 className="mt-1.5 text-lg font-bold tracking-tight text-sena-text">{accion.titulo}</h2>
+            <p className="mt-2 flex-1 text-sm leading-6 text-sena-text-soft">{accion.texto}</p>
+            <div className="mt-5">
               <Button type="button" size="sm" onClick={() => navigate(accion.to)}>
                 {accion.cta}
+                <span aria-hidden="true" className="ml-1 inline-block transition-transform duration-150 group-hover:translate-x-0.5">
+                  →
+                </span>
               </Button>
             </div>
           </article>
@@ -457,15 +556,16 @@ function Volver() {
   return (
     <Link
       to="/presupuesto-formacion"
-      className="inline-flex h-10 items-center rounded-xl border border-[#d5e6dc] bg-white px-4 text-sm font-semibold text-[#1b5c40] hover:bg-[#f4faf6]"
+      className="inline-flex h-[52px] items-center gap-2 rounded-2xl border border-[#d5e6dc] bg-white px-6 text-sm font-semibold text-[#1b5c40] shadow-hairline transition duration-150 hover:border-[#b7d8c6] hover:bg-[#f4faf6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sena"
     >
+      <span aria-hidden="true">‹</span>
       Volver al resumen
     </Link>
   )
 }
 
 function MontoView() {
-  const { esAdmin, monto, setMonto, saving, guardarMontoVigencia, resumen } = usePresupuesto()
+  const { esAdmin, anio, monto, setMonto, saving, guardarMontoVigencia, resumen } = usePresupuesto()
   if (!esAdmin) return <Navigate to="/presupuesto-formacion" replace />
   return (
     <AppLayout title="Presupuesto" showCenterBanner={false}>
@@ -478,8 +578,15 @@ function MontoView() {
       <Avisos />
       <SelectorVigencia />
       <Cuerpo>
-        <section className="form-panel px-5 py-5 sm:px-6">
-          <div className="form-fields grid gap-4 sm:grid-cols-2 sm:items-end">
+        <section className="rounded-[26px] border border-glass-line bg-white p-6 shadow-card sm:p-7">
+          <header className="border-b border-sena-line-soft pb-4">
+            <h2 className="form-section-title mb-0">Monto de la vigencia {anio}</h2>
+            <p className="mt-1 text-sm text-sena-text-soft">
+              Este valor es el total disponible para repartir en el año.
+            </p>
+          </header>
+
+          <div className="form-fields mt-5 grid gap-4 sm:max-w-lg">
             <TextField
               id="monto-vigencia"
               label="Monto del centro"
@@ -491,14 +598,17 @@ function MontoView() {
               onChange={(event) => setMonto(event.target.value)}
             />
             {resumen ? (
-              <div className="rounded-2xl bg-white px-4 py-3">
+              <div className="rounded-2xl border border-sena-line-soft bg-white px-4 py-3">
                 <p className="form-label">Sin repartir</p>
-                <p className="mt-1 text-lg font-bold text-[#145c3e]">{pesos(resumen.sinRepartir)}</p>
+                <p className="mt-1 text-lg font-bold text-sena-dark tabular-nums">
+                  {pesos(resumen.sinRepartir)}
+                </p>
               </div>
             ) : null}
           </div>
+
           {esAdmin ? (
-            <div className="mt-4 flex justify-end">
+            <div className="mt-5 flex justify-end border-t border-sena-line-soft pt-4">
               <Button type="button" size="sm" disabled={saving} onClick={() => void guardarMontoVigencia()}>
                 Guardar monto
               </Button>
@@ -513,6 +623,7 @@ function MontoView() {
 function RepartoView() {
   const {
     esAdmin,
+    anio,
     resumen,
     montosCoordinador,
     setMontoCoordinador,
@@ -522,8 +633,19 @@ function RepartoView() {
     asignar,
     asignarAFicha,
   } = usePresupuesto()
+  const [pagina, setPagina] = useState(1)
+
+  /* Cambiar de vigencia recarga los datos: la vista vuelve a la página 1. */
+  useEffect(() => {
+    setPagina(1)
+  }, [anio])
+
   const coordinadores = resumen?.coordinadores ?? []
   const areas = resumen?.areas ?? []
+  const pagCoordinadores = usePagination(coordinadores, pagina, PAGE_SIZE)
+  const pagAreas = usePagination(areas, pagina, PAGE_SIZE)
+  /* Solo se lista una de las dos colecciones según el rol, con su propia página. */
+  const paginacion = esAdmin ? pagCoordinadores : pagAreas
   const enBorrador = esAdmin
     ? coordinadores.reduce((total, persona) => total + (Number(montosCoordinador[persona.id]) || 0), 0)
     : areas.reduce((total, area) => total + (Number(montosFicha[area.id]) || 0), 0)
@@ -552,14 +674,30 @@ function RepartoView() {
         />
       ) : null}
       <Cuerpo>
-        <section className="rounded-[24px] border border-sena-line bg-white p-5">
+        <TableCard>
+          <header className="flex flex-col gap-3 border-b border-sena-line-soft px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="min-w-0">
+              <h2 className="text-base font-bold tracking-tight text-sena-text">
+                {esAdmin ? 'Coordinadores del centro' : 'Redes de conocimiento'}
+              </h2>
+              <p className="mt-1 text-sm text-sena-text-soft">
+                Escribe el monto de cada fila y pulsa Asignar para guardarlo.
+              </p>
+            </div>
+            <span className="w-fit shrink-0 rounded-full border border-sena-line bg-sena-muted px-3.5 py-1.5 text-xs font-semibold text-sena-strong tabular-nums">
+              {esAdmin
+                ? `${coordinadores.length} coordinador${coordinadores.length === 1 ? '' : 'es'}`
+                : `${areas.length} red${areas.length === 1 ? '' : 'es'}`}
+            </span>
+          </header>
+
           <div className="overflow-x-auto">
-            <table className={tableClass}>
+            <table className={tablaRepartoClass}>
               <thead>
-                <tr className="border-b border-sena-hairline bg-sena-soft/85">
-                  <TableHeader>{esAdmin ? 'Coordinador' : 'Red de conocimiento'}</TableHeader>
-                  <TableHeader>Asignado</TableHeader>
-                  <TableHeader>Acción</TableHeader>
+                <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
+                  <TableHeader width="w-[42%]">{esAdmin ? 'Coordinador' : 'Red de conocimiento'}</TableHeader>
+                  <TableHeader width="w-[34%]">Asignado</TableHeader>
+                  <TableHeader align="right" width="w-[24%]">Acción</TableHeader>
                 </tr>
               </thead>
               <tbody>
@@ -567,24 +705,25 @@ function RepartoView() {
                   areas.length === 0 ? (
                     <TableEmpty colSpan={3}>No tienes redes de conocimiento asignadas.</TableEmpty>
                   ) : (
-                    areas.map((area) => (
+                    pagAreas.pageRows.map((area) => (
                       <TableRow key={area.id}>
-                        <td className="font-semibold">
-                          {area.nombre}
+                        <td>
+                          <p className="font-semibold text-sena-text">{area.nombre}</p>
                           {area.codigo ? (
-                            <p className="text-xs font-medium text-sena-strong">{area.codigo}</p>
+                            <p className="mt-0.5 text-xs font-medium text-sena-text-soft">{area.codigo}</p>
                           ) : null}
                         </td>
                         <td>
                           <input
-                            className="h-10 w-40 rounded-xl border border-sena-line px-3"
+                            className={montoInputClass}
                             type="number"
                             min={0}
+                            aria-label={`Monto para ${area.nombre}`}
                             value={montosFicha[area.id] ?? ''}
                             onChange={(event) => setMontoFicha(area.id, event.target.value)}
                           />
                         </td>
-                        <td>
+                        <td className="text-right">
                           <Button
                             type="button"
                             size="sm"
@@ -601,20 +740,21 @@ function RepartoView() {
                 ) : coordinadores.length === 0 ? (
                   <TableEmpty colSpan={3}>Este centro no tiene coordinadores activos.</TableEmpty>
                 ) : (
-                  coordinadores.map((persona) => (
+                  pagCoordinadores.pageRows.map((persona) => (
                     <TableRow key={persona.id}>
-                      <td className="font-semibold">{persona.fullName}</td>
+                      <td className="font-semibold text-sena-text">{persona.fullName}</td>
                       <td>
                         <input
-                          className="h-10 w-40 rounded-xl border border-sena-line px-3"
+                          className={montoInputClass}
                           type="number"
                           min={0}
+                          aria-label={`Monto para ${persona.fullName}`}
                           value={montosCoordinador[persona.id] ?? ''}
                           disabled={!esAdmin}
                           onChange={(event) => setMontoCoordinador(persona.id, event.target.value)}
                         />
                       </td>
-                      <td>
+                      <td className="text-right">
                         {esAdmin ? (
                           <Button
                             type="button"
@@ -633,14 +773,38 @@ function RepartoView() {
               </tbody>
             </table>
           </div>
-        </section>
+
+          {paginacion.total > 0 ? (
+            <TablePagination
+              page={paginacion.currentPage}
+              totalPages={paginacion.totalPages}
+              onPageChange={setPagina}
+              from={paginacion.from}
+              to={paginacion.to}
+              total={paginacion.total}
+              noun={esAdmin ? 'coordinadores' : 'redes'}
+            />
+          ) : null}
+        </TableCard>
       </Cuerpo>
     </AppLayout>
   )
 }
 
 function LotesView() {
-  const { puedeEditar, lotes, loteNombre, setLoteNombre, saving, guardarLote, resumen } = usePresupuesto()
+  const { puedeEditar, anio, lotes, loteNombre, setLoteNombre, saving, guardarLote, resumen } = usePresupuesto()
+  const [paginaLotes, setPaginaLotes] = useState(1)
+  const [paginaAprobados, setPaginaAprobados] = useState(1)
+
+  /* Cambiar de vigencia recarga los datos: ambos listados vuelven a la página 1. */
+  useEffect(() => {
+    setPaginaLotes(1)
+    setPaginaAprobados(1)
+  }, [anio])
+
+  const aprobados = resumen?.porLote ?? []
+  const pagLotes = usePagination(lotes, paginaLotes, PAGE_SIZE)
+  const pagAprobados = usePagination(aprobados, paginaAprobados, PAGE_SIZE)
   return (
     <AppLayout title="Presupuesto" showCenterBanner={false}>
       <PageHeader
@@ -652,59 +816,116 @@ function LotesView() {
       <Avisos />
       <SelectorVigencia />
       <Cuerpo>
-        <section className="rounded-[24px] border border-sena-line bg-white p-5">
+        <div className="flex flex-col gap-4">
           {puedeEditar ? (
-            <div className="flex flex-wrap items-end gap-3">
-              <TextField
-                id="lote-nombre"
-                label="Nombre del lote"
-                value={loteNombre}
-                maxLength={80}
-                onChange={(event) => setLoteNombre(event.target.value)}
+            <section className="rounded-[26px] border border-glass-line bg-white p-6 shadow-card sm:p-7">
+              <header className="border-b border-sena-line-soft pb-4">
+                <h2 className="form-section-title mb-0">Nuevo lote</h2>
+                <p className="mt-1 text-sm text-sena-text-soft">
+                  Agrupa los materiales por tipo: informática, papelería, herramientas.
+                </p>
+              </header>
+
+              <div className="mt-5 grid gap-4 sm:max-w-md">
+                <TextField
+                  id="lote-nombre"
+                  label="Nombre del lote"
+                  value={loteNombre}
+                  maxLength={80}
+                  onChange={(event) => setLoteNombre(event.target.value)}
+                />
+                <div className="flex justify-start sm:justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={saving || !loteNombre.trim()}
+                    onClick={() => void guardarLote()}
+                  >
+                    Crear lote
+                  </Button>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          <section className="rounded-[26px] border border-glass-line bg-white shadow-card">
+            <div className="p-6 sm:p-7">
+              <header className="flex flex-wrap items-center justify-between gap-3 border-b border-sena-line-soft pb-4">
+                <h2 className="text-base font-bold tracking-tight text-sena-text">Lotes</h2>
+                <span className="rounded-full border border-sena-line bg-sena-muted px-3.5 py-1.5 text-xs font-semibold text-sena-strong tabular-nums">
+                  {lotes.length} lote{lotes.length === 1 ? '' : 's'}
+                </span>
+              </header>
+
+              <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                {lotes.length === 0 ? (
+                  <li className="rounded-2xl border border-dashed border-sena-line bg-sena-muted/60 px-4 py-8 text-center text-sm text-sena-text-soft sm:col-span-2">
+                    Esta vigencia no tiene lotes.
+                  </li>
+                ) : (
+                  pagLotes.pageRows.map((lote) => (
+                    <li
+                      key={lote.id}
+                      className="flex items-center gap-3 rounded-2xl border border-sena-line bg-sena-surface px-4 py-3 text-sm font-semibold text-sena-text shadow-hairline transition duration-150 hover:border-sena/40 hover:bg-white"
+                    >
+                      <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full bg-sena" />
+                      <span className="min-w-0 truncate">{lote.nombre}</span>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+
+            {pagLotes.total > 0 ? (
+              <TablePagination
+                page={pagLotes.currentPage}
+                totalPages={pagLotes.totalPages}
+                onPageChange={setPaginaLotes}
+                from={pagLotes.from}
+                to={pagLotes.to}
+                total={pagLotes.total}
+                noun="lotes"
               />
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={saving || !loteNombre.trim()}
-                onClick={() => void guardarLote()}
-              >
-                Crear lote
-              </Button>
-            </div>
-          ) : null}
-          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-            {lotes.length === 0 ? (
-              <li className="text-sm text-sena-strong">Esta vigencia no tiene lotes.</li>
-            ) : (
-              lotes.map((lote) => (
-                <li key={lote.id} className="rounded-xl border border-sena-hairline px-4 py-2 text-sm font-semibold">
-                  {lote.nombre}
-                </li>
-              ))
-            )}
-          </ul>
-          {resumen && (resumen.porLote?.length ?? 0) > 0 ? (
-            <div className="mt-4 overflow-x-auto">
-              <table className={tableClass}>
-                <thead>
-                  <tr className="border-b border-sena-hairline bg-sena-soft/85">
-                    <TableHeader>Lote</TableHeader>
-                    <TableHeader>Aprobado</TableHeader>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resumen.porLote.map((lote) => (
-                    <TableRow key={lote.nombre}>
-                      <td>{lote.nombre}</td>
-                      <td>{pesos(lote.gastado)}</td>
-                    </TableRow>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-        </section>
+            ) : null}
+
+            {pagAprobados.total > 0 ? (
+              <>
+                <div className="border-t border-sena-line-soft px-6 pb-6 pt-5 sm:px-7 sm:pb-7">
+                  <div className="overflow-x-auto">
+                    <table className={tablaLotesClass}>
+                      <thead>
+                        <tr className="border-b border-sena-dark/8 bg-sena-muted/45">
+                          <TableHeader width="w-[60%]">Lote</TableHeader>
+                          <TableHeader align="right" width="w-[40%]">Aprobado</TableHeader>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagAprobados.pageRows.map((lote) => (
+                          <TableRow key={lote.nombre}>
+                            <td className="font-medium text-sena-text">{lote.nombre}</td>
+                            <td className="text-right font-semibold text-sena-dark tabular-nums">
+                              {pesos(lote.gastado)}
+                            </td>
+                          </TableRow>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <TablePagination
+                  page={pagAprobados.currentPage}
+                  totalPages={pagAprobados.totalPages}
+                  onPageChange={setPaginaAprobados}
+                  from={pagAprobados.from}
+                  to={pagAprobados.to}
+                  total={pagAprobados.total}
+                  noun="lotes"
+                />
+              </>
+            ) : null}
+          </section>
+        </div>
       </Cuerpo>
     </AppLayout>
   )
