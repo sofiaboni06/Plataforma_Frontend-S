@@ -235,7 +235,7 @@ export default function PresupuestoPage() {
       aplicarFichas(vista)
       setAviso('Asignación guardada. Tu saldo ya se actualizó.')
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'No se pudo asignar el monto al área.')
+      setError(caught instanceof ApiError ? caught.message : 'No se pudo asignar el monto a la red de conocimiento.')
     } finally {
       setSaving(false)
     }
@@ -389,9 +389,9 @@ function ResumenView() {
       ]
     : [
         {
-          titulo: 'Reparto a áreas',
-          detalle: `${fichas} área${fichas === 1 ? '' : 's'}`,
-          texto: 'Reparte tu monto entre las áreas de tus programas.',
+          titulo: 'Reparto a redes de conocimiento',
+          detalle: `${fichas} red${fichas === 1 ? '' : 'es'}`,
+          texto: 'La red de conocimiento es el área. Reparte tu monto entre las redes que te asignaron.',
           to: '/presupuesto-formacion/reparto',
           cta: 'Repartir',
         },
@@ -412,7 +412,7 @@ function ResumenView() {
         description={
           esAdmin
             ? 'El monto es del centro y de la vigencia. De ahí se reparte a cada coordinador.'
-            : 'Te asignaron un monto para repartirlo entre tus áreas.'
+            : 'Te asignaron un monto. Cada red de conocimiento es un área: reparte el monto entre tus redes.'
         }
         action={
           <div className="flex flex-wrap gap-2">
@@ -432,7 +432,7 @@ function ResumenView() {
           total={resumen.monto}
           queda={resumen.sinRepartir}
           titulo={esAdmin ? 'Mi monto' : 'Te asignaron'}
-          destino={esAdmin ? 'coordinadores' : 'áreas'}
+          destino={esAdmin ? 'coordinadores' : 'redes'}
         />
       ) : null}
       <div className="mb-4 grid gap-3 lg:grid-cols-3">
@@ -533,11 +533,11 @@ function RepartoView() {
     <AppLayout title="Presupuesto" showCenterBanner={false}>
       <PageHeader
         icon={<ProgramIcon />}
-        title={esAdmin ? 'Reparto a coordinadores' : 'Reparto a áreas'}
+        title={esAdmin ? 'Reparto a coordinadores' : 'Reparto a redes de conocimiento'}
         description={
           esAdmin
             ? 'Cada asignación se descuenta del monto del centro.'
-            : 'Cada área se descuenta del monto que te asignaron.'
+            : 'Cada red de conocimiento es un área. Lo que le asignas se descuenta de tu monto.'
         }
         action={<Volver />}
       />
@@ -548,7 +548,7 @@ function RepartoView() {
           total={resumen.monto}
           queda={queda}
           titulo={esAdmin ? 'Mi monto' : 'Te asignaron'}
-          destino={esAdmin ? 'coordinadores' : 'áreas'}
+          destino={esAdmin ? 'coordinadores' : 'redes'}
         />
       ) : null}
       <Cuerpo>
@@ -557,7 +557,7 @@ function RepartoView() {
             <table className={tableClass}>
               <thead>
                 <tr className="border-b border-sena-hairline bg-sena-soft/85">
-                  <TableHeader>{esAdmin ? 'Coordinador' : 'Área'}</TableHeader>
+                  <TableHeader>{esAdmin ? 'Coordinador' : 'Red de conocimiento'}</TableHeader>
                   <TableHeader>Asignado</TableHeader>
                   <TableHeader>Acción</TableHeader>
                 </tr>
@@ -565,7 +565,7 @@ function RepartoView() {
               <tbody>
                 {!esAdmin ? (
                   areas.length === 0 ? (
-                    <TableEmpty colSpan={3}>No tienes áreas asignadas.</TableEmpty>
+                    <TableEmpty colSpan={3}>No tienes redes de conocimiento asignadas.</TableEmpty>
                   ) : (
                     areas.map((area) => (
                       <TableRow key={area.id}>

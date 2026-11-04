@@ -48,6 +48,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const canVigencias = isAdmin || user?.permissions?.includes('vigencia.ver') === true
   const canPresupuesto =
     isAdmin || user?.permissions?.includes('solicitud_programa.editar') === true
+  const canAlertas = canFormacionAction('alertas', 'list', formacionAccess)
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,
     permissions: user?.permissions,
@@ -294,7 +295,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
                     Consolidado de compras
                   </SideLink>
                 ) : null}
-                {canPresupuesto ? (
+                {canAlertas ? (
                   <SideLink to="/formacion/alertas" icon="program" nested end={false} onClose={onClose}>
                     Alertas
                   </SideLink>

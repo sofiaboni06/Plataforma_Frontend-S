@@ -191,6 +191,8 @@ export default function SolicitudMaterialFormacionPage() {
     return ficha.centroFormacionId === user.trainingCenterId
   })
   const [page, setPage] = useState(1)
+  const [redAbierta, setRedAbierta] = useState<string | null>(null)
+  const [lineaAbierta, setLineaAbierta] = useState<string | null>(null)
   const { pageRows, from, to, totalPages, currentPage } = usePagination(solicitudes, page)
   const materialElegido = materiales.find((item) => String(item.id) === materialId)
 
@@ -437,6 +439,8 @@ export default function SolicitudMaterialFormacionPage() {
   }, [programas, solicitudes])
 
   const vistaCoordinador = puedeDecidir && !puedePedir
+  const grupoAbierto = gruposCoordinador.find((grupo) => grupo.red === redAbierta) ?? null
+  const lineaGrupo = grupoAbierto?.lineas.find((linea) => linea.linea === lineaAbierta) ?? null
   const programaAbierto = useMemo(
     () =>
       gruposCoordinador
@@ -444,6 +448,28 @@ export default function SolicitudMaterialFormacionPage() {
         .find((programa) => programa.id === programaAbiertoId) ?? null,
     [gruposCoordinador, programaAbiertoId],
   )
+
+  const abrirRed = (red: string) => {
+    setRedAbierta(red)
+    setLineaAbierta(null)
+    setProgramaAbiertoId(null)
+  }
+
+  const abrirLinea = (linea: string) => {
+    setLineaAbierta(linea)
+    setProgramaAbiertoId(null)
+  }
+
+  const volverAAreas = () => {
+    setRedAbierta(null)
+    setLineaAbierta(null)
+    setProgramaAbiertoId(null)
+  }
+
+  const volverALineas = () => {
+    setLineaAbierta(null)
+    setProgramaAbiertoId(null)
+  }
 
   const accionesSolicitud = (solicitud: SolicitudPrograma) => (
     <td className="flex flex-wrap gap-2">
@@ -514,7 +540,7 @@ export default function SolicitudMaterialFormacionPage() {
         title="Solicitudes de materiales de formación"
         description={
           vistaCoordinador
-            ? 'Entra a un área y mira los pedidos de sus instructores. El aviso sale solo si, sumados, se pasan de lo asignado a esa área.'
+            ? 'Cada red de conocimiento es un área. Entra a un programa y mira los pedidos. El aviso sale si, sumados, se pasan del tope de esa red.'
             : 'Arma la solicitud con los materiales de la lista maestra. Coordinación de tu red revisa cada línea.'
         }
         context={<InventoryCenterBadge />}
@@ -561,12 +587,12 @@ export default function SolicitudMaterialFormacionPage() {
                 icon={<ReturnIcon className="size-4" />}
                 onClick={() => setProgramaAbiertoId(null)}
               >
-                Volver a áreas
+                Volver a programas
               </Button>
             </div>
             {corteDeArea(programaAbierto.solicitudes).sePasa ? (
               <p className="mx-6 my-4 rounded-2xl border border-sena-warn-line bg-white px-4 py-3 text-sm text-sena-text">
-                Sumando los pedidos del área {programaAbierto.red} da{' '}
+                Sumando los pedidos de la red {programaAbierto.red} da{' '}
                 {pesos(corteDeArea(programaAbierto.solicitudes).suma)}. El tope asignado es{' '}
                 {pesos(corteDeArea(programaAbierto.solicitudes).tope)}. Ajusta las cantidades.
               </p>
@@ -594,58 +620,202 @@ export default function SolicitudMaterialFormacionPage() {
               </table>
             </div>
           </TableCard>
-        ) : (
+        ) : lineaGrupo && grupoAbierto ? (
           <div className="grid gap-6">
-            {gruposCoordinador.map((grupo) => (
-              <section key={grupo.red} className="grid gap-3">
-                <div>
-                  <h2 className="text-xl font-bold text-sena-text">{grupo.red}</h2>
-                </div>
-                {grupo.lineas.map((linea) => (
-                  <TableCard key={`${grupo.red}-${linea.linea}`}>
-                    <div className="border-b border-sena-hairline px-6 py-4">
-                      <h3 className="text-lg font-bold text-sena-text">{linea.linea}</h3>
-                      <p className="mt-1 text-sm text-sena-strong">
-                        Programas de {grupo.red} en {user?.trainingCenter ?? 'tu centro'}
-                      </p>
-                    </div>
-                    <ul>
-                      {linea.programas.map((programa) => {
-                        const pendientes = programa.solicitudes.filter(pendienteDeRevision).length
-                        const sePasa = corteDeArea(programa.solicitudes).sePasa
-                        return (
-                          <li key={programa.id} className="border-b border-sena-hairline last:border-b-0">
-                            <button
-                              type="button"
-                              onClick={() => setProgramaAbiertoId(programa.id)}
-                              className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left transition hover:bg-sena-soft/60"
-                            >
-                              <span>
-                                <span className="flex items-center gap-2">
-                                  {sePasa ? (
-                                    <span className="size-3 shrink-0 rounded-full bg-[#d14343]" aria-hidden="true" />
-                                  ) : null}
-                                  <span className="font-semibold text-sena-text">{programa.nombre}</span>
-                                </span>
-                                <span className={`mt-1 block text-sm text-sena-strong ${sePasa ? 'pl-5' : ''}`}>
-                                  {programa.codigo}
-                                  {pendientes > 0
-                                    ? ` · ${pendientes} pedido${pendientes === 1 ? '' : 's'} por revisar`
-                                    : ' · sin pedidos por revisar'}
-                                  {sePasa ? ' · sumando los pedidos se pasa del tope' : ''}
-                                </span>
-                              </span>
-                              <span className="shrink-0 text-sm font-semibold text-sena-text">Ver pedidos</span>
-                            </button>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </TableCard>
-                ))}
-              </section>
-            ))}
+            <div className="flex flex-wrap items-start justify-between gap-3 px-1">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-sena-strong">
+                  Línea temática
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-sena-text">{lineaGrupo.linea}</h2>
+                <p className="mt-2 text-sm text-sena-strong">
+                  {grupoAbierto.red} · el tope del presupuesto es de esta red
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                icon={<ReturnIcon className="size-4" />}
+                onClick={volverALineas}
+              >
+                Volver a líneas
+              </Button>
+            </div>
+            <TableCard>
+              <div className="border-b border-sena-hairline px-6 py-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-sena-strong">
+                  Programas
+                </p>
+              </div>
+              <ul>
+                {lineaGrupo.programas.map((programa) => {
+                  const pendientes = programa.solicitudes.filter(pendienteDeRevision).length
+                  const sePasa = corteDeArea(programa.solicitudes).sePasa
+                  return (
+                    <li key={programa.id} className="border-b border-sena-hairline last:border-b-0">
+                      <button
+                        type="button"
+                        onClick={() => setProgramaAbiertoId(programa.id)}
+                        className="flex w-full items-start justify-between gap-6 px-6 py-6 text-left transition hover:bg-sena-soft/60"
+                      >
+                        <span className="grid min-w-0 gap-1.5">
+                          <span className="flex items-center gap-2">
+                            {sePasa ? (
+                              <span className="size-3 shrink-0 rounded-full bg-[#d14343]" aria-hidden="true" />
+                            ) : null}
+                            <span className="font-semibold text-sena-text">{programa.nombre}</span>
+                          </span>
+                          <span className="text-sm text-sena-strong">
+                            Código {programa.codigo || '—'}
+                          </span>
+                          <span className="text-sm text-sena-strong">
+                            {pendientes > 0
+                              ? `${pendientes} pedido${pendientes === 1 ? '' : 's'} por revisar`
+                              : 'Sin pedidos por revisar'}
+                          </span>
+                          {sePasa ? (
+                            <span className="mt-2 block max-w-xl rounded-2xl border border-sena-warn-line bg-white px-3 py-2 text-sm text-sena-text">
+                              Sumando los pedidos se pasa del tope de esta red.
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="shrink-0 pt-0.5 text-sm font-semibold text-sena-text">
+                          Ver pedidos
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </TableCard>
           </div>
+        ) : grupoAbierto ? (
+          <div className="grid gap-6">
+            <div className="flex flex-wrap items-start justify-between gap-3 px-1">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-sena-strong">
+                  Red de conocimiento · área
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-sena-text">{grupoAbierto.red}</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-sena-strong">
+                  El tope del presupuesto es de esta red, en {user?.trainingCenter?.trim() || 'tu centro'}.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                icon={<ReturnIcon className="size-4" />}
+                onClick={volverAAreas}
+              >
+                Volver a áreas
+              </Button>
+            </div>
+            <TableCard>
+              <div className="border-b border-sena-hairline px-6 py-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-sena-strong">
+                  Línea temática
+                </p>
+              </div>
+              <ul>
+                {grupoAbierto.lineas.map((linea) => {
+                  const programas = linea.programas.length
+                  const pendientes = linea.programas.reduce(
+                    (total, programa) =>
+                      total + programa.solicitudes.filter(pendienteDeRevision).length,
+                    0,
+                  )
+                  return (
+                    <li key={`${grupoAbierto.red}-${linea.linea}`} className="border-b border-sena-hairline last:border-b-0">
+                      <button
+                        type="button"
+                        onClick={() => abrirLinea(linea.linea)}
+                        className="flex w-full items-start justify-between gap-6 px-6 py-6 text-left transition hover:bg-sena-soft/60"
+                      >
+                        <span className="grid min-w-0 gap-1.5">
+                          <span className="font-semibold text-sena-text">{linea.linea}</span>
+                          <span className="text-sm text-sena-strong">
+                            {programas === 1 ? '1 programa' : `${programas} programas`}
+                            {pendientes > 0
+                              ? ` · ${pendientes === 1 ? '1 pedido' : `${pendientes} pedidos`} por revisar`
+                              : ''}
+                          </span>
+                        </span>
+                        <span className="shrink-0 pt-0.5 text-sm font-semibold text-sena-text">
+                          Ver programas
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </TableCard>
+          </div>
+        ) : (
+          <TableCard>
+            <div className="border-b border-sena-hairline px-6 py-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-sena-strong">
+                Red de conocimiento · área
+              </p>
+              <p className="mt-2 text-sm text-sena-strong">
+                El tope del presupuesto es de cada red, en {user?.trainingCenter?.trim() || 'tu centro'}.
+              </p>
+            </div>
+            <ul>
+              {gruposCoordinador.map((grupo) => {
+                const lineas = grupo.lineas.length
+                const programas = grupo.lineas.reduce((total, linea) => total + linea.programas.length, 0)
+                const pendientes = grupo.lineas.reduce(
+                  (total, linea) =>
+                    total +
+                    linea.programas.reduce(
+                      (suma, programa) =>
+                        suma + programa.solicitudes.filter(pendienteDeRevision).length,
+                      0,
+                    ),
+                  0,
+                )
+                const sePasa = grupo.lineas.some((linea) =>
+                  linea.programas.some((programa) => corteDeArea(programa.solicitudes).sePasa),
+                )
+                return (
+                  <li key={grupo.red} className="border-b border-sena-hairline last:border-b-0">
+                    <button
+                      type="button"
+                      onClick={() => abrirRed(grupo.red)}
+                      className="flex w-full items-start justify-between gap-6 px-6 py-6 text-left transition hover:bg-sena-soft/60"
+                    >
+                      <span className="grid min-w-0 gap-1.5">
+                        <span className="flex items-center gap-2">
+                          {sePasa ? (
+                            <span className="size-3 shrink-0 rounded-full bg-[#d14343]" aria-hidden="true" />
+                          ) : null}
+                          <span className="font-semibold text-sena-text">{grupo.red}</span>
+                        </span>
+                        <span className="text-sm text-sena-strong">
+                          {lineas === 1 ? '1 línea temática' : `${lineas} líneas temáticas`}
+                          {' · '}
+                          {programas === 1 ? '1 programa' : `${programas} programas`}
+                          {pendientes > 0
+                            ? ` · ${pendientes === 1 ? '1 pedido' : `${pendientes} pedidos`} por revisar`
+                            : ''}
+                        </span>
+                        {sePasa ? (
+                          <span className="mt-2 block max-w-xl rounded-2xl border border-sena-warn-line bg-white px-3 py-2 text-sm text-sena-text">
+                            Sumando los pedidos se pasa del tope de esta red.
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="shrink-0 pt-0.5 text-sm font-semibold text-sena-text">
+                        Ver líneas
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </TableCard>
         )
       ) : (
       <TableCard>
@@ -895,7 +1065,7 @@ export default function SolicitudMaterialFormacionPage() {
             {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}
             {corteDeArea(solicitudes.filter((solicitud) => solicitud.programaId === revision.programaId)).sePasa ? (
               <p className="rounded-2xl border border-sena-warn-line bg-white px-4 py-3 text-sm text-sena-text">
-                Sumando los pedidos del área {revision.programa?.redConocimiento?.nombre ?? 'esta área'} da{' '}
+                Sumando los pedidos de la red {revision.programa?.redConocimiento?.nombre ?? 'esta red'} da{' '}
                 {pesos(corteDeArea(solicitudes.filter((solicitud) => solicitud.programaId === revision.programaId)).suma)}
                 . El tope asignado es{' '}
                 {pesos(corteDeArea(solicitudes.filter((solicitud) => solicitud.programaId === revision.programaId)).tope)}
