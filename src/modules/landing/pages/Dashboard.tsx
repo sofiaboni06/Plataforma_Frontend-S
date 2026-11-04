@@ -136,15 +136,6 @@ const exploreCards = [
 
 /* Número fijo de indicadores de posición del carrusel. */
 const EXPLORE_DOT_COUNT = 3
-
-const services = [
-  { title: 'Formación', text: 'Accede a la oferta educativa del SENA.', icon: 'hat' as const },
-  { title: 'Empleo', text: 'Conecta con nuevas oportunidades.', icon: 'briefcase' as const },
-  { title: 'Emprendimiento', text: 'Convierte tus ideas en empresas.', icon: 'bulb' as const },
-  { title: 'Certificación', text: 'Reconoce tus competencias.', icon: 'badge' as const },
-  { title: 'Bienestar', text: 'Cuida tu salud física, mental y social.', icon: 'heart' as const },
-]
-
 function ImageCarousel({ images }: { images: string[] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -168,7 +159,7 @@ function ImageCarousel({ images }: { images: string[] }) {
         />
       ))}
       {/* Degradado para que los puntos blancos se vean bien sobre fotos claras */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-t from-black/30 to-transparent pointer-events-none" />
       
       {/* Indicadores */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
@@ -201,12 +192,83 @@ export default function Dashboard() {
       <Colombia />
       <FormationOffer />
       <Sima />
-      <Services />
+      <Modules />
       <FutureBanner />
       <SiteFooter />
     </main>
   )
 }
+
+
+function Modules() {
+  return (
+    <section
+      id="modulos"
+      aria-labelledby="modulos-titulo"
+      className="pt-10 pb-6"
+    >
+      <div className="mx-auto max-w-7xl px-5 lg:px-10">
+
+        <div className="text-center">
+          <p className="lp-eyebrow">SIGMA</p>
+
+          <h2
+            id="modulos-titulo"
+            className="lp-h2 mt-2 text-[27px] lg:text-[32px]"
+          >
+            Módulos disponibles
+          </h2>
+
+          <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-7 text-[#5b7368]">
+            Accede a las herramientas que integran la gestión administrativa institucional.
+          </p>
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          {modules.map((module) => (
+            <article
+              key={module.id}
+              className="lp-card flex h-full flex-col items-center px-6 py-8 text-center"
+            >
+              <span className="lp-icon-tile mx-auto">
+                <Glyph name={module.icon} />
+              </span>
+
+              <h3 className="mt-4 text-[17px] font-bold text-[#0a4030]">
+                {module.title}
+              </h3>
+
+              <p className="mt-2 text-[14px] leading-6 text-[#5b7368]">
+                {module.description}
+              </p>
+            </article>
+          ))}
+        </div>
+
+      </div>
+    </section>
+  )
+}
+const modules = [
+  {
+    id: 'inventario-bodega',
+    title: 'Inventario de bodega de construcción',
+    description: 'Administra y consulta los elementos, materiales y existencias de las bodegas de construcción.',
+    icon: 'wrench' as const,
+  },
+  {
+    id: 'materiales-formacion',
+    title: 'Materiales de formación',
+    description: 'Gestiona los materiales y recursos destinados a los programas y procesos de formación.',
+    icon: 'layers' as const,
+  },
+  {
+    id: 'huella-carbono',
+    title: 'Huella de carbono',
+    description: 'Consulta y gestiona la información relacionada con el seguimiento de la huella de carbono.',
+    icon: 'trending-up' as const,
+  },
+]
 
 function Categories() {
   return (
@@ -521,7 +583,7 @@ function FormationOffer() {
           role="region"
           aria-roledescription="carrusel"
           aria-label="Explora y conéctate"
-          className="lp-explore-viewport mt-10"
+          className={`lp-explore-viewport mt-10${maxPosition === 0 ? ' is-centered' : ''}`}
         >
           {exploreCards.map((card, index) => {
             const isFlipped = flipped[card.id] === true
@@ -648,47 +710,46 @@ const simaCards = [
 
 function Sima() {
   return (
-    <section id="sima" className="scroll-mt-8 mx-auto max-w-7xl px-5 pb-16 lg:px-10">
-      <h2 className="lp-h2 text-[27px] lg:text-[32px]">SIGMA</h2>
+    <section
+      id="sima"
+      className="scroll-mt-8 mx-auto max-w-7xl px-5 pb-16 lg:px-10"
+    >
+      <h2 className="lp-h2 text-[27px] lg:text-[32px]">
+        SIGMA
+      </h2>
+
       <p className="mt-3 text-[18px] font-bold text-[#0a4030]">
         SISTEMA INTEGRAL PARA LA GESTIÓN DE MÓDULOS
         <br />
         ADMINISTRATIVOS
       </p>
+
       <p className="mt-3 max-w-170 text-[16px] leading-7 text-[#5b7368]">
         Una plataforma, múltiples soluciones.
       </p>
+
       <p className="mt-1 max-w-170 text-[16px] leading-7 text-[#5b7368]">
         Centraliza la gestión administrativa, facilita el acceso a los módulos
         institucionales y optimiza los procesos de la comunidad SENA.
       </p>
 
+      {/* Módulos disponibles debajo de la descripción de SIGMA */}
+      
+
+      {/* Características de SIGMA */}
       <div className="mt-8 grid gap-6 sm:grid-cols-3">
         {simaCards.map((card) => (
-          <article key={card.title} className="lp-card px-6 py-8 text-center">
+          <article
+            key={card.title}
+            className="lp-card px-6 py-8 text-center"
+          >
             <span className="lp-icon-tile mx-auto">
               <Glyph name={card.icon} />
             </span>
-            <h3 className="mt-4 text-[17px] font-bold text-[#0a4030]">{card.title}</h3>
-          </article>
-        ))}
-      </div>
-    </section>
-  )
-}
 
-function Services() {
-  return (
-    <section className="mx-auto max-w-7xl px-5 pb-16 lg:px-10">
-      <h2 className="lp-h2 text-[27px] lg:text-[32px]">Servicios para la ciudadanía</h2>
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {services.map((service) => (
-          <article key={service.title} className="lp-card px-5 py-6 text-center">
-            <span className="lp-icon-tile mx-auto rounded-full">
-              <Glyph name={service.icon} />
-            </span>
-            <h3 className="mt-4 text-[15px] font-bold text-[#0a4030]">{service.title}</h3>
-            <p className="mt-1 text-[13px] leading-5 text-[#5b7368]">{service.text}</p>
+            <h3 className="mt-4 text-[17px] font-bold text-[#0a4030]">
+              {card.title}
+            </h3>
           </article>
         ))}
       </div>

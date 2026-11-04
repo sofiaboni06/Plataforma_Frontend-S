@@ -451,6 +451,15 @@ function App() {
           />
 
           <Route
+            path="/formacion/alertas"
+            element={
+              <ModuleRoute>
+                <Navigate to="/formacion" replace />
+              </ModuleRoute>
+            }
+          />
+
+          <Route
             path="/formacion/compras"
             element={
               <ModuleRoute>
