@@ -753,16 +753,18 @@ export default function SolicitudMaterialFormacionPage() {
             </TableCard>
           </div>
         ) : (
-          <TableCard>
-            <div className="border-b border-sena-hairline px-6 py-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-sena-strong">
-                Red de conocimiento · área
-              </p>
-              <p className="mt-2 text-sm text-sena-strong">
-                El tope del presupuesto es de cada red, en {user?.trainingCenter?.trim() || 'tu centro'}.
-              </p>
-            </div>
-            <ul>
+          <div className="grid gap-4">
+            <section className="rounded-[1.35rem] border border-sena-hairline bg-white px-6 py-5 shadow-card">
+              <div className="border-l-[3px] border-sena pl-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-sena-text">
+                  Red de conocimiento · área
+                </p>
+                <p className="mt-1.5 text-sm text-sena-strong">
+                  El tope del presupuesto es de cada red, en {user?.trainingCenter?.trim() || 'tu centro'}.
+                </p>
+              </div>
+            </section>
+            <ul className="grid gap-4">
               {gruposCoordinador.map((grupo) => {
                 const lineas = grupo.lineas.length
                 const programas = grupo.lineas.reduce((total, linea) => total + linea.programas.length, 0)
@@ -780,42 +782,67 @@ export default function SolicitudMaterialFormacionPage() {
                   linea.programas.some((programa) => corteDeArea(programa.solicitudes).sePasa),
                 )
                 return (
-                  <li key={grupo.red} className="border-b border-sena-hairline last:border-b-0">
-                    <button
-                      type="button"
-                      onClick={() => abrirRed(grupo.red)}
-                      className="flex w-full items-start justify-between gap-6 px-6 py-6 text-left transition hover:bg-sena-soft/60"
-                    >
-                      <span className="grid min-w-0 gap-1.5">
-                        <span className="flex items-center gap-2">
-                          {sePasa ? (
-                            <span className="size-3 shrink-0 rounded-full bg-[#d14343]" aria-hidden="true" />
-                          ) : null}
-                          <span className="font-semibold text-sena-text">{grupo.red}</span>
+                  <li
+                    key={grupo.red}
+                    className="rounded-[1.35rem] border border-sena-hairline bg-white px-5 py-5 shadow-card sm:px-6"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-4">
+                        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-sena-active-soft text-sena">
+                          <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                            <rect x="3.5" y="4.5" width="17" height="11" rx="2" />
+                            <path d="M8 19.5h8M12 15.5v4" strokeLinecap="round" />
+                          </svg>
                         </span>
-                        <span className="text-sm text-sena-strong">
-                          {lineas === 1 ? '1 línea temática' : `${lineas} líneas temáticas`}
-                          {' · '}
-                          {programas === 1 ? '1 programa' : `${programas} programas`}
-                          {pendientes > 0
-                            ? ` · ${pendientes === 1 ? '1 pedido' : `${pendientes} pedidos`} por revisar`
-                            : ''}
-                        </span>
-                        {sePasa ? (
-                          <span className="mt-2 block max-w-xl rounded-2xl border border-sena-warn-line bg-white px-3 py-2 text-sm text-sena-text">
-                            Sumando los pedidos se pasa del tope de esta red.
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="shrink-0 pt-0.5 text-sm font-semibold text-sena-text">
+                        <div className="min-w-0">
+                          <p className="text-lg font-bold tracking-tight text-sena-text">{grupo.red}</p>
+                          <p className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-sena-strong">
+                            <span className="inline-flex items-center gap-1.5">
+                              <svg viewBox="0 0 16 16" className="size-3.5 text-sena" fill="currentColor" aria-hidden="true">
+                                <path d="M2 2.5h5v5H2zm7 0h5v5H9zM2 9.5h5v5H2zm7 0h5v5H9z" />
+                              </svg>
+                              {lineas === 1 ? '1 línea temática' : `${lineas} líneas temáticas`}
+                            </span>
+                            <span aria-hidden="true">·</span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <svg viewBox="0 0 16 16" className="size-3.5 text-sena" fill="currentColor" aria-hidden="true">
+                                <path d="M3 3h4v4H3zm6 1.2 4 2.3-4 2.3zm-6 3.3h4v4H3zm6 1.2 4 2.3-4 2.3z" />
+                              </svg>
+                              {programas === 1 ? '1 programa' : `${programas} programas`}
+                            </span>
+                            <span aria-hidden="true">·</span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <svg viewBox="0 0 16 16" className="size-3.5 text-sena" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+                                <rect x="3.2" y="2.2" width="9.6" height="11.6" rx="1.4" />
+                                <path d="M5.5 6h5M5.5 8.5h5M5.5 11h3" strokeLinecap="round" />
+                              </svg>
+                              {pendientes === 1 ? '1 pedido por revisar' : `${pendientes} pedidos por revisar`}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => abrirRed(grupo.red)}
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full border border-sena px-4 py-2 text-sm font-semibold text-sena transition hover:bg-sena-active-soft"
+                      >
                         Ver líneas
-                      </span>
-                    </button>
+                        <span aria-hidden="true">›</span>
+                      </button>
+                    </div>
+                    {sePasa ? (
+                      <p className="mt-4 flex items-center gap-2 rounded-xl bg-sena-active-soft px-4 py-2.5 text-sm text-sena-ok-text">
+                        <span className="grid size-5 shrink-0 place-items-center rounded-full border border-sena-ok-text text-[11px] font-bold" aria-hidden="true">
+                          !
+                        </span>
+                        Sumando los pedidos se pasa del tope de esta red.
+                      </p>
+                    ) : null}
                   </li>
                 )
               })}
             </ul>
-          </TableCard>
+          </div>
         )
       ) : (
       <TableCard>
