@@ -15,7 +15,7 @@ import {
   isFormacionPath,
   visibleFormacionMenuScreens,
 } from '@/modules/materiales-formacion/navigation'
-import { grantedModuleLinks, toNavIcon } from '@/shared/lib/access'
+import { grantedModuleLinks, puedeAbrirVigenciaEspecial, toNavIcon } from '@/shared/lib/access'
 import { cn } from '@/shared/lib/cn'
 import { CloseIcon, LogoutIcon, NavIcon } from '@/shared/components/icons/AppIcons'
 
@@ -46,8 +46,12 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const canSolicitar = canFormacionAction('solicitudes', 'list', formacionAccess)
   const canCompras = canFormacionAction('compras', 'list', formacionAccess)
   const canVigencias = isAdmin || user?.permissions?.includes('vigencia.ver') === true
+  const canEspecial = puedeAbrirVigenciaEspecial(user?.permissions, user?.role)
   const canPresupuesto =
-    isAdmin || user?.permissions?.includes('solicitud_programa.editar') === true
+    !isAdmin &&
+    (user?.permissions?.includes('presupuesto.ver') === true ||
+      user?.permissions?.includes('presupuesto.editar') === true ||
+      user?.permissions?.includes('solicitud_programa.editar') === true)
   const canAlertas = canFormacionAction('alertas', 'list', formacionAccess)
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,
@@ -60,6 +64,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
     canSolicitar ||
     canCompras ||
     canVigencias ||
+    canEspecial ||
     canPresupuesto ||
     formacionScreens.length > 0
   const materialesDestino = canSolicitar
@@ -306,8 +311,22 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
                   </SideLink>
                 ) : null}
                 {canVigencias ? (
-                  <SideLink to="/vigencias" icon="program" nested end={false} onClose={onClose}>
+                  <SideLink
+                    to="/vigencias"
+                    icon="program"
+                    nested
+                    forceActive={
+                      location.pathname === '/vigencias/crear' ||
+                      /\/vigencias\/\d+\/editar$/.test(location.pathname)
+                    }
+                    onClose={onClose}
+                  >
                     Vigencias
+                  </SideLink>
+                ) : null}
+                {canEspecial ? (
+                  <SideLink to="/vigencias/especial" icon="program" nested end={false} onClose={onClose}>
+                    Vigencia especial
                   </SideLink>
                 ) : null}
               </div>

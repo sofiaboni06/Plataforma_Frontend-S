@@ -46,11 +46,13 @@ type AccionItem = 'entregar' | 'pendiente' | 'rechazar'
 type DecisionLinea = { accion: AccionItem; cantidad: string; motivo: string; pedida: string }
 
 function pesos(valor: number) {
-  return valor.toLocaleString('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    maximumFractionDigits: 0,
-  })
+  return valor.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
+}
+
+function valorDe(material: { valorUnitario?: number | string | null } | null | undefined) {
+  if (material?.valorUnitario == null || material.valorUnitario === '') return null
+  const numero = Number(material.valorUnitario)
+  return Number.isFinite(numero) ? numero : null
 }
 
 function corteDeArea(solicitudes: SolicitudPrograma[]) {
@@ -1012,12 +1014,8 @@ export default function SolicitudMaterialFormacionPage() {
                       </td>
                       <td>{linea.cantidad}</td>
                       <td>
-                        {linea.material.caracter === 'consumo' && linea.material.valorUnitario != null
-                          ? (linea.cantidad * linea.material.valorUnitario).toLocaleString('es-CO', {
-                              style: 'currency',
-                              currency: 'COP',
-                              maximumFractionDigits: 0,
-                            })
+                        {valorDe(linea.material) != null
+                          ? pesos(linea.cantidad * (valorDe(linea.material) ?? 0))
                           : '—'}
                       </td>
                       <td>{linea.material.cantidadBase}</td>
@@ -1046,19 +1044,16 @@ export default function SolicitudMaterialFormacionPage() {
               Valor aproximado del pedido:{' '}
               <strong>
                 {carrito
-                  .filter((linea) => linea.material.caracter === 'consumo')
-                  .reduce((suma, linea) => suma + linea.cantidad * (linea.material.valorUnitario ?? 0), 0)
+                  .reduce((suma, linea) => suma + linea.cantidad * (valorDe(linea.material) ?? 0), 0)
                   .toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
               </strong>
               . Promedio por material:{' '}
               <strong>
                 {(() => {
-                  const conValor = carrito.filter(
-                    (linea) => linea.material.caracter === 'consumo' && linea.material.valorUnitario != null,
-                  )
+                  const conValor = carrito.filter((linea) => valorDe(linea.material) != null)
                   if (!conValor.length) return '—'
                   const promedio =
-                    conValor.reduce((suma, linea) => suma + (linea.material.valorUnitario ?? 0), 0) / conValor.length
+                    conValor.reduce((suma, linea) => suma + (valorDe(linea.material) ?? 0), 0) / conValor.length
                   return promedio.toLocaleString('es-CO', {
                     style: 'currency',
                     currency: 'COP',
@@ -1122,9 +1117,7 @@ export default function SolicitudMaterialFormacionPage() {
                       {ya > 0 ? ` · ya autorizados ${ya}` : ''}
                       {` · faltan ${restante}`}
                       {tope !== null ? ` · lista maestra ${tope}` : ''}
-                      {item.material?.caracter === 'consumo' && item.material.valorUnitario != null
-                        ? ` · ${item.material.valorUnitario.toLocaleString('es-CO')} c/u`
-                        : ''}
+                      {valorDe(item.material) != null ? ` · ${pesos(valorDe(item.material) ?? 0)} c/u` : ''}
                     </p>
                     {pideMas ? (
                       <p className="mt-1 text-sm text-sena-warn-text">
@@ -1245,10 +1238,10 @@ export default function SolicitudMaterialFormacionPage() {
                   {autorizadoDe(item) > 0 ? ` · autorizado ${autorizadoDe(item)}` : ''}
                   {item.estado === 'pendiente' ? ` · faltan ${restanteDe(item)}` : ''}
                   {topeDe(item) !== null ? ` · lista maestra ${topeDe(item)}` : ''}
-                  {item.material?.caracter === 'consumo' && item.material.valorUnitario != null
-                    ? ` · ${item.material.valorUnitario.toLocaleString('es-CO')} c/u · total ${(
-                        item.cantidadSolicitada * item.material.valorUnitario
-                      ).toLocaleString('es-CO')}`
+                  {valorDe(item.material) != null
+                    ? ` · ${pesos(valorDe(item.material) ?? 0)} c/u · total ${pesos(
+                        item.cantidadSolicitada * (valorDe(item.material) ?? 0),
+                      )}`
                     : ''}
                   {item.material?.lote ? ` · lote ${item.material.lote.nombre}` : ''}
                 </p>

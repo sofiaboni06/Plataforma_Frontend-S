@@ -164,7 +164,13 @@ export function canFormacionAction(
     return allowsFormacionPermission(access, 'solicitud_programa.ver')
   }
   if (code === 'compras') return allowsFormacionPermission(access, 'proceso_compra.ver')
-  if (code === 'alertas') return allowsFormacionPermission(access, 'solicitud_programa.editar')
+  if (code === 'alertas') {
+    return (
+      allowsFormacionPermission(access, 'solicitud_programa.editar') ||
+      allowsFormacionPermission(access, 'presupuesto.ver') ||
+      allowsFormacionPermission(access, 'presupuesto.editar')
+    )
+  }
   if (!isPermissionScreen(code)) return access.isAdmin === true
   if (!canSeeFormacionScreen(code, access)) return false
 

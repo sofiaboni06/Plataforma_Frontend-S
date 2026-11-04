@@ -74,6 +74,7 @@ import ReportsPage from '@/modules/reportes/pages/ReportsPage'
 
 import VigenciasPage from '@/modules/vigencias/pages/VigenciasPage'
 import VigenciaFormPage from '@/modules/vigencias/pages/VigenciaFormPage'
+import VigenciaEspecialPage from '@/modules/vigencias/pages/VigenciaEspecialPage'
 
 import EquipoPage from '@/modules/Equipo/EquipoPage'
 
@@ -244,6 +245,14 @@ function App() {
             element={
               <ModuleRoute>
                 <VigenciasPage />
+              </ModuleRoute>
+            }
+          />
+          <Route
+            path="/vigencias/especial"
+            element={
+              <ModuleRoute>
+                <VigenciaEspecialPage />
               </ModuleRoute>
             }
           />

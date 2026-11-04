@@ -407,6 +407,13 @@ function ResumenView() {
           to: '/presupuesto-formacion/lotes',
           cta: 'Administrar lotes',
         },
+        {
+          titulo: 'Vigencia especial',
+          detalle: 'Monto aparte',
+          texto: 'Programas que llegaron después del reparto. Reparte ese monto en tus redes.',
+          to: '/vigencias/especial',
+          cta: 'Ver especial',
+        },
       ]
 
   return (
