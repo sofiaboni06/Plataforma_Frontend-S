@@ -1,4 +1,5 @@
-import { api } from '@/shared/lib/api'
+import { api, apiBlob } from '@/shared/lib/api'
+import { descargarArchivo } from '@/modules/reportes/lib/export'
 
 export type SolicitudPrograma = {
   id: number
@@ -17,6 +18,15 @@ export type SolicitudPrograma = {
     lineaTematica?: { id: number; nombre: string } | null
   } | null
   ficha: { id: number; numeroFicha: string } | null
+  presupuestoFicha: {
+    asignado: number
+    pedido: number
+    aprobado: number
+    queda: number
+    sePasa: boolean
+  } | null
+  valorAproximado: number
+  valorPromedio: number
   items: Array<{
     id: number
     listaMaestraId: number
@@ -25,6 +35,7 @@ export type SolicitudPrograma = {
     cantidadMaestraReferencia: number | null
     estado: string
     observacionCoordinador: string | null
+    valorAproximado: number
     material: {
       id: number
       codigoUnspsc: string
@@ -65,6 +76,7 @@ export function decidirSolicitudPrograma(
     items: Array<{
       id: number
       accion: 'entregar' | 'pendiente' | 'rechazar'
+      cantidadSolicitada?: number
       cantidadAprobada?: number
       observacionCoordinador?: string
     }>
@@ -77,17 +89,46 @@ export function decidirSolicitudPrograma(
 }
 
 export type ConsolidadoCompra = {
-  codigoUnspsc: string
-  producto: string
-  unidadMedida: string | null
-  caracter: string | null
+  solicitudId: number
+  vigencia: number
+  estadoSolicitud: string
+  observacionSolicitud: string | null
+  observacionDecision: string | null
+  fechaEnvio: string | null
+  fechaDecision: string | null
+  numeroFicha: string
+  instructor: string
+  coordinador: string | null
   codigoPrograma: string
   nombrePrograma: string
+  red: string | null
+  linea: string | null
+  codigoUnspsc: string
+  producto: string
+  descripcionTecnica: string | null
+  unidadMedida: string | null
+  valorUnitario: number | null
+  caracter: string | null
+  cantidadBase: number
+  observacionesMaterial: string | null
+  lote: string | null
+  cantidadMaestra: number | null
+  cantidadSolicitada: number
   cantidadAprobada: number
+  valorPedido: number | null
+  valorAprobado: number | null
+  estadoLinea: string
+  observacionCoordinador: string | null
 }
 
 export function getConsolidadoCompras(vigencia: number) {
   return api<ConsolidadoCompra[]>(`/procesos-compra/consolidado?vigencia=${vigencia}`)
+}
+
+export async function descargarConsolidado(vigencia: number, formato: 'pdf' | 'excel') {
+  const blob = await apiBlob(`/procesos-compra/descargar?vigencia=${vigencia}&formato=${formato}`)
+  const extension = formato === 'pdf' ? 'pdf' : 'xlsx'
+  descargarArchivo(blob, `pedido-aprobado-${vigencia}.${extension}`)
 }
 
 export function generarProcesoCompra(payload: {

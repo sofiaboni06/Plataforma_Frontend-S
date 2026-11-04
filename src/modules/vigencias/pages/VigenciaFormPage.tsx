@@ -104,42 +104,41 @@ if (loading) {
 
       {error && <ErrorBanner message={error} onClose={() => setError('')} />}
 
-      <div className="mx-auto max-w-2xl rounded-2xl border border-sena-line bg-white p-6 shadow-sm">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          
+      <div className="form-panel mx-auto max-w-2xl p-6">
+        <form onSubmit={handleSubmit} className="form-fields flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-sena-text">Año</label>
+            <label className="form-label">Año</label>
             <input
               type="number"
               name="anio"
               value={formData.anio}
               onChange={handleChange}
               disabled={isEditing}
-              className="rounded-xl border border-sena-line px-3 py-2 text-sm focus:border-sena-dark focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
+              className="form-field"
               required
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-sena-text">Fecha Apertura</label>
+            <label className="form-label">Fecha Apertura</label>
             <input
               type="date"
               name="fecha_apertura"
               value={formData.fecha_apertura}
               onChange={handleChange}
-              className="rounded-xl border border-sena-line px-3 py-2 text-sm focus:border-sena-dark focus:outline-none"
+              className="form-field"
               required
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-sena-text">Fecha Cierre</label>
+            <label className="form-label">Fecha Cierre</label>
             <input
               type="date"
               name="fecha_cierre"
               value={formData.fecha_cierre}
               onChange={handleChange}
-              className="rounded-xl border border-sena-line px-3 py-2 text-sm focus:border-sena-dark focus:outline-none"
+              className="form-field"
               required
             />
           </div>

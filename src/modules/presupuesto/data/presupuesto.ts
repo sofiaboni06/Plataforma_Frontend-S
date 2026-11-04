@@ -1,11 +1,14 @@
 import { api, apiBlob } from '@/shared/lib/api'
 
-export type PresupuestoFicha = {
-  fichaId: number
-  numeroFicha: string
+export type PresupuestoPrograma = {
+  programaId: number
+  codigo: string | null
+  nombre: string
   monto: number
-  gastado: number
+  pedido: number
+  aprobado: number
   disponible: number
+  sePasa: boolean
 }
 
 export type PresupuestoLote = {
@@ -13,15 +16,50 @@ export type PresupuestoLote = {
   gastado: number
 }
 
+export type CoordinadorPresupuesto = {
+  id: number
+  fullName: string
+  monto: number
+}
+
+export type AreaPresupuesto = {
+  id: number
+  nombre: string
+  codigo: string | null
+  monto: number
+}
+
+export type FichaPresupuesto = {
+  id: number
+  numeroFicha: string
+  programa: string
+  monto: number
+}
+
 export type PresupuestoResumen = {
   anio: number
+  idCformacion: number
   monto: number
   repartido: number
   sinRepartir: number
-  gastado: number
+  pedido: number
+  aprobado: number
   disponible: number
-  fichas: PresupuestoFicha[]
+  sePasa: boolean
+  programas: PresupuestoPrograma[]
+  coordinadores: CoordinadorPresupuesto[]
+  areas: AreaPresupuesto[]
+  fichas: FichaPresupuesto[]
   porLote: PresupuestoLote[]
+}
+
+export type VistaCoordinadores = {
+  anio: number
+  idCformacion: number
+  monto: number
+  repartido: number
+  sinRepartir: number
+  coordinadores: CoordinadorPresupuesto[]
 }
 
 export type LoteVigencia = {
@@ -36,6 +74,10 @@ export function getPresupuesto(anio: number) {
   return api<PresupuestoResumen>(`${BASE}?anio=${anio}`)
 }
 
+export function getCoordinadoresPresupuesto(anio: number) {
+  return api<VistaCoordinadores>(`${BASE}/coordinadores?anio=${anio}`)
+}
+
 export function guardarMonto(anio: number, monto: number) {
   return api<PresupuestoResumen>(`${BASE}/monto`, {
     method: 'PUT',
@@ -43,10 +85,40 @@ export function guardarMonto(anio: number, monto: number) {
   })
 }
 
-export function repartirFichas(anio: number, fichas: { fichaId: number; monto: number }[]) {
-  return api<PresupuestoResumen>(`${BASE}/fichas`, {
+export type VistaFichas = {
+  anio: number
+  monto: number
+  repartido: number
+  sinRepartir: number
+  fichas: FichaPresupuesto[]
+}
+
+export type VistaAreas = {
+  anio: number
+  monto: number
+  repartido: number
+  sinRepartir: number
+  areas: AreaPresupuesto[]
+}
+
+export function asignarArea(anio: number, programaId: number, monto: number) {
+  return api<VistaAreas>(`${BASE}/areas`, {
     method: 'PUT',
-    body: JSON.stringify({ anio, fichas }),
+    body: JSON.stringify({ anio, redId: programaId, monto }),
+  })
+}
+
+export function asignarFicha(anio: number, fichaId: number, monto: number) {
+  return api<VistaFichas>(`${BASE}/fichas`, {
+    method: 'PUT',
+    body: JSON.stringify({ anio, fichaId, monto }),
+  })
+}
+
+export function asignarCoordinador(anio: number, idUsuario: number, monto: number) {
+  return api<VistaCoordinadores>(`${BASE}/coordinadores`, {
+    method: 'PUT',
+    body: JSON.stringify({ anio, idUsuario, monto }),
   })
 }
 

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
   ErrorBanner,
-  PageHeader,
   TableCard,
   TableLoading,
   pageButtonClass,
@@ -186,79 +185,167 @@ export default function AlertsPage() {
     { value: 'bajo', label: 'Bajo' },
   ]
 
+  /* Distribución de las activas para la barra del encabezado (solo presentación). */
+  const baseActivas = summary.activas || 1
+  const segmentos = [
+    { label: 'Agotado', count: summary.agotado, color: 'bg-sena-danger-text', pct: (summary.agotado / baseActivas) * 100 },
+    { label: 'Crítico', count: summary.critico, color: 'bg-orange-500', pct: (summary.critico / baseActivas) * 100 },
+    { label: 'Bajo', count: summary.bajo, color: 'bg-amber-400', pct: (summary.bajo / baseActivas) * 100 },
+  ]
+
   return (
     <AppLayout title="Alertas">
-      <div className="mb-3 flex items-center gap-2 text-xs font-medium text-sena-text-soft">
-        <HomeIcon className="size-4" />
-        <Link to="/inventario" className="hover:text-sena-strong">
-          Inventario
-        </Link>
-        <span aria-hidden="true">›</span>
-        <span className="text-sena-strong">Alertas</span>
-      </div>
+      <section className="relative mb-5 overflow-hidden rounded-[26px] border border-glass-line bg-white shadow-card">
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-0 left-0 w-1.5 bg-linear-to-b from-sena via-sena-bright to-sena/0"
+        />
 
-      <PageHeader
-        icon={<AlertIcon />}
-        title="Alertas"
-        description="Elementos de tus bodegas que llegaron a su cantidad mínima o se agotaron. Se cierran solas cuando se repone el stock."
-      />
+        <div className="flex flex-col gap-6 px-6 py-6 sm:px-8 sm:py-7 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
+          <div className="min-w-0 flex-1">
+            <nav aria-label="Ruta de navegación" className="flex items-center gap-2 text-xs font-medium text-sena-text-soft">
+              <HomeIcon className="size-4" />
+              <Link to="/inventario" className="transition duration-150 hover:text-sena-strong">
+                Inventario
+              </Link>
+              <span aria-hidden="true">›</span>
+              <span className="text-sena-strong">Alertas</span>
+            </nav>
+
+            <div className="mt-4 flex items-start gap-4">
+              <span
+                aria-hidden="true"
+                className="grid size-12 shrink-0 place-items-center rounded-2xl bg-sena text-white shadow-brand-sm"
+              >
+                <AlertIcon className="size-6" />
+              </span>
+
+              <div className="min-w-0">
+                <h1 className="text-3xl leading-tight font-bold tracking-tight text-sena-text sm:text-[2.125rem]">
+                  Alertas de stock
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-sena-text-soft sm:text-base">
+                  Elementos de tus bodegas que llegaron a su cantidad mínima o se agotaron. Se cierran solas cuando se repone el stock.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="w-full shrink-0 rounded-2xl border border-sena-ok-line/70 bg-sena-active-soft/70 px-5 py-4 lg:w-[20rem]">
+            <div className="flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold tracking-[0.14em] text-sena-strong uppercase">Alertas activas</p>
+                <p className="mt-1 text-xs text-sena-text-soft tabular-nums">de {alertas.length} registradas</p>
+              </div>
+              <p className="text-3xl leading-none font-bold text-sena-ok-text tabular-nums">{summary.activas}</p>
+            </div>
+
+            <div
+              className="mt-3 flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-white/70"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={summary.activas}
+              aria-valuenow={summary.agotado}
+              aria-label="Distribución de alertas activas por nivel"
+            >
+              {segmentos.map((seg) => (
+                <span
+                  key={seg.label}
+                  aria-hidden="true"
+                  className={cn('h-full rounded-full transition-[width] duration-500', seg.color)}
+                  style={{ width: `${seg.pct}%` }}
+                />
+              ))}
+            </div>
+
+            <ul className="mt-3 grid grid-cols-3 gap-2">
+              {segmentos.map((seg) => (
+                <li key={seg.label} className="flex min-w-0 items-center gap-1.5 text-[11px] text-sena-strong">
+                  <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-full', seg.color)} />
+                  <span className="truncate font-medium">{seg.label}</span>
+                  <span className="font-bold text-sena-text tabular-nums">{seg.count}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
 
       {error ? <ErrorBanner message={error} onClose={() => setError(null)} /> : null}
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-5">
         <section aria-label="Resumen de alertas" className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-          <SummaryTile label="Agotados" ayuda="Activas sin existencias" count={summary.agotado} tone="agotado" onClick={() => { setNivel('agotado'); updateFilter('status', 'Activas') }} />
-          <SummaryTile label="Críticos" ayuda="Activas a la mitad del mínimo o menos" count={summary.critico} tone="critico" onClick={() => { setNivel('critico'); updateFilter('status', 'Activas') }} />
-          <SummaryTile label="Bajos" ayuda="Activas por debajo del mínimo" count={summary.bajo} tone="bajo" onClick={() => { setNivel('bajo'); updateFilter('status', 'Activas') }} />
-          <SummaryTile label="Activas" ayuda="Todas las abiertas" count={summary.activas} tone="activa" onClick={() => { setNivel('todas'); updateFilter('status', 'Activas') }} />
-          <SummaryTile label="Cerradas" ayuda="Stock ya repuesto" count={summary.cerradas} tone="cerrada" onClick={() => { setNivel('todas'); updateFilter('status', 'Cerradas') }} />
+          <SummaryTile label="Agotados" ayuda="Activas sin existencias" count={summary.agotado} tone="agotado" active={nivel === 'agotado' && filters.status === 'Activas'} onClick={() => { setNivel('agotado'); updateFilter('status', 'Activas') }} />
+          <SummaryTile label="Críticos" ayuda="Activas a la mitad del mínimo o menos" count={summary.critico} tone="critico" active={nivel === 'critico' && filters.status === 'Activas'} onClick={() => { setNivel('critico'); updateFilter('status', 'Activas') }} />
+          <SummaryTile label="Bajos" ayuda="Activas por debajo del mínimo" count={summary.bajo} tone="bajo" active={nivel === 'bajo' && filters.status === 'Activas'} onClick={() => { setNivel('bajo'); updateFilter('status', 'Activas') }} />
+          <SummaryTile label="Activas" ayuda="Todas las abiertas" count={summary.activas} tone="activa" active={nivel === 'todas' && filters.status === 'Activas'} onClick={() => { setNivel('todas'); updateFilter('status', 'Activas') }} />
+          <SummaryTile label="Cerradas" ayuda="Stock ya repuesto" count={summary.cerradas} tone="cerrada" active={nivel === 'todas' && filters.status === 'Cerradas'} onClick={() => { setNivel('todas'); updateFilter('status', 'Cerradas') }} />
         </section>
 
-        <TableCard>
-          <div className="flex flex-col gap-4 border-b border-sena-hairline p-4 sm:p-6">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.6fr)_auto]">
+        <section aria-label="Filtros de alertas" className="rounded-[26px] border border-glass-line bg-white p-5 shadow-card sm:p-6">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-sena-line-soft pb-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-xl bg-sena-soft text-sena-dark">
+                <FilterBroomIcon className="size-[18px]" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold tracking-tight text-sena-text">Filtros de la lista</h2>
+                <p className="mt-0.5 text-xs text-sena-text-soft">Busca por nombre o código y acota por tipo, estado o fecha.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={clearFilters}
+              disabled={!hasFilters}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-sena-line bg-white px-4 text-xs font-semibold text-sena-strong transition duration-150 hover:border-sena/45 hover:bg-sena-surface hover:text-sena-dark disabled:cursor-not-allowed disabled:opacity-45 sm:text-sm"
+            >
+              <FilterBroomIcon className="size-4" />
+              Limpiar filtros
+            </button>
+          </header>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
+            <FilterField label="Buscar elemento" htmlFor="alert-product">
               <div className="relative">
-                <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-sena" />
-                <label htmlFor="alert-product" className="sr-only">Buscar elemento</label>
+                <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-sena" />
                 <input
                   id="alert-product"
                   value={filters.product}
                   onChange={(event) => updateFilter('product', event.target.value)}
                   placeholder="Buscar por nombre o código…"
-                  className={cn(filterControlClass, 'pl-9')}
+                  className="form-field pl-10"
                 />
               </div>
-              <FilterField label="Tipo de alerta" htmlFor="alert-type">
-                <select id="alert-type" value={filters.type} onChange={(event) => updateFilter('type', event.target.value as AlertFilters['type'])} className={filterControlClass}>
-                  <option value="Todos">Todos los tipos</option>
-                  <option value="agotado">{TIPO_LABEL.agotado}</option>
-                  <option value="por_agotarse">{TIPO_LABEL.por_agotarse}</option>
-                </select>
-              </FilterField>
-              <FilterField label="Estado" htmlFor="alert-status">
-                <select id="alert-status" value={filters.status} onChange={(event) => updateFilter('status', event.target.value as EstadoFiltro)} className={filterControlClass}>
-                  <option value="Activas">Activas</option>
-                  <option value="Cerradas">Cerradas</option>
-                  <option value="Todas">Todas</option>
-                </select>
-              </FilterField>
+            </FilterField>
+            <FilterField label="Tipo de alerta" htmlFor="alert-type">
+              <select id="alert-type" value={filters.type} onChange={(event) => updateFilter('type', event.target.value as AlertFilters['type'])} className="form-field form-select">
+                <option value="Todos">Todos los tipos</option>
+                <option value="agotado">{TIPO_LABEL.agotado}</option>
+                <option value="por_agotarse">{TIPO_LABEL.por_agotarse}</option>
+              </select>
+            </FilterField>
+            <FilterField label="Estado" htmlFor="alert-status">
+              <select id="alert-status" value={filters.status} onChange={(event) => updateFilter('status', event.target.value as EstadoFiltro)} className="form-field form-select">
+                <option value="Activas">Activas</option>
+                <option value="Cerradas">Cerradas</option>
+                <option value="Todas">Todas</option>
+              </select>
+            </FilterField>
+            <div className="flex flex-col gap-1.5">
+              <span aria-hidden="true" className={filterLabelClass}>
+                Rango de fechas
+              </span>
               <fieldset className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                 <legend className="sr-only">Rango de fechas</legend>
-                <input aria-label="Desde" type="date" value={filters.from} onChange={(event) => updateFilter('from', event.target.value)} className={filterControlClass} />
+                <input aria-label="Desde" type="date" value={filters.from} onChange={(event) => updateFilter('from', event.target.value)} className="form-field" />
                 <span aria-hidden="true" className="text-xs text-sena-text-soft">→</span>
-                <input aria-label="Hasta" type="date" value={filters.to} onChange={(event) => updateFilter('to', event.target.value)} className={filterControlClass} />
+                <input aria-label="Hasta" type="date" value={filters.to} onChange={(event) => updateFilter('to', event.target.value)} className="form-field" />
               </fieldset>
-              <button
-                type="button"
-                onClick={clearFilters}
-                disabled={!hasFilters}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-sena-line bg-white px-4 text-xs font-semibold text-sena-strong transition hover:border-sena/45 hover:text-sena-dark disabled:opacity-45"
-              >
-                <FilterBroomIcon className="size-4" />
-                Limpiar
-              </button>
             </div>
+          </div>
 
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-sena-line-soft pt-4">
+            <span className={filterLabelClass}>Severidad</span>
             <div role="tablist" aria-label="Severidad" className="flex flex-wrap gap-2">
               {NIVELES.map((item) => {
                 const active = nivel === item.value
@@ -273,8 +360,8 @@ export default function AlertsPage() {
                       setPage(1)
                     }}
                     className={cn(
-                      'inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold ring-1 transition',
-                      active ? 'bg-sena text-white ring-sena' : 'bg-white text-sena-strong ring-sena-line hover:ring-sena/45',
+                      'inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold ring-1 transition duration-150',
+                      active ? 'bg-sena text-white ring-sena shadow-brand-sm' : 'bg-white text-sena-strong ring-sena-line hover:ring-sena/45 hover:text-sena-dark',
                     )}
                   >
                     {item.value !== 'todas' ? (
@@ -289,24 +376,53 @@ export default function AlertsPage() {
               })}
             </div>
           </div>
+        </section>
+
+        <TableCard>
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-sena-line-soft px-5 py-4 sm:px-6">
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold tracking-tight text-sena-text sm:text-base">Lista de alertas</h2>
+              <p className="mt-0.5 text-xs text-sena-text-soft">Las alertas más graves se muestran primero.</p>
+            </div>
+            {!loading ? (
+              <span className="rounded-full border border-sena-line bg-sena-muted px-3.5 py-1.5 text-xs font-semibold text-sena-strong tabular-nums">
+                {filteredAlerts.length} {filteredAlerts.length === 1 ? 'resultado' : 'resultados'}
+              </span>
+            ) : null}
+          </header>
 
           {loading ? (
             <TableLoading label="Cargando alertas…" />
           ) : pageAlerts.length ? (
-            <ul className="divide-y divide-sena-line-soft px-2 sm:px-4">
-              {pageAlerts.map((alerta) => (
-                <li key={alerta.id}>
-                  <AlertRow alerta={alerta} canViewElemento={canViewElemento} />
-                </li>
-              ))}
-            </ul>
+            <>
+              <div
+                aria-hidden="true"
+                className={cn(
+                  'hidden border-b border-sena-line-soft bg-sena-muted/60 px-5 pb-3 pt-3.5 text-[11px] font-bold tracking-[0.12em] text-sena-strong uppercase sm:px-6 lg:grid',
+                  columnasAlerta,
+                )}
+              >
+                <span>Elemento</span>
+                <span>Nivel</span>
+                <span>Fecha</span>
+                <span>Existencias</span>
+                <span className="text-right">{canViewElemento ? 'Acción' : ''}</span>
+              </div>
+              <ul className="divide-y divide-sena-line-soft">
+                {pageAlerts.map((alerta) => (
+                  <li key={alerta.id}>
+                    <AlertRow alerta={alerta} canViewElemento={canViewElemento} />
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
-            <div className="grid place-items-center px-6 py-16 text-center">
+            <div className="grid place-items-center px-5 py-16 text-center sm:px-6 sm:py-20">
               <div>
-                <span className="mx-auto grid size-12 place-items-center rounded-full bg-sena-active-soft text-sena-ok-text">
-                  <AlertIcon className="size-6" />
+                <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-sena-active-soft text-sena-ok-text ring-1 ring-sena-ok-line/70">
+                  <AlertIcon className="size-7" />
                 </span>
-                <p className="mt-3 text-sm font-semibold text-sena-text">
+                <p className="mt-4 text-sm font-bold tracking-tight text-sena-text sm:text-base">
                   {alertas.length === 0 ? 'Todo el stock está al día' : 'No hay alertas que coincidan con los filtros'}
                 </p>
                 <p className="mt-1 text-xs text-sena-text-soft">
@@ -349,12 +465,21 @@ export default function AlertsPage() {
 
 const pageBoton = cn(pageButtonClass, 'w-auto px-3 text-sm font-semibold whitespace-nowrap sm:px-4')
 
-const filterControlClass = 'h-10 w-full min-w-0 rounded-xl border border-sena-line bg-white px-3 text-xs text-sena-text outline-none transition focus:border-sena focus:ring-2 focus:ring-sena/15'
+/** Etiqueta visible de cada filtro, igual que en FilterGroup de DataTable. */
+const filterLabelClass = 'text-[11px] font-semibold tracking-[0.1em] text-sena-strong uppercase'
+
+/**
+ * Plantilla compartida entre la cabecera de columnas y cada fila de la lista:
+ * así los encabezados caen exactamente sobre sus datos en pantallas grandes,
+ * y en móvil todo se reordena en dos columnas legibles.
+ */
+const columnasAlerta =
+  'gap-x-4 gap-y-3 sm:gap-x-6 lg:grid-cols-[minmax(0,2.4fr)_minmax(0,7rem)_minmax(0,9rem)_minmax(0,10.5rem)_minmax(0,6rem)] lg:items-center lg:gap-y-0'
 
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
-    <div>
-      <label htmlFor={htmlFor} className="sr-only">{label}</label>
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={htmlFor} className={filterLabelClass}>{label}</label>
       {children}
     </div>
   )
@@ -371,30 +496,54 @@ function AlertRow({ alerta, canViewElemento }: { alerta: AlertaApi; canViewEleme
 
   const contenido = (
     <>
-      <span aria-hidden="true" className={cn('hidden size-10 shrink-0 place-items-center rounded-xl sm:grid', cerrada ? 'bg-slate-100 text-slate-500' : estilo.chip)}>
-        <AlertIcon className="size-5" />
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
+      {/* Elemento */}
+      <div className="col-span-2 flex min-w-0 items-start gap-3 lg:col-span-1">
+        <span aria-hidden="true" className={cn('grid size-10 shrink-0 place-items-center rounded-xl ring-1', cerrada ? 'bg-slate-100 text-slate-500 ring-slate-200' : estilo.chip)}>
+          <AlertIcon className="size-5" />
+        </span>
+        <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-sena-text" title={nombre}>{nombre}</p>
-          <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1', cerrada ? 'bg-slate-100 text-slate-600 ring-slate-200' : estilo.chip)}>
-            {cerrada ? 'Cerrada' : estilo.label}
-          </span>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-sena-text-soft">
+            {alerta.elemento?.codigo ? (
+              <span className="rounded-md bg-sena-muted px-1.5 py-0.5 font-mono text-sena-strong">{alerta.elemento.codigo}</span>
+            ) : null}
+            <span>{TIPO_LABEL[alerta.tipo]}</span>
+          </div>
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-sena-text-soft">
-          {alerta.elemento?.codigo ? (
-            <span className="rounded-md bg-sena-muted px-1.5 py-0.5 font-mono">{alerta.elemento.codigo}</span>
-          ) : null}
-          <span>{TIPO_LABEL[alerta.tipo]}</span>
-          {alerta.fecha ? (
-            <time dateTime={alerta.fecha}>
-              {dayLabel.format(new Date(alerta.fecha))} · {timeLabel.format(new Date(alerta.fecha))}
-            </time>
-          ) : null}
-        </div>
+      </div>
+
+      {/* Nivel */}
+      <div className="min-w-0">
+        <span className={cn('inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1', cerrada ? 'bg-slate-100 text-slate-600 ring-slate-200' : estilo.chip)}>
+          <span aria-hidden="true" className={cn('size-1.5 shrink-0 rounded-full', cerrada ? 'bg-slate-400' : estilo.punto)} />
+          <span className="truncate">{cerrada ? 'Cerrada' : estilo.label}</span>
+        </span>
+      </div>
+
+      {/* Fecha */}
+      <div className="min-w-0">
+        {alerta.fecha ? (
+          <time dateTime={alerta.fecha} className="block text-xs tabular-nums text-sena-text-soft">
+            <span className="block font-semibold text-sena-strong">{dayLabel.format(new Date(alerta.fecha))}</span>
+            <span className="block">{timeLabel.format(new Date(alerta.fecha))}</span>
+          </time>
+        ) : (
+          <span aria-hidden="true" className="text-xs text-sena-text-soft">—</span>
+        )}
+      </div>
+
+      {/* Existencias */}
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-sena-text tabular-nums">
+          {alerta.cantidad} <span className="font-normal text-sena-text-soft">de {minimo} mín.</span>
+        </p>
+        {faltan > 0 ? (
+          <p className={cn('text-xs font-semibold tabular-nums', cerrada ? 'text-sena-text-soft' : estilo.texto)}>Faltan {faltan}</p>
+        ) : (
+          <p className="text-xs text-sena-text-soft">En el mínimo</p>
+        )}
         <div
-          className="mt-2 h-1.5 w-full max-w-md overflow-hidden rounded-full bg-sena-muted"
+          className="mt-2 h-1.5 w-full max-w-[8rem] overflow-hidden rounded-full bg-sena-muted"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={minimo}
@@ -408,32 +557,25 @@ function AlertRow({ alerta, canViewElemento }: { alerta: AlertaApi; canViewEleme
         </div>
       </div>
 
-      <div className="shrink-0 text-right">
-        <p className="text-sm font-semibold text-sena-text tabular-nums">
-          {alerta.cantidad} <span className="font-normal text-sena-text-soft">de {minimo} mín.</span>
-        </p>
-        {faltan > 0 ? (
-          <p className={cn('text-xs font-semibold tabular-nums', cerrada ? 'text-sena-text-soft' : estilo.texto)}>Faltan {faltan}</p>
-        ) : (
-          <p className="text-xs text-sena-text-soft">En el mínimo</p>
-        )}
+      {/* Acción */}
+      <div className="min-w-0 justify-self-end">
+        {canViewElemento ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-sena-line bg-white px-3 py-1.5 text-xs font-semibold text-sena-strong transition duration-150 group-hover:border-sena group-hover:bg-sena group-hover:text-white">
+            Ver
+            <span aria-hidden="true">›</span>
+          </span>
+        ) : null}
       </div>
-
-      {canViewElemento ? (
-        <span aria-hidden="true" className="shrink-0 text-lg text-sena-text-soft transition group-hover:translate-x-0.5 group-hover:text-sena-strong">
-          ›
-        </span>
-      ) : null}
     </>
   )
 
-  const base = 'group flex items-center gap-3 rounded-xl px-3 py-4 sm:gap-4'
+  const base = cn('group grid w-full grid-cols-2 px-5 py-4 text-left transition duration-150 sm:px-6 sm:py-5', columnasAlerta)
 
   return canViewElemento ? (
     <Link
       to={`/inventario/elementos/${alerta.idElemento}`}
       title="Ver elemento"
-      className={cn(base, 'transition hover:bg-sena-surface focus-visible:outline-2 focus-visible:outline-sena', cerrada && 'opacity-75')}
+      className={cn(base, 'hover:bg-sena-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sena', cerrada && 'opacity-75')}
     >
       {contenido}
     </Link>
@@ -447,12 +589,14 @@ function SummaryTile({
   ayuda,
   count,
   tone,
+  active = false,
   onClick,
 }: {
   label: string
   ayuda: string
   count: number
   tone: Severidad | 'activa' | 'cerrada'
+  active?: boolean
   onClick: () => void
 }) {
   const colors: Record<typeof tone, { icono: string; barra: string; numero: string }> = {
@@ -468,16 +612,36 @@ function SummaryTile({
     <button
       type="button"
       onClick={onClick}
-      className="relative flex items-center gap-3 overflow-hidden rounded-2xl border border-sena-line bg-white p-4 text-left shadow-sm transition hover:shadow-md focus-visible:outline-2 focus-visible:outline-sena"
+      aria-pressed={active}
+      className={cn(
+        'group relative flex h-full flex-col justify-between gap-3 overflow-hidden rounded-[24px] border bg-white p-5 text-left shadow-card transition duration-200 hover:-translate-y-1 hover:shadow-card-hover focus-visible:outline-2 focus-visible:outline-sena active:translate-y-0',
+        active ? 'border-sena ring-2 ring-sena/20' : 'border-sena-line hover:border-sena/45',
+      )}
     >
-      <span aria-hidden="true" className={cn('absolute inset-y-0 left-0 w-1.5', color.barra)} />
-      <span aria-hidden="true" className={cn('grid size-10 shrink-0 place-items-center rounded-xl ring-1', color.icono)}>
-        <AlertIcon className="size-5" />
+      <span
+        aria-hidden="true"
+        className={cn('absolute inset-x-0 top-0 h-1 transition-opacity', color.barra, active ? 'opacity-100' : 'opacity-70 group-hover:opacity-100')}
+      />
+
+      <span className="flex items-start justify-between gap-3">
+        <span aria-hidden="true" className={cn('grid size-11 shrink-0 place-items-center rounded-2xl ring-1 transition duration-200 group-hover:scale-105', color.icono)}>
+          <AlertIcon className="size-5" />
+        </span>
+        {active ? (
+          <span aria-hidden="true" className="grid size-6 shrink-0 place-items-center rounded-full bg-sena text-[11px] font-bold text-white shadow-brand-sm">
+            ✓
+          </span>
+        ) : (
+          <span aria-hidden="true" className="text-lg leading-none text-sena-line transition duration-150 group-hover:translate-x-0.5 group-hover:text-sena">
+            ›
+          </span>
+        )}
       </span>
-      <span className="min-w-0">
-        <span className="block text-xs font-medium text-sena-text-soft">{label}</span>
-        <strong className={cn('block text-2xl leading-tight tabular-nums', color.numero)}>{count}</strong>
-        <span className="block truncate text-[11px] text-sena-text-soft">{ayuda}</span>
+
+      <span className="block">
+        <strong className={cn('block text-[2.1rem] leading-none font-bold tabular-nums', color.numero)}>{count}</strong>
+        <span className="mt-2 block text-sm font-semibold text-sena-text">{label}</span>
+        <span className="mt-0.5 block truncate text-xs text-sena-text-soft">{ayuda}</span>
       </span>
     </button>
   )

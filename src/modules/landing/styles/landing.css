@@ -803,8 +803,12 @@
     box-shadow: 0 14px 32px -22px rgba(0, 0, 0, 0.8);
     transition: border-color 180ms ease, box-shadow 180ms ease;
   }
-
   .lp-map-search:focus-within {
+    border-color: rgba(141, 248, 95, 0.62);
+    box-shadow: 0 0 0 3px rgba(141, 248, 95, 0.08), 0 16px 36px -20px rgba(0, 0, 0, 0.9);
+  }
+
+ .lp-map-search:focus-within {
     border-color: rgba(141, 248, 95, 0.62);
     box-shadow: 0 0 0 3px rgba(141, 248, 95, 0.08), 0 16px 36px -20px rgba(0, 0, 0, 0.9);
   }
@@ -1988,6 +1992,11 @@
     -ms-overflow-style: none;
     cursor: grab;
     overscroll-behavior-x: contain;
+  }
+
+  /* Centra Misión y Visión cuando no hay más tarjetas que mostrar. */
+  .lp-explore-viewport.is-centered {
+    justify-content: center;
   }
 
   .lp-explore-viewport::-webkit-scrollbar {

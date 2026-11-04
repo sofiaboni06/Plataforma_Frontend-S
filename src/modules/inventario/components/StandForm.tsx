@@ -72,7 +72,7 @@ export default function StandForm({
 
   return (
     <form onSubmit={handleSubmit}>
-      <div className="rounded-2xl bg-white shadow-sm ring-1 ring-sena-dark/8">
+      <div className="form-panel">
         <div className="border-b border-sena-dark/8 px-5 py-5 sm:px-7">
           <p className="text-sm font-medium text-sena/90">
             Inventario
@@ -99,7 +99,7 @@ export default function StandForm({
           <div>
             <label
               htmlFor="nombre-stand"
-              className="mb-1.5 block text-sm font-medium text-sena-text/70"
+              className="form-label mb-1.5"
             >
               Nombre del stand
             </label>
@@ -113,7 +113,7 @@ export default function StandForm({
               maxLength={150}
               disabled={loading}
               autoComplete="off"
-              className="h-11 w-full rounded-lg border border-sena-dark/10 bg-white px-3.5 text-sm text-sena-text outline-none transition placeholder:text-sena-text/35 focus:border-sena focus:ring-2 focus:ring-sena/15 disabled:cursor-not-allowed disabled:bg-sena-muted/40"
+              className="form-field"
             />
 
             <p className="mt-1.5 text-xs text-sena-text/45">

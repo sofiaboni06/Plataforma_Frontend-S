@@ -46,25 +46,39 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   const canSolicitar = canFormacionAction('solicitudes', 'list', formacionAccess)
   const canCompras = canFormacionAction('compras', 'list', formacionAccess)
   const canVigencias = isAdmin || user?.permissions?.includes('vigencia.ver') === true
-  const canPresupuesto = !isAdmin && user?.permissions?.includes('solicitud_programa.editar') === true
-  const showMaterialesNav = !isAdmin && (canSeeMaterials || canSolicitar || canCompras)
+  const canPresupuesto =
+    isAdmin || user?.permissions?.includes('solicitud_programa.editar') === true
+  const canAlertas = canFormacionAction('alertas', 'list', formacionAccess)
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,
     permissions: user?.permissions,
     role: user?.role,
   })
   const formacionScreens = visibleFormacionMenuScreens(formacionAccess)
+  const showMaterialesNav =
+    canSeeMaterials ||
+    canSolicitar ||
+    canCompras ||
+    canVigencias ||
+    canPresupuesto ||
+    formacionScreens.length > 0
+  const materialesDestino = canSolicitar
+    ? '/formacion/solicitudes'
+    : canCompras
+      ? '/formacion/compras'
+      : canSeeMaterials
+        ? '/materiales-formacion'
+        : (formacionScreens[0]?.to ?? (canPresupuesto ? '/presupuesto-formacion' : '/vigencias'))
 
   const [inventoryOpen, setInventoryOpen] = useState(
     location.pathname.startsWith('/inventario'),
   )
-  const [formacionOpen, setFormacionOpen] = useState(isFormacionPath(location.pathname))
 
   const materialesPath =
     location.pathname.startsWith('/materiales') ||
-    location.pathname.startsWith('/formacion/solicitudes') ||
-    location.pathname.startsWith('/formacion/compras') ||
-    location.pathname.startsWith('/presupuesto-formacion')
+    isFormacionPath(location.pathname) ||
+    location.pathname.startsWith('/presupuesto-formacion') ||
+    location.pathname.startsWith('/vigencias')
 
   const [materialesOpen, setMaterialesOpen] = useState(materialesPath)
 
@@ -77,19 +91,11 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
   useEffect(() => {
     if (
       location.pathname.startsWith('/materiales') ||
-      location.pathname.startsWith('/formacion/solicitudes') ||
-      location.pathname.startsWith('/formacion/compras') ||
-      location.pathname.startsWith('/presupuesto-formacion')
+      isFormacionPath(location.pathname) ||
+      location.pathname.startsWith('/presupuesto-formacion') ||
+      location.pathname.startsWith('/vigencias')
     ) {
       setMaterialesOpen(true)
-    }
-
-    if (
-      isFormacionPath(location.pathname) &&
-      !location.pathname.startsWith('/formacion/solicitudes') &&
-      !location.pathname.startsWith('/formacion/compras')
-    ) {
-      setFormacionOpen(true)
     }
    }, [location.pathname])
 
@@ -235,7 +241,7 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
               type="button"
               onClick={() => {
                 setMaterialesOpen((value) => !value)
-                navigate(canSolicitar ? '/formacion/solicitudes' : '/materiales-formacion')
+                navigate(materialesDestino)
               }}
               className={cn(
                 itemClass,
@@ -259,6 +265,21 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
 
             {materialesOpen ? (
               <div id="menu-materiales" className="mt-1.5 mb-3 ml-[0.85rem] flex flex-col gap-1">
+                {formacionScreens.map((screen) => (
+                  <SideLink
+                    key={screen.to}
+                    to={screen.to}
+                    icon="program"
+                    nested
+                    end={false}
+                    forceActive={
+                      screen.code === 'redes' && isEstructuraFormacionPath(location.pathname)
+                    }
+                    onClose={onClose}
+                  >
+                    {screen.label}
+                  </SideLink>
+                ))}
                 {canSeeMaterials ? (
                   <SideLink to="/materiales-formacion" icon="program" nested end={false} onClose={onClose}>
                     Mis programas
@@ -272,6 +293,11 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
                 {canCompras ? (
                   <SideLink to="/formacion/compras" icon="program" nested end={false} onClose={onClose}>
                     Consolidado de compras
+                  </SideLink>
+                ) : null}
+                {canAlertas ? (
+                  <SideLink to="/formacion/alertas" icon="program" nested end={false} onClose={onClose}>
+                    Alertas
                   </SideLink>
                 ) : null}
                 {canPresupuesto ? (
@@ -305,61 +331,6 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
           >
             Usuarios
           </SideLink>
-        ) : null}
-
-        {formacionScreens.length > 0 ? (
-          <div>
-            <button
-              type="button"
-              onClick={() => {
-                setFormacionOpen((value) => !value)
-                navigate('/formacion')
-              }}
-              className={cn(
-                itemClass,
-                'gap-3 px-3.5 py-2 text-base',
-                isFormacionPath(location.pathname) ? activeClass : idleClass,
-              )}
-              aria-expanded={formacionOpen}
-              aria-controls="menu-formacion"
-            >
-              <NavIcon name="program" className="size-[1.15rem] shrink-0" />
-
-              <span className="flex-1">Formación</span>
-
-              <span
-                className={cn(
-                  'text-xs text-current/70 transition-transform duration-150',
-                  formacionOpen && 'rotate-180',
-                )}
-              >
-                ⌄
-              </span>
-            </button>
-
-            {formacionOpen ? (
-              <div
-                id="menu-formacion"
-                className="mt-1.5 mb-3 ml-[0.85rem] flex flex-col gap-1"
-              >
-                {formacionScreens.map((screen) => (
-                  <SideLink
-                    key={screen.to}
-                    to={screen.to}
-                    icon="program"
-                    nested
-                    end={false}
-                    forceActive={
-                      screen.code === 'redes' && isEstructuraFormacionPath(location.pathname)
-                    }
-                    onClose={onClose}
-                  >
-                    {screen.label}
-                  </SideLink>
-                ))}
-              </div>
-            ) : null}
-          </div>
         ) : null}
 
         {isAdmin ? (
