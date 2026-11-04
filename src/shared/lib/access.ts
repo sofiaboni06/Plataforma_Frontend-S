@@ -88,6 +88,14 @@ export function grantedModuleLinks(
   return links.sort((left, right) => left.order - right.order)
 }
 
+export function esSubdirectora(role?: string) {
+  return /^subdirector/i.test(role ?? '')
+}
+
+export function puedeCrearVigencia(isAdmin: boolean, role?: string) {
+  return isAdmin || esSubdirectora(role)
+}
+
 export function canOpenPath(
   path: string,
   modules: AppModule[],
@@ -113,7 +121,7 @@ export function canOpenPath(
 
   if (path === '/vigencias' || path.startsWith('/vigencias/')) {
     if (isAdmin) return true
-    if (path === '/vigencias/crear') return permissions?.includes('vigencia.crear') === true
+    if (path === '/vigencias/crear') return puedeCrearVigencia(isAdmin, role)
     if (path.endsWith('/editar')) return permissions?.includes('vigencia.editar') === true
     return permissions?.includes('vigencia.ver') === true
   }

@@ -29,8 +29,10 @@ import {
   tableColumns,
 } from '@/shared/components/DataTable'
 import { filterSelectClass, usePagination, useTableState } from '@/shared/lib/table'
+import { useAuth } from '@/modules/auth/context/auth'
 import { deleteVigencia, getVigencias } from '@/modules/vigencias/data/vigencia'
 import type { VigenciaApi } from '@/modules/vigencias/types/vigencia'
+import { puedeCrearVigencia } from '@/shared/lib/access'
 
 type StatusFilter = 'Todos' | 'Activa' | 'Inactiva'
 
@@ -45,6 +47,8 @@ function CalendarIcon() {
 
 export default function VigenciasPage() {
   const navigate = useNavigate()
+  const { isAdmin, user } = useAuth()
+  const canCreate = puedeCrearVigencia(isAdmin, user?.role)
   const { search, setSearch, page, setPage, resetPage } = useTableState()
 
   const [vigencias, setVigencias] = useState<VigenciaApi[]>([])
@@ -121,13 +125,15 @@ export default function VigenciasPage() {
         title="Gestionar vigencias"
         description="Administra los años fiscales y sus fechas de apertura y cierre."
         action={
-          <Button
-            type="button"
-            icon={<PlusIcon className="size-4" />}
-            onClick={() => navigate('/vigencias/crear')}
-          >
-            Nueva vigencia
-          </Button>
+          canCreate ? (
+            <Button
+              type="button"
+              icon={<PlusIcon className="size-4" />}
+              onClick={() => navigate('/vigencias/crear')}
+            >
+              Nueva vigencia
+            </Button>
+          ) : undefined
         }
       />
 

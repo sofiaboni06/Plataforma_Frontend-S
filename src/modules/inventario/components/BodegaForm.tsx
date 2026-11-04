@@ -155,7 +155,7 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
       >
         <div className="flex items-start justify-between border-b border-sena-hairline px-7 py-6">
           <div className="flex items-start gap-3">
-            <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-sena text-white shadow-brand-sm">
+            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#e5f6ec] text-[#128a45]">
               <WarehouseIcon />
             </div>
             <div>
@@ -187,7 +187,7 @@ export default function BodegaForm({ mode, initialData, loading = false, onSubmi
                 {error}
               </div>
             ) : null}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="form-fields grid gap-4 sm:grid-cols-2">
               <FormInput
                 id="nombre-bodega"
                 label="Nombre de la bodega *"
