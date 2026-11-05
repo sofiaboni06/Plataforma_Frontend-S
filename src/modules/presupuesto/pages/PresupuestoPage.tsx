@@ -18,11 +18,6 @@ import { ApiError } from '@/shared/lib/api'
 import { useAuth } from '@/modules/auth/context/auth'
 import { getVigencias } from '@/modules/vigencias/data/vigencia'
 import {
-  asignarAreaEspecial,
-  especialesParaRepartir,
-  type EspecialParaRepartir,
-} from '@/modules/vigencias/data/vigencia'
-import {
   asignarCoordinador,
   asignarArea,
   crearLote,
@@ -442,7 +437,7 @@ function ResumenView() {
       ) : null}
       <div className="mb-4 grid gap-3 lg:grid-cols-3">
         {acciones.map((accion) => (
-          <article key={accion.to} className="flex flex-col rounded-[24px] border border-sena-line bg-white p-5">
+          <article key={accion.to} className="flex flex-col rounded-3xl border border-sena-line bg-white p-5">
             <p className="text-xs font-semibold uppercase tracking-wide text-sena-strong">{accion.detalle}</p>
             <h2 className="mt-1 text-base font-bold text-sena-dark">{accion.titulo}</h2>
             <p className="mt-1 flex-1 text-sm text-sena-strong">{accion.texto}</p>
@@ -454,7 +449,6 @@ function ResumenView() {
           </article>
         ))}
       </div>
-      {!esAdmin && resumen ? <RepartoEspecial anio={resumen.anio} /> : null}
     </AppLayout>
   )
 }
@@ -558,7 +552,7 @@ function RepartoView() {
         />
       ) : null}
       <Cuerpo>
-        <section className="rounded-[24px] border border-sena-line bg-white p-5">
+        <section className="rounded-3xl border border-sena-line bg-white p-5">
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>
@@ -640,78 +634,8 @@ function RepartoView() {
             </table>
           </div>
         </section>
-        {!esAdmin && resumen ? <RepartoEspecial anio={resumen.anio} /> : null}
       </Cuerpo>
     </AppLayout>
-  )
-}
-
-function RepartoEspecial({ anio }: { anio: number }) {
-  const [filas, setFilas] = useState<EspecialParaRepartir[]>([])
-  const [montos, setMontos] = useState<Record<string, string>>({})
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    void especialesParaRepartir(anio)
-      .then(setFilas)
-      .catch(() => setFilas([]))
-  }, [anio])
-
-  if (!filas.length) return null
-
-  return (
-    <section className="mt-6 rounded-[24px] border border-sena-line bg-white p-5">
-      <h2 className="text-lg font-semibold text-sena-text">Vigencia especial</h2>
-      <p className="mt-1 text-sm text-sena-strong">
-        La subdirectora te asignó este monto aparte. Distribúyelo en tus áreas.
-      </p>
-      {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
-      {filas.map((especial) => (
-        <div key={especial.id} className="mt-4">
-          <p className="font-semibold">{especial.nombre} · {especial.monto}</p>
-          <ul className="mt-2 flex flex-col gap-2">
-            {especial.areas.map((area) => (
-              <li key={area.id} className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="min-w-40">{area.nombre}</span>
-                <input
-                  className="form-field w-32"
-                  type="number"
-                  min={0}
-                  value={montos[`${especial.id}-${area.id}`] ?? String(area.monto)}
-                  onChange={(event) =>
-                    setMontos((actual) => ({ ...actual, [`${especial.id}-${area.id}`]: event.target.value }))
-                  }
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() =>
-                    void asignarAreaEspecial(
-                      anio,
-                      especial.id,
-                      area.id,
-                      Number(montos[`${especial.id}-${area.id}`] ?? area.monto) || 0,
-                    )
-                      .then((corte) =>
-                        setFilas((actuales) =>
-                          actuales.map((fila) =>
-                            fila.id === especial.id ? { ...fila, areas: corte.areas } : fila,
-                          ),
-                        ),
-                      )
-                      .catch((saveError: unknown) =>
-                        setError(saveError instanceof Error ? saveError.message : 'No se pudo distribuir.'),
-                      )
-                  }
-                >
-                  Distribuir
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </section>
   )
 }
 
@@ -728,7 +652,7 @@ function LotesView() {
       <Avisos />
       <SelectorVigencia />
       <Cuerpo>
-        <section className="rounded-[24px] border border-sena-line bg-white p-5">
+        <section className="rounded-3xl border border-sena-line bg-white p-5">
           {puedeEditar ? (
             <div className="flex flex-wrap items-end gap-3">
               <TextField
