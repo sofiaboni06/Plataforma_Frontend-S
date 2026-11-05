@@ -254,20 +254,17 @@ export default function SolicitudMaterialFormacionPage() {
   const abrirRevision = (solicitud: SolicitudPrograma) => {
     setRevision(solicitud)
     setObservacionDecision('')
-    setDecisiones(
-      Object.fromEntries(
-        solicitud.items
-          .filter((item) => item.estado === 'pendiente')
-          .map((item) => [
-            item.id,
-            {
-              accion: 'entregar' as const,
-              cantidad: String(restanteDe(item) || sugerida(item)),
-              motivo: item.observacionCoordinador ?? '',
-            },
-          ]),
-      ),
-    )
+    const iniciales: Record<number, DecisionLinea> = {}
+    for (const item of solicitud.items) {
+      if (item.estado !== 'pendiente') continue
+      iniciales[item.id] = {
+        accion: 'entregar',
+        cantidad: String(restanteDe(item) || sugerida(item)),
+        motivo: item.observacionCoordinador ?? '',
+        pedida: String(item.cantidadSolicitada),
+      }
+    }
+    setDecisiones(iniciales)
   }
 
   const patchDecision = (id: number, patch: Partial<DecisionLinea>) => {
