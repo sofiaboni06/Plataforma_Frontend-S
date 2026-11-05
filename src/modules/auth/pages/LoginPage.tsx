@@ -1,4 +1,3 @@
-
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { EyeIcon, EyeOffIcon } from '@/shared/components/icons/AppIcons'
@@ -51,7 +50,6 @@ function LockIcon() {
   )
 }
 
-
 export default function LoginPage() {
   const { login, token, isReady } = useAuth()
   const navigate = useNavigate()
@@ -67,7 +65,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
-
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [captchaReset, setCaptchaReset] = useState(0)
 
@@ -126,7 +123,7 @@ export default function LoginPage() {
     navigate(nextPath, { replace: true })
   } catch (caught) {
     setError(loginError(caught))
-  
+    // El token es de un solo uso: se pide uno nuevo tras cualquier intento fallido.
     setCaptchaReset((value) => value + 1)
   } finally {
     setSaving(false)
@@ -135,41 +132,30 @@ export default function LoginPage() {
 
   return (
     <main className="relative isolate min-h-svh overflow-hidden bg-[#073d2b]">
+      {/* Botón para volver al inicio */}
+      <button
+        type="button"
+        onClick={() => navigate('/')}
+        className="absolute left-5 top-5 z-20 inline-flex items-center gap-2
+          rounded-xl border border-white/30 bg-white/15 px-4 py-2.5
+          text-sm font-semibold text-white shadow-lg backdrop-blur-md
+          transition-all duration-200 hover:-translate-y-0.5
+          hover:bg-white/25 focus:outline-none focus:ring-2
+          focus:ring-white/60 sm:left-8 sm:top-8"
+      >
+        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+          <path
+            d="M15 18l-6-6 6-6"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="M9 12h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
 
-{/* Botón para volver al inicio */}
-<button
-  type="button"
-  onClick={() => navigate('/')}
-  className="absolute left-5 top-5 z-20 inline-flex items-center gap-2
-    rounded-xl border border-white/30 bg-white/15 px-4 py-2.5
-    text-sm font-semibold text-white shadow-lg backdrop-blur-md
-    transition-all duration-200 hover:-translate-y-0.5
-    hover:bg-white/25 focus:outline-none focus:ring-2
-    focus:ring-white/60 sm:left-8 sm:top-8"
->
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    className="h-5 w-5"
-    aria-hidden="true"
-  >
-    <path
-      d="M15 18l-6-6 6-6"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M9 12h12"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-  </svg>
-
-  Volver al inicio
-</button>
+        Volver al inicio
+      </button>
 
       {/* Fondo fotográfico con desenfoque */}
       <img
@@ -189,114 +175,136 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute -right-32 top-1/4 h-96 w-96 rounded-full bg-emerald-300/20 blur-3xl" />
 
       <div className="relative z-10 mx-auto grid min-h-svh w-full max-w-360 grid-cols-1 items-center gap-8 px-5 py-8 sm:px-10 lg:grid-cols-[1fr_0.9fr] lg:gap-12 lg:px-16 xl:px-24">
-       
-{/* Marca y presentación sigma */}
-<section className="relative flex flex-col items-center justify-center text-center text-white lg:px-6 lg:scale-90">
+        {/* Marca y presentación sigma */}
+        <section className="relative flex flex-col items-center justify-center text-center text-white lg:px-6 lg:scale-90">
+          {/* Logotipo SIGMA */}
+          <div className="mb-5 flex justify-center">
+            <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-md sm:h-20 sm:w-20">
+              <img
+                src="/img/logo-sigma.png"
+                alt="Logotipo de SIGMA"
+                className="relative h-14 w-14 object-contain sm:h-16 sm:w-16"
+              />
+            </div>
+          </div>
 
-  {/* Logotipo original */}
-  {/* Logotipo SIGMA */}
-<div className="mb-5 flex justify-center">
-  <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-md sm:h-20 sm:w-20">
-    <img
-      src="/img/logo-sigma.png"
-      alt="Logotipo de SIGMA"
-      className="relative h-14 w-14 object-contain sm:h-16 sm:w-16"
-    />
-  </div>
-</div>
+          {/* Nombre con degradados independientes */}
+          <h1 className="text-4xl font-black leading-none tracking-tight sm:text-5xl xl:text-6xl">
+            <span className="bg-linear-to-r from-sky-300 via-blue-400 to-cyan-300 bg-clip-text text-transparent">
+              SIG
+            </span>
+            <span className="bg-linear-to-r from-lime-300 via-green-300 to-emerald-400 bg-clip-text text-transparent">
+              MA
+            </span>
+          </h1>
 
-  {/* Nombre con degradados independientes */}
-  <h1 className="text-4xl font-black leading-none tracking-tight sm:text-5xl xl:text-6xl">
-    <span className="bg-linear-to-r from-sky-300 via-blue-400 to-cyan-300 bg-clip-text text-transparent">
-      SIG
-    </span>
-    <span className="bg-linear-to-r from-lime-300 via-green-300 to-emerald-400 bg-clip-text text-transparent">
-      MA
-    </span>
-  </h1>
+          {/* Descriptor */}
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <span className="h-px w-8 bg-white/60 sm:w-12" />
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/90 sm:text-sm">
+              Sistema integral de gestion de modulos administrativos
+            </p>
+            <span className="h-px w-8 bg-white/60 sm:w-12" />
+          </div>
 
-  {/* Descriptor */}
-  <div className="mt-4 flex items-center justify-center gap-3">
-    <span className="h-px w-8 bg-white/60 sm:w-12" />
-    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/90 sm:text-sm">
-      Sistema integral de gestion de modulos administrativos
-    </p>
-    <span className="h-px w-8 bg-white/60 sm:w-12" />
-  </div>
+          {/* Eslogan */}
+          <p className="mt-6 max-w-md text-xl font-medium leading-relaxed text-white sm:text-2xl">
+            Una plataforma,
+            <span className="block font-bold text-lime-300">múltiples soluciones.</span>
+          </p>
 
-  {/* Eslogan */}
-  <p className="mt-6 max-w-md text-xl font-medium leading-relaxed text-white sm:text-2xl">
-    Una plataforma,
-    <span className="block font-bold text-lime-300">
-      múltiples soluciones.
-    </span>
-  </p>
+          <p className="mt-3 max-w-sm text-sm leading-6 text-white/80 sm:text-base">
+            Conectamos procesos, optimizamos la gestión y transformamos el futuro de la institución.
+          </p>
 
-  <p className="mt-3 max-w-sm text-sm leading-6 text-white/80 sm:text-base">
-    Conectamos procesos, optimizamos la gestión y transformamos el futuro de la institución.
-  </p>
+          {/* Beneficios */}
+          <div className="mt-5 grid w-full max-w-md grid-cols-3 divide-x divide-white/25">
+            <div className="px-2 py-2">
+              <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-lime-300">
+                <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+                  <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" stroke="currentColor" strokeWidth="1.7" />
+                  <path
+                    d="m19 13 2-1-2-1-.5-2 1-2-2-2-2 1-2-.5-1-2-2 2-.5 2-2 1-2-1-2 2 1 2-.5 2-2 1 2 1 .5 2-1 2 2 2 2-1 2 .5 1 2 2-2 .5-2 2-1 2 1 2-2-1-2 .5-2Z"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <p className="mt-3 text-xs font-semibold leading-relaxed text-white/90 sm:text-sm">
+                Procesos
+                <br />
+                más ágiles
+              </p>
+            </div>
 
-  {/* Beneficios */}
-  <div className="mt-5 grid w-full max-w-md grid-cols-3 divide-x divide-white/25">
-    <div className="px-2 py-2">
-      <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-lime-300">
-        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
-          <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" stroke="currentColor" strokeWidth="1.7" />
-          <path d="m19 13 2-1-2-1-.5-2 1-2-2-2-2 1-2-.5-1-2-2 2-.5 2-2 1-2-1-2 2 1 2-.5 2-2 1 2 1 .5 2-1 2 2 2 2-1 2 .5 1 2 2-2 .5-2 2-1 2 1 2-2-1-2 .5-2Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-        </svg>
-      </span>
-      <p className="mt-3 text-xs font-semibold leading-relaxed text-white/90 sm:text-sm">
-        Procesos
-        <br />
-        más ágiles
-      </p>
-    </div>
+            <div className="px-2 py-2">
+              <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-lime-300">
+                <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+                  <path
+                    d="M12 3 20 6v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-3Z"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="m8.5 12 2.3 2.3 4.7-5"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <p className="mt-3 text-xs font-semibold leading-relaxed text-white/90 sm:text-sm">
+                Gestión
+                <br />
+                segura
+              </p>
+            </div>
 
-    <div className="px-2 py-2">
-      <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-lime-300">
-        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
-          <path d="M12 3 20 6v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-          <path d="m8.5 12 2.3 2.3 4.7-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </span>
-      <p className="mt-3 text-xs font-semibold leading-relaxed text-white/90 sm:text-sm">
-        Gestión
-        <br />
-        segura
-      </p>
-    </div>
+            <div className="px-2 py-2">
+              <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-lime-300">
+                <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+                  <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.7" />
+                  <circle cx="17" cy="9" r="2.3" stroke="currentColor" strokeWidth="1.7" />
+                  <path
+                    d="M3 19v-1.5A5.5 5.5 0 0 1 8.5 12h1A5.5 5.5 0 0 1 15 17.5V19H3Z"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M16 13h1a4 4 0 0 1 4 4v1h-4"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
+              <p className="mt-3 text-xs font-semibold leading-relaxed text-white/90 sm:text-sm">
+                Mejores
+                <br />
+                resultados
+              </p>
+            </div>
+          </div>
 
-    <div className="px-2 py-2">
-      <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-lime-300">
-        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
-          <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.7" />
-          <circle cx="17" cy="9" r="2.3" stroke="currentColor" strokeWidth="1.7" />
-          <path d="M3 19v-1.5A5.5 5.5 0 0 1 8.5 12h1A5.5 5.5 0 0 1 15 17.5V19H3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-          <path d="M16 13h1a4 4 0 0 1 4 4v1h-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-        </svg>
-      </span>
-      <p className="mt-3 text-xs font-semibold leading-relaxed text-white/90 sm:text-sm">
-        Mejores
-        <br />
-        resultados
-      </p>
-    </div>
-  </div>
+          {/* Identidad institucional */}
+          <div className="mt-6 flex items-center justify-center gap-4">
+            <img
+              src="/img/logo-sena.svg"
+              alt="SENA"
+              className="h-14 w-auto brightness-0 invert sm:h-16"
+            />
+            <img
+              src="/img/logo-fabrica-software.png"
+              alt="Fábrica de Software"
+              className="h-12 w-auto sm:h-14"
+            />
+          </div>
+        </section>
 
-  {/* Identidad institucional */}
-  <div className="mt-6 flex items-center justify-center gap-4">
-    <img
-      src="/img/logo-sena.svg"
-      alt="SENA"
-      className="h-14 w-auto brightness-0 invert sm:h-16"
-    />
-    <img
-      src="/img/logo-fabrica-software.png"
-      alt="Fábrica de Software"
-      className="h-12 w-auto sm:h-14"
-    />
-  </div>
-</section>
         {/* Formulario de acceso */}
         <section className="flex w-full items-center justify-center">
           <div className="w-full max-w-107.5">
@@ -467,9 +475,7 @@ export default function LoginPage() {
 
               {/* Centro de ayuda */}
               <div className="mt-6 border-t border-[#dce9e0] pt-5 text-center">
-                <p className="text-xs text-[#6a8577]">
-                  ¿Tienes problemas para acceder?
-                </p>
+                <p className="text-xs text-[#6a8577]">¿Tienes problemas para acceder?</p>
 
                 <button
                   type="button"
@@ -527,14 +533,12 @@ export default function LoginPage() {
             </div>
 
             <p className="mt-4 text-sm leading-relaxed text-gray-600">
-              Si tienes problemas para ingresar a Sigma, comprueba tus
-              credenciales y verifica que tu cuenta esté activa.
+              Si tienes problemas para ingresar a Sigma, comprueba tus credenciales y verifica que
+              tu cuenta esté activa.
             </p>
 
             <div className="mt-5 rounded-xl bg-emerald-50 p-4">
-              <p className="text-sm font-bold text-emerald-900">
-                ¿No recuerdas tu contraseña?
-              </p>
+              <p className="text-sm font-bold text-emerald-900">¿No recuerdas tu contraseña?</p>
               <p className="mt-1 text-sm leading-relaxed text-emerald-800">
                 Puedes solicitar un código de recuperación para restablecerla.
               </p>

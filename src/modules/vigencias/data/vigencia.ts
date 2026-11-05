@@ -31,3 +31,35 @@ export async function deleteVigencia(anio: number): Promise<void> {
     method: 'DELETE',
   })
 }
+
+// Añade al final de src/modules/vigencias/data/vigencia.ts
+
+export type EspecialParaRepartir = {
+  id: number
+  nombre: string
+  monto: number
+  areas: Array<{
+    id: number
+    nombre: string
+    monto: number
+  }>
+}
+
+export async function especialesParaRepartir(anio: number): Promise<EspecialParaRepartir[]> {
+  return api<EspecialParaRepartir[]>(`${BASE_PATH}/${anio}/especiales`)
+}
+
+export async function asignarAreaEspecial(
+  anio: number,
+  especialId: number,
+  areaId: number,
+  monto: number,
+): Promise<{ areas: EspecialParaRepartir['areas'] }> {
+  return api<{ areas: EspecialParaRepartir['areas'] }>(
+    `${BASE_PATH}/${anio}/especiales/${especialId}/areas/${areaId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ monto }),
+    },
+  )
+}
