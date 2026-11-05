@@ -4,11 +4,13 @@ import AppLayout from '@/shared/components/layout/AppLayout'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import TextField from '@/shared/components/ui/TextField'
-import { PlusIcon, SettingsIcon } from '@/shared/components/icons/AppIcons'
+import { ModulesIcon, PlusIcon, SettingsIcon } from '@/shared/components/icons/AppIcons'
 import {
+  ActionButton,
   ErrorBanner,
   FilterCard,
   PageHeader,
+  RowActions,
   SearchInput,
   TableCard,
   TableEmpty,
@@ -116,7 +118,7 @@ export default function RolesPage() {
       <PageHeader
         icon={<SettingsIcon />}
         title="Perfiles"
-        description="Tipos de usuario de la plataforma. Busque en la tabla, cree uno nuevo y asígnele módulos."
+        description="Tipos de usuario de la plataforma. Busca en la tabla, crea uno nuevo y asígnale módulos."
         action={
           <Button
             type="button"
@@ -203,13 +205,14 @@ export default function RolesPage() {
                           </StatusPill>
                         </td>
                         <td className="px-5 py-4 text-center">
-                          <button
-                            type="button"
-                            className="text-sm font-semibold text-sena hover:underline"
-                            onClick={() => navigate(`/perfiles/${role.id}/modulos`)}
-                          >
-                            Asignar módulos
-                          </button>
+                          <RowActions>
+                            <ActionButton
+                              title="Asignar módulos"
+                              onClick={() => navigate(`/perfiles/${role.id}/modulos`)}
+                            >
+                              <ModulesIcon className="size-[18px]" />
+                            </ActionButton>
+                          </RowActions>
                         </td>
                       </TableRow>
                     ))

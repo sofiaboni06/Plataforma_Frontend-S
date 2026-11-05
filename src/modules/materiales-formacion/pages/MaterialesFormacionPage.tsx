@@ -5,6 +5,7 @@ import {
   ClearFiltersButton,
   FilterCard,
   PageHeader,
+  RowActions,
   SearchInput,
   TableCard,
   TableEmpty,
@@ -128,13 +129,16 @@ export default function MaterialesFormacionPage() {
                         <td>{programa.nivel?.nombre ?? '—'}</td>
                         <td>
                           {puedeLista ? (
-                            <Link
-                              to={`/formacion/listas-maestras-material?programaId=${programa.id}`}
-                              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-sena-line bg-white px-3 text-xs font-semibold text-sena-dark shadow-hairline transition hover:border-sena/45 hover:text-sena"
-                            >
-                              <ExcelIcon className="size-[14px]" />
-                              Lista de materiales
-                            </Link>
+                            <RowActions>
+                              <Link
+                                to={`/formacion/listas-maestras-material?programaId=${programa.id}`}
+                                title="Lista de materiales"
+                                aria-label="Lista de materiales"
+                                className="grid size-10 place-items-center rounded-lg text-sena-dark transition duration-150 hover:text-sena focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sena"
+                              >
+                                <ExcelIcon className="size-[18px]" />
+                              </Link>
+                            </RowActions>
                           ) : null}
                         </td>
                       </TableRow>

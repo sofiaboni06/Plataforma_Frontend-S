@@ -264,6 +264,18 @@ export function ExpandIcon(props: IconProps) {
   )
 }
 
+/** Cuadrícula de módulos: asignar módulos a un perfil. */
+export function ModulesIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="3.8" y="3.8" width="7" height="7" rx="1.6" />
+      <rect x="13.2" y="3.8" width="7" height="7" rx="1.6" />
+      <rect x="3.8" y="13.2" width="7" height="7" rx="1.6" />
+      <rect x="13.2" y="13.2" width="7" height="7" rx="1.6" />
+    </BaseIcon>
+  )
+}
+
 const NAV_ICONS = {
   home: HomeIcon,
   inventory: InventoryIcon,

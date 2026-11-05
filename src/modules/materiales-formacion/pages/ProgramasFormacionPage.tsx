@@ -373,11 +373,11 @@ export default function ProgramasFormacionPage() {
                             {can('listas', 'view') ? (
                               <Link
                                 to={`/formacion/listas-maestras-material?programaId=${programa.id}`}
-                                title="Cargar el anexo Excel o completar materiales uno a uno"
-                                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-sena-line bg-white px-3 text-xs font-semibold text-sena-dark shadow-hairline transition hover:border-sena/45 hover:text-sena"
+                                title="Gestionar lista"
+                                aria-label="Gestionar lista"
+                                className="grid size-10 place-items-center rounded-lg text-sena-dark transition duration-150 hover:text-sena focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sena"
                               >
-                                <ExcelIcon className="size-[14px]" />
-                                Gestionar lista
+                                <ExcelIcon className="size-[18px]" />
                               </Link>
                             ) : null}
 

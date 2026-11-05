@@ -1,0 +1,134 @@
+/* Bienvenida tras iniciar sesión. Todas las clases llevan el prefijo wl-. */
+
+@keyframes wl-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes wl-overlay-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.04); }
+}
+
+@keyframes wl-stage-out {
+  to { opacity: 0; transform: translateY(-24px) scale(0.97); }
+}
+
+@keyframes wl-rise {
+  from { opacity: 0; transform: translateY(26px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes wl-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  70% { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes wl-letter {
+  from { opacity: 0; transform: translateY(0.55em) scale(0.92); filter: blur(8px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+
+@keyframes wl-orb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -24px) scale(1.12); }
+}
+
+@keyframes wl-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes wl-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(190, 242, 100, 0.55); }
+  70% { box-shadow: 0 0 0 22px rgba(190, 242, 100, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(190, 242, 100, 0); }
+}
+
+@keyframes wl-glow {
+  0%, 100% { text-shadow: 0 0 18px rgba(190, 242, 100, 0.18); }
+  50% { text-shadow: 0 0 34px rgba(190, 242, 100, 0.5); }
+}
+
+@keyframes wl-bob {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -4px); }
+}
+
+@keyframes wl-mote {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  15% { opacity: 0.9; }
+  100% { transform: translateY(-105vh) scale(1.1); opacity: 0; }
+}
+
+.wl-overlay {
+  animation: wl-overlay-in 0.6s ease-out both;
+}
+
+.wl-overlay.is-closing {
+  animation: wl-overlay-out 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+.wl-stage.is-closing {
+  animation: wl-stage-out 0.45s ease-in forwards;
+}
+
+.wl-rise,
+.wl-reveal {
+  animation: wl-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--wl-delay, 0ms);
+}
+
+.wl-pop {
+  animation: wl-pop 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--wl-delay, 0ms);
+}
+
+.wl-letter {
+  display: inline-block;
+  animation: wl-letter 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(450ms + var(--i, 0) * 55ms);
+}
+
+.wl-glow {
+  animation: wl-glow 3.6s ease-in-out 2s infinite;
+}
+
+.wl-orb {
+  animation: wl-orb 14s ease-in-out infinite;
+}
+
+.wl-ring {
+  position: absolute;
+  inset: -12px;
+  border-radius: 999px;
+  border: 2px dashed rgba(190, 242, 100, 0.85);
+  animation: wl-spin 16s linear infinite;
+}
+
+.wl-pulse {
+  animation: wl-pulse 2.2s ease-out infinite;
+}
+
+.wl-photo-pill {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  transform: translate(-50%, 0);
+  animation: wl-bob 2.2s ease-in-out infinite;
+}
+
+.wl-mote {
+  position: absolute;
+  bottom: -12px;
+  left: var(--x);
+  width: var(--s);
+  height: var(--s);
+  border-radius: 999px;
+  background: rgba(190, 242, 100, 0.85);
+  box-shadow: 0 0 12px rgba(190, 242, 100, 0.8);
+  opacity: 0;
+  animation: wl-mote var(--d) linear infinite;
+  animation-delay: var(--delay);
+}

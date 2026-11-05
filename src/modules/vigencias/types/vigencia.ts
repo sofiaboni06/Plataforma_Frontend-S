@@ -13,3 +13,18 @@ export type CreateVigenciaPayload = {
 }
 
 export type UpdateVigenciaPayload = CreateVigenciaPayload
+
+export type VigenciaEspecialPrograma = {
+  id: number
+  nombre: string | null
+  codigo: string | null
+}
+
+export type VigenciaEspecialApi = {
+  id: number
+  anio: number
+  nombre: string
+  monto: number
+  activa: boolean
+  programas: VigenciaEspecialPrograma[]
+}

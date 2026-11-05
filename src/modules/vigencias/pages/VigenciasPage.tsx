@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
+  CalendarIcon,
   PencilIcon,
   PlusIcon,
   TrashIcon,
@@ -32,23 +33,19 @@ import { filterSelectClass, usePagination, useTableState } from '@/shared/lib/ta
 import { useAuth } from '@/modules/auth/context/auth'
 import { deleteVigencia, getVigencias } from '@/modules/vigencias/data/vigencia'
 import type { VigenciaApi } from '@/modules/vigencias/types/vigencia'
-import { puedeCrearVigencia } from '@/shared/lib/access'
+import {
+  puedeAbrirVigenciaEspecial,
+  puedeCrearVigencia,
+} from '@/shared/lib/access'
+import VigenciasTabs from '@/modules/vigencias/pages/VigenciasTabs'
 
 type StatusFilter = 'Todos' | 'Activa' | 'Inactiva'
-
-// Un icono rápido para vigencias (puedes cambiarlo por uno de AppIcons si existe)
-function CalendarIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5" aria-hidden="true">
-      <path d="M4 7h16M4 7v13h16V7M4 7l2-3h12l2 3M9 3v4M15 3v4" />
-    </svg>
-  )
-}
 
 export default function VigenciasPage() {
   const navigate = useNavigate()
   const { isAdmin, user } = useAuth()
   const canCreate = puedeCrearVigencia(isAdmin, user?.role)
+  const puedeEspecial = puedeAbrirVigenciaEspecial(user?.permissions, user?.role)
   const { search, setSearch, page, setPage, resetPage } = useTableState()
 
   const [vigencias, setVigencias] = useState<VigenciaApi[]>([])
@@ -136,6 +133,8 @@ export default function VigenciasPage() {
           ) : undefined
         }
       />
+
+      <VigenciasTabs puedeVerAnios puedeVerEspecial={puedeEspecial} />
 
       {error ? <ErrorBanner message={error} onClose={() => setError('')} /> : null}
 
