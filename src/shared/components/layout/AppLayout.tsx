@@ -150,10 +150,10 @@ export default function AppLayout({
 
       <div
         className={`flex min-h-svh flex-col transition-[padding] duration-200 ${
-          isDesktopSidebarOpen ? 'md:pl-[250px]' : ''
+          isDesktopSidebarOpen ? 'md:pl-62.5' : ''
         }`}
       >
-        <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-glass-line bg-glass/75 px-5 py-3 text-sena-dark shadow-hairline backdrop-blur-glass sm:px-7 md:min-h-[76px] md:px-8">
+        <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-glass-line bg-glass/75 px-5 py-3 text-sena-dark shadow-hairline backdrop-blur-glass sm:px-7 md:min-h-19 md:px-8">
           <div className="flex min-w-0 items-center gap-3 md:gap-4">
             <button
               type="button"
@@ -250,7 +250,7 @@ export default function AppLayout({
                                 <button
                                   type="button"
                                   onClick={() => openNotification(notification)}
-                                  className="flex min-h-[65px] w-full items-start gap-2.5 px-3.5 py-2.5 text-left transition hover:bg-white/55"
+                                  className="flex min-h-16.25 w-full items-start gap-2.5 px-3.5 py-2.5 text-left transition hover:bg-white/55"
                                 >
                                   <span
                                     className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-[13px] font-bold ${mark.color}`}
