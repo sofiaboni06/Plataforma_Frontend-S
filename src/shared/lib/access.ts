@@ -92,8 +92,28 @@ export function esSubdirectora(role?: string) {
   return /^subdirector/i.test(role ?? '')
 }
 
+export function esCoordinador(role?: string) {
+  return /^coordinador/i.test(role ?? '')
+}
+
 export function puedeCrearVigencia(isAdmin: boolean, role?: string) {
   return isAdmin || esSubdirectora(role)
+}
+
+export function puedeVerVigenciaEspecial(permissions?: string[]) {
+  return permissions?.includes('vigencia_especial.ver') === true
+}
+
+export function puedeEditarVigenciaEspecial(permissions?: string[]) {
+  return permissions?.includes('vigencia_especial.editar') === true
+}
+
+export function puedeAbrirVigenciaEspecial(permissions?: string[], role?: string) {
+  return (
+    puedeVerVigenciaEspecial(permissions) ||
+    esSubdirectora(role) ||
+    esCoordinador(role)
+  )
 }
 
 export function canOpenPath(
@@ -116,7 +136,18 @@ export function canOpenPath(
   }
 
   if (path === '/presupuesto-formacion' || path.startsWith('/presupuesto-formacion/')) {
-    return isAdmin || permissions?.includes('solicitud_programa.editar') === true
+    if (isAdmin) return false
+    return (
+      permissions?.includes('presupuesto.ver') === true ||
+      permissions?.includes('presupuesto.editar') === true ||
+      permissions?.includes('solicitud_programa.editar') === true ||
+      permissions?.includes('lote.ver') === true ||
+      permissions?.includes('lote.crear') === true
+    )
+  }
+
+  if (path === '/vigencias/especial') {
+    return puedeAbrirVigenciaEspecial(permissions, role)
   }
 
   if (path === '/vigencias' || path.startsWith('/vigencias/')) {
