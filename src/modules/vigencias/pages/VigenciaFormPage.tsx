@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import Button from '@/shared/components/ui/Button'
+import Modal from '@/shared/components/ui/Modal'
 import { ErrorBanner, PageHeader } from '@/shared/components/DataTable'
 import { createVigencia, getVigencias, updateVigencia } from '@/modules/vigencias/data/vigencia'
+import VigenciasPage from '@/modules/vigencias/pages/VigenciasPage'
 
 
 export default function VigenciaFormPage() {
@@ -95,79 +97,100 @@ if (loading) {
   )
 }
 
-  return (
-    <AppLayout title={isEditing ? 'Editar Vigencia' : 'Nueva Vigencia'}>
-      <PageHeader
-        title={isEditing ? `Editar Vigencia ${anio}` : 'Nueva Vigencia'}
-        description="Ingresa los datos de la vigencia fiscal."
-      />
-
-      {error && <ErrorBanner message={error} onClose={() => setError('')} />}
-
-      <div className="form-panel mx-auto max-w-2xl p-6">
-        <form onSubmit={handleSubmit} className="form-fields flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="form-label">Año</label>
-            <input
-              type="number"
-              name="anio"
-              value={formData.anio}
-              onChange={handleChange}
-              disabled={isEditing}
-              className="form-field"
-              required
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="form-label">Fecha Apertura</label>
-            <input
-              type="date"
-              name="fecha_apertura"
-              value={formData.fecha_apertura}
-              onChange={handleChange}
-              className="form-field"
-              required
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="form-label">Fecha Cierre</label>
-            <input
-              type="date"
-              name="fecha_cierre"
-              value={formData.fecha_cierre}
-              onChange={handleChange}
-              className="form-field"
-              required
-            />
-          </div>
-
-          <div className="flex items-center gap-2 mt-2">
-            <input
-              type="checkbox"
-              name="activa"
-              id="activa"
-              checked={formData.activa}
-              onChange={handleChange}
-              className="size-4 rounded border-sena-line text-sena-dark focus:ring-sena-dark"
-            />
-            <label htmlFor="activa" className="text-sm font-medium text-sena-text">
-              ¿Vigencia activa?
-            </label>
-          </div>
-
-          <div className="mt-4 flex justify-end gap-3">
-            // ✅
-            <Button type="button" onClick={() => navigate('/vigencias')}>
-            Cancelar
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Guardando...' : 'Guardar Vigencia'}
-            </Button>
-          </div>
-        </form>
+  const formulario = (
+    <form onSubmit={handleSubmit} className="form-fields flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label className="form-label">Año</label>
+        <input
+          type="number"
+          name="anio"
+          value={formData.anio}
+          onChange={handleChange}
+          disabled={isEditing}
+          className="form-field"
+          required
+        />
       </div>
-    </AppLayout>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="form-label">Fecha Apertura</label>
+        <input
+          type="date"
+          name="fecha_apertura"
+          value={formData.fecha_apertura}
+          onChange={handleChange}
+          className="form-field"
+          required
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="form-label">Fecha Cierre</label>
+        <input
+          type="date"
+          name="fecha_cierre"
+          value={formData.fecha_cierre}
+          onChange={handleChange}
+          className="form-field"
+          required
+        />
+      </div>
+
+      <div className="flex items-center gap-2 mt-2">
+        <input
+          type="checkbox"
+          name="activa"
+          id="activa"
+          checked={formData.activa}
+          onChange={handleChange}
+          className="size-4 rounded border-sena-line text-sena-dark focus:ring-sena-dark"
+        />
+        <label htmlFor="activa" className="text-sm font-medium text-sena-text">
+          ¿Vigencia activa?
+        </label>
+      </div>
+
+      <div className="mt-4 flex justify-end gap-3">
+        <Button type="button" onClick={() => navigate('/vigencias')}>
+        Cancelar
+        </Button>
+        <Button type="submit" disabled={saving}>
+          {saving ? 'Guardando...' : 'Guardar Vigencia'}
+        </Button>
+      </div>
+    </form>
+  )
+
+  // Edición: se conserva la vista de página tal como existía.
+  if (isEditing) {
+    return (
+      <AppLayout title="Editar Vigencia">
+        <PageHeader
+          title={`Editar Vigencia ${anio}`}
+          description="Ingresa los datos de la vigencia fiscal."
+        />
+
+        {error && <ErrorBanner message={error} onClose={() => setError('')} />}
+
+        <div className="form-panel mx-auto max-w-2xl p-6">{formulario}</div>
+      </AppLayout>
+    )
+  }
+
+  // Nueva vigencia: mismo patrón de modal que «Crear nueva ficha».
+  return (
+    <>
+      <VigenciasPage />
+      <Modal
+        title="Nueva Vigencia"
+        description="Ingresa los datos de la vigencia fiscal."
+        onClose={() => navigate('/vigencias')}
+        wide
+        spacious
+      >
+        {error ? <ErrorBanner message={error} onClose={() => setError('')} /> : null}
+        {formulario}
+      </Modal>
+    </>
   )
 }

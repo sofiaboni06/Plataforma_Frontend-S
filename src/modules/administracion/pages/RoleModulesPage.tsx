@@ -3,10 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
-import { PlusIcon, SettingsIcon } from '@/shared/components/icons/AppIcons'
+import { LockIcon, PlusIcon, SettingsIcon } from '@/shared/components/icons/AppIcons'
 import {
+  ActionButton,
   ErrorBanner,
   PageHeader,
+  RowActions,
   TableCard,
   TableEmpty,
   TableHeader,
@@ -160,7 +162,7 @@ export default function RoleModulesPage() {
     ? editingPermissions
       ? `Permisos de ${current.label} para ${detail?.name ?? 'este perfil'}.`
       : `Módulos dentro de ${current.label}. Elige cuáles usa ${detail?.name ?? 'este perfil'}.`
-    : `${detail?.name ?? 'Perfil'}. Marca los módulos. Permisos abre los de ese módulo.`
+    : `${detail?.name ?? 'Perfil'}. Marca los módulos. Permisos abre los permisos de ese módulo.`
 
   return (
     <AppLayout title={title}>
@@ -258,13 +260,14 @@ export default function RoleModulesPage() {
                               </label>
                             </td>
                             <td className="px-5 py-4 text-center">
-                              <button
-                                type="button"
-                                className="text-sm font-semibold text-sena hover:underline"
-                                onClick={() => navigate(`/perfiles/${id}/modulos/${module.id}`)}
-                              >
-                                Permisos
-                              </button>
+                              <RowActions>
+                                <ActionButton
+                                  title="Permisos"
+                                  onClick={() => navigate(`/perfiles/${id}/modulos/${module.id}`)}
+                                >
+                                  <LockIcon className="size-[18px]" />
+                                </ActionButton>
+                              </RowActions>
                             </td>
                           </TableRow>
                         ))

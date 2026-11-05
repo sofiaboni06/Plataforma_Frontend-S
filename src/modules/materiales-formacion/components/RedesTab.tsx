@@ -1,9 +1,18 @@
-import { useEffect, useImperativeHandle, useMemo, useState, type FormEvent, type Ref } from 'react'
+import {
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type Ref,
+} from 'react'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
 import ConfirmDialog from '@/shared/components/ui/ConfirmDialog'
 import Modal from '@/shared/components/ui/Modal'
 import TextField from '@/shared/components/ui/TextField'
+import { cn } from '@/shared/lib/cn'
 import {
   ActionButton,
   ErrorBanner,
@@ -458,7 +467,7 @@ export default function RedesTab({
 
             <div className="sm:col-span-2">
               <p className="text-sm font-medium text-sena-text/75">Líneas temáticas</p>
-              <p className="mt-1 text-xs text-sena-text/55">
+              <p id="red-lineas-help" className="mt-1 text-xs text-sena-text/55">
                 Marque las líneas que pertenecen a esta red. Si falta una, créela primero en la
                 pestaña Líneas.
               </p>
@@ -468,27 +477,11 @@ export default function RedesTab({
                   Aún no hay líneas activas. Créelas en la pestaña Líneas y vuelva a intentarlo.
                 </p>
               ) : (
-                <div className="mt-2 max-h-52 space-y-2 overflow-y-auto rounded-xl border border-sena-line bg-sena-veil/50 p-3">
-                  {lineaOptions.map((linea) => (
-                    <label
-                      key={linea.id}
-                      className="flex items-start gap-2 text-sm text-sena-text"
-                    >
-                      <input
-                        type="checkbox"
-                        className="mt-0.5 size-4 shrink-0 accent-[#00a651]"
-                        checked={form.lineaIds.includes(linea.id)}
-                        onChange={() => toggleLinea(linea.id)}
-                      />
-                      <span className="min-w-0">
-                        <span className="block truncate">{linea.nombre}</span>
-                        {linea.estado === false ? (
-                          <span className="block text-xs text-sena-text/55">Inactiva</span>
-                        ) : null}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                <LineasDropdown
+                  options={lineaOptions}
+                  selectedIds={form.lineaIds}
+                  onToggle={toggleLinea}
+                />
               )}
             </div>
 
@@ -527,5 +520,130 @@ export default function RedesTab({
         </ConfirmDialog>
       ) : null}
     </>
+  )
+}
+
+/**
+ * Selector desplegable de líneas temáticas (selección múltiple). El campo
+ * cerrado ocupa el ancho del formulario y el panel se despliega debajo con
+ * los mismos checkbox de siempre: la selección sigue viva en el formulario.
+ */
+function LineasDropdown({
+  options,
+  selectedIds,
+  onToggle,
+}: {
+  options: { id: number; nombre: string; estado: boolean }[]
+  selectedIds: number[]
+  onToggle: (id: number) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  // Cierra el desplegable si el clic ocurre fuera del campo. Mismo mecanismo
+  // `pointerdown` + ref que usa AppLayout para sus menús.
+  useEffect(() => {
+    if (!open) return
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [open])
+
+  const seleccionadas = selectedIds.length
+  const resumen =
+    seleccionadas === 0
+      ? 'Seleccionar líneas temáticas'
+      : seleccionadas === 1
+        ? (options.find((linea) => linea.id === selectedIds[0])?.nombre ??
+          '1 línea seleccionada')
+        : `${seleccionadas} líneas seleccionadas`
+
+  return (
+    <div
+      ref={rootRef}
+      className="mt-2"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && open) {
+          // Cierra solo el desplegable, sin cerrar el modal que lo contiene.
+          event.stopPropagation()
+          setOpen(false)
+        }
+      }}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="red-lineas-panel"
+        aria-describedby="red-lineas-help"
+        onClick={() => setOpen((current) => !current)}
+        className="form-field flex w-full items-center justify-between gap-3 text-left"
+      >
+        <span
+          className={cn(
+            'min-w-0 truncate',
+            seleccionadas ? 'text-sena-text' : 'text-sena-text-soft',
+          )}
+        >
+          {resumen}
+        </span>
+        <ChevronDownIcon
+          className={cn(
+            'size-4 shrink-0 text-sena-text-soft transition-transform duration-150',
+            open ? 'rotate-180' : '',
+          )}
+        />
+      </button>
+
+      {open ? (
+        <div
+          id="red-lineas-panel"
+          className="mt-1.5 overflow-hidden rounded-2xl border border-sena-line bg-white shadow-[0_12px_32px_-12px_rgba(16,64,40,0.28)]"
+        >
+          <div className="max-h-52 overflow-y-auto overscroll-contain p-2">
+            {options.map((linea) => (
+              <label
+                key={linea.id}
+                className="flex cursor-pointer items-start gap-2 rounded-xl px-3 py-2 text-sm text-sena-text transition hover:bg-sena-soft"
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 accent-[#00a651]"
+                  checked={selectedIds.includes(linea.id)}
+                  onChange={() => onToggle(linea.id)}
+                />
+                <span className="min-w-0">
+                  <span className="block truncate">{linea.nombre}</span>
+                  {linea.estado === false ? (
+                    <span className="block text-xs text-sena-text/55">Inactiva</span>
+                  ) : null}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/** Flecha del selector desplegable de líneas temáticas (mismo trazo que AppIcons). */
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
   )
 }

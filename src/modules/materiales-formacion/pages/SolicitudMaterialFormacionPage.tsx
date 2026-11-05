@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
-import { DeliverIcon, PlusIcon, ReturnIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
+import { DeliverIcon, EyeIcon, PlusIcon, ReportIcon, ReturnIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
 import InventoryCenterBadge from '@/modules/inventario/components/InventoryCenterBadge'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
@@ -8,8 +8,10 @@ import Modal from '@/shared/components/ui/Modal'
 import SelectField from '@/shared/components/ui/SelectField'
 import TextField from '@/shared/components/ui/TextField'
 import {
+  ActionButton,
   ErrorBanner,
   PageHeader,
+  RowActions,
   TableCard,
   TableEmpty,
   TableHeader,
@@ -262,6 +264,7 @@ export default function SolicitudMaterialFormacionPage() {
               accion: 'entregar' as const,
               cantidad: String(restanteDe(item) || sugerida(item)),
               motivo: item.observacionCoordinador ?? '',
+              pedida: String(item.cantidadSolicitada),
             },
           ]),
       ),
@@ -472,15 +475,24 @@ export default function SolicitudMaterialFormacionPage() {
   }
 
   const accionesSolicitud = (solicitud: SolicitudPrograma) => (
-    <td className="flex flex-wrap gap-2">
-      <Button type="button" variant="secondary" size="sm" onClick={() => setDetalle(solicitud)}>
-        Ver
-      </Button>
-      {puedeDecidir && pendienteDeRevision(solicitud) ? (
-        <Button type="button" size="sm" onClick={() => abrirRevision(solicitud)}>
-          {solicitud.estado === 'parcial' ? 'Entregar lo pendiente' : 'Revisar pedido'}
-        </Button>
-      ) : null}
+    <td>
+      <RowActions>
+        <ActionButton title="Ver pedido" onClick={() => setDetalle(solicitud)}>
+          <EyeIcon className="size-[18px]" />
+        </ActionButton>
+        {puedeDecidir && pendienteDeRevision(solicitud) ? (
+          <ActionButton
+            title={solicitud.estado === 'parcial' ? 'Entregar lo pendiente' : 'Revisar pedido'}
+            onClick={() => abrirRevision(solicitud)}
+          >
+            {solicitud.estado === 'parcial' ? (
+              <DeliverIcon className="size-[18px]" />
+            ) : (
+              <ReportIcon className="size-[18px]" />
+            )}
+          </ActionButton>
+        ) : null}
+      </RowActions>
     </td>
   )
 
