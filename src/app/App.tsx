@@ -152,8 +152,10 @@ function App() {
             element={<Dashboard />}
           />
 
-          <Route 
-            path="/equipo" element={<EquipoPage />} />
+          <Route
+            path="/equipo"
+            element={<EquipoPage />}
+          />
 
           <Route
             path="/login"

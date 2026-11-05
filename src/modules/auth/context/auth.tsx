@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { api, apiBlob, ApiError, getToken, setToken } from '@/shared/lib/api'
+import { api, apiBlob, apiV1, ApiError, getToken, setToken } from '@/shared/lib/api'
 import type { AppModule, UserProfile } from '@/shared/types/profile'
 
 type LoginInput = {
@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (!current) return current
             return profile
               ? mergeProfile(profile, current)
-              : { ...current, avatarUrl: `/api/v1${PHOTO_PATH}` }
+              : { ...current, avatarUrl: apiV1(PHOTO_PATH) }
           })
         }),
       removePhoto: () =>

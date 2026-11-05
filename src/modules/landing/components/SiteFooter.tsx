@@ -18,7 +18,7 @@ const footerColumns: FooterColumn[] = [
     links: [
       { label: 'Inicio', href: '/inicio' },
       { label: 'Acerca de SIGMA', href: '#oferta' },
-      { label: 'Equipo de desarrollo', href: '#equipo' },
+      { label: 'Equipo de desarrollo', href: '/equipo' },
     ],
   },
   {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getToken } from '@/shared/lib/api'
+import { apiOrigin, apiV1, getToken } from '@/shared/lib/api'
 
 const blobCache = new Map<string, string>()
 
@@ -9,8 +9,9 @@ function isRemoteFile(src: string) {
 
 export function fotoUrlDelElemento(id: number, urlFotografia?: string | null) {
   if (!urlFotografia) return null
-  if (isRemoteFile(urlFotografia) || urlFotografia.startsWith('/api/')) return urlFotografia
-  return `/api/v1/inventario/elementos/${id}/fotografia`
+  if (isRemoteFile(urlFotografia)) return urlFotografia
+  if (urlFotografia.startsWith('/api/')) return `${apiOrigin()}${urlFotografia}`
+  return apiV1(`/inventario/elementos/${id}/fotografia`)
 }
 
 export default function ElementoFoto({

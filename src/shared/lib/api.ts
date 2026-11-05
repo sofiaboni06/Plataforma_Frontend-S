@@ -1,6 +1,22 @@
 const TOKEN_KEY = 'plataforma.token'
 const REMEMBER_KEY = 'plataforma.remember'
 
+/**
+ * Origen del API. En desarrollo queda vacío para que las peticiones pasen
+ * por el proxy de Vite. En el build de producción queda la URL de VITE_API_URL.
+ */
+export function apiOrigin() {
+  if (import.meta.env.DEV) return ''
+  const configured = import.meta.env.VITE_API_URL
+  if (typeof configured !== 'string') return ''
+  return configured.replace(/\/$/, '')
+}
+
+export function apiV1(path: string) {
+  const suffix = path.startsWith('/') ? path : `/${path}`
+  return `${apiOrigin()}/api/v1${suffix}`
+}
+
 export class ApiError extends Error {
   status: number
   details: unknown
@@ -73,7 +89,7 @@ async function requestJson(path: string, options: RequestInit = {}) {
     headers.set('Authorization', `Bearer ${token}`)
   }
 
-  const response = await fetch(`/api/v1${path}`, { ...options, headers })
+  const response = await fetch(apiV1(path), { ...options, headers })
   const body: unknown = await response.json().catch(() => null)
 
   if (!response.ok) {
@@ -144,7 +160,7 @@ export async function apiBlob(path: string, options: RequestInit = {}): Promise<
     headers.set('Authorization', `Bearer ${token}`)
   }
 
-  const response = await fetch(`/api/v1${path}`, { ...options, headers })
+  const response = await fetch(apiV1(path), { ...options, headers })
 
   if (!response.ok) {
     const body = await response.json().catch(() => null)

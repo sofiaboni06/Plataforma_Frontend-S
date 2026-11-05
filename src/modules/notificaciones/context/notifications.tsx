@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { Transmit } from '@adonisjs/transmit-client'
 import Toast from '@/shared/components/ui/Toast'
-import { ApiError } from '@/shared/lib/api'
+import { apiOrigin, ApiError } from '@/shared/lib/api'
 import { useAuth } from '@/modules/auth/context/auth'
 import {
   getNoLeidas,
@@ -118,7 +118,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
     // El stream de eventos no manda el header; el token va solo en el POST de suscripción.
     const transmit = new Transmit({
-      baseUrl: window.location.origin,
+      baseUrl: apiOrigin() || window.location.origin,
       beforeSubscribe: (request) => {
         request.headers.set('Authorization', `Bearer ${token}`)
       },
