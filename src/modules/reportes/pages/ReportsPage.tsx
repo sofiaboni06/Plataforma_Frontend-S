@@ -2,11 +2,12 @@ import { Link } from 'react-router-dom'
 import AppLayout from '@/shared/components/layout/AppLayout'
 import {
   PageHeader,
+  RowActions,
   TableCard,
   TableHeader,
   TableRow,
 } from '@/shared/components/DataTable'
-import { ReportIcon } from '@/shared/components/icons/AppIcons'
+import { EyeIcon, ReportIcon } from '@/shared/components/icons/AppIcons'
 import { useAuth } from '@/modules/auth/context/auth'
 import { canGenerateReports } from '@/modules/inventario/navigation'
 import FieldSelector from '../components/FieldSelector'
@@ -74,12 +75,16 @@ export default function ReportsPage() {
                         nombreReporte="materiales_bodega"
                       />
                     ) : report.to ? (
-                      <Link
-                        to={report.to}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-sena/25 bg-white px-3 py-2 text-xs font-semibold text-sena-dark hover:bg-sena/5"
-                      >
-                        Ver
-                      </Link>
+                      <RowActions>
+                        <Link
+                          to={report.to}
+                          title="Ver reporte"
+                          aria-label="Ver reporte"
+                          className="grid size-10 place-items-center rounded-lg text-sena-dark transition duration-150 hover:text-sena focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sena"
+                        >
+                          <EyeIcon className="size-[18px]" />
+                        </Link>
+                      </RowActions>
                     ) : (
                       <span className="text-xs text-sena-text/50">No disponible</span>
                     )}

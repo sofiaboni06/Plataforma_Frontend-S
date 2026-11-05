@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { ExcelIcon, ProgramIcon } from '@/shared/components/icons/AppIcons'
 import { useAssignedPrograms } from '@/modules/materiales-formacion/lib/useAssignedPrograms'
 import { useFormacionAccess } from '@/modules/materiales-formacion/useFormacionAccess'
-import { TableCard, TableEmpty, TableHeader, TableRow, tableClass } from '@/shared/components/DataTable'
+import { RowActions, TableCard, TableEmpty, TableHeader, TableRow, tableClass } from '@/shared/components/DataTable'
 
 export default function AssignedPrograms() {
   const { can } = useFormacionAccess()
@@ -58,7 +58,7 @@ export default function AssignedPrograms() {
                 <tr className="border-b border-sena-hairline bg-sena-soft/85">
                   <TableHeader>Programa</TableHeader>
                   <TableHeader>Red / Línea</TableHeader>
-                  <TableHeader>Acciones</TableHeader>
+                  <TableHeader align="center">Acciones</TableHeader>
                 </tr>
               </thead>
               <tbody>
@@ -79,13 +79,16 @@ export default function AssignedPrograms() {
                       </td>
                       <td>
                         {puedeLista ? (
-                          <Link
-                            to={`/formacion/listas-maestras-material?programaId=${programa.id}`}
-                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-sena-line bg-white px-3 text-xs font-semibold text-sena-dark shadow-hairline transition hover:border-sena/45 hover:text-sena"
-                          >
-                            <ExcelIcon className="size-[14px]" />
-                            Lista de materiales
-                          </Link>
+                          <RowActions>
+                            <Link
+                              to={`/formacion/listas-maestras-material?programaId=${programa.id}`}
+                              title="Lista de materiales"
+                              aria-label="Lista de materiales"
+                              className="grid size-10 place-items-center rounded-lg text-sena-dark transition duration-150 hover:text-sena focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sena"
+                            >
+                              <ExcelIcon className="size-[18px]" />
+                            </Link>
+                          </RowActions>
                         ) : null}
                       </td>
                     </TableRow>

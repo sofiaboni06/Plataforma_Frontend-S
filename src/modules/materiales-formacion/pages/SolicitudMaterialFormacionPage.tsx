@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import AppLayout from '@/shared/components/layout/AppLayout'
-import { DeliverIcon, PlusIcon, ReturnIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
+import { DeliverIcon, EyeIcon, PlusIcon, ReportIcon, ReturnIcon, TrashIcon } from '@/shared/components/icons/AppIcons'
 import InventoryCenterBadge from '@/modules/inventario/components/InventoryCenterBadge'
 import { StatusPill } from '@/shared/components/ResourceBoard'
 import Button from '@/shared/components/ui/Button'
@@ -8,8 +8,10 @@ import Modal from '@/shared/components/ui/Modal'
 import SelectField from '@/shared/components/ui/SelectField'
 import TextField from '@/shared/components/ui/TextField'
 import {
+  ActionButton,
   ErrorBanner,
   PageHeader,
+  RowActions,
   TableCard,
   TableEmpty,
   TableHeader,
@@ -46,13 +48,11 @@ type AccionItem = 'entregar' | 'pendiente' | 'rechazar'
 type DecisionLinea = { accion: AccionItem; cantidad: string; motivo: string; pedida: string }
 
 function pesos(valor: number) {
-  return valor.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
-}
-
-function valorDe(material: { valorUnitario?: number | string | null } | null | undefined) {
-  if (material?.valorUnitario == null || material.valorUnitario === '') return null
-  const numero = Number(material.valorUnitario)
-  return Number.isFinite(numero) ? numero : null
+  return valor.toLocaleString('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  })
 }
 
 function corteDeArea(solicitudes: SolicitudPrograma[]) {
@@ -254,17 +254,21 @@ export default function SolicitudMaterialFormacionPage() {
   const abrirRevision = (solicitud: SolicitudPrograma) => {
     setRevision(solicitud)
     setObservacionDecision('')
-    const iniciales: Record<number, DecisionLinea> = {}
-    for (const item of solicitud.items) {
-      if (item.estado !== 'pendiente') continue
-      iniciales[item.id] = {
-        accion: 'entregar',
-        cantidad: String(restanteDe(item) || sugerida(item)),
-        motivo: item.observacionCoordinador ?? '',
-        pedida: String(item.cantidadSolicitada),
-      }
-    }
-    setDecisiones(iniciales)
+    setDecisiones(
+      Object.fromEntries(
+        solicitud.items
+          .filter((item) => item.estado === 'pendiente')
+          .map((item) => [
+            item.id,
+            {
+              accion: 'entregar' as const,
+              cantidad: String(restanteDe(item) || sugerida(item)),
+              motivo: item.observacionCoordinador ?? '',
+              pedida: String(item.cantidadSolicitada),
+            },
+          ]),
+      ),
+    )
   }
 
   const patchDecision = (id: number, patch: Partial<DecisionLinea>) => {
@@ -471,15 +475,24 @@ export default function SolicitudMaterialFormacionPage() {
   }
 
   const accionesSolicitud = (solicitud: SolicitudPrograma) => (
-    <td className="flex flex-wrap gap-2">
-      <Button type="button" variant="secondary" size="sm" onClick={() => setDetalle(solicitud)}>
-        Ver
-      </Button>
-      {puedeDecidir && pendienteDeRevision(solicitud) ? (
-        <Button type="button" size="sm" onClick={() => abrirRevision(solicitud)}>
-          {solicitud.estado === 'parcial' ? 'Entregar lo pendiente' : 'Revisar pedido'}
-        </Button>
-      ) : null}
+    <td>
+      <RowActions>
+        <ActionButton title="Ver pedido" onClick={() => setDetalle(solicitud)}>
+          <EyeIcon className="size-[18px]" />
+        </ActionButton>
+        {puedeDecidir && pendienteDeRevision(solicitud) ? (
+          <ActionButton
+            title={solicitud.estado === 'parcial' ? 'Entregar lo pendiente' : 'Revisar pedido'}
+            onClick={() => abrirRevision(solicitud)}
+          >
+            {solicitud.estado === 'parcial' ? (
+              <DeliverIcon className="size-[18px]" />
+            ) : (
+              <ReportIcon className="size-[18px]" />
+            )}
+          </ActionButton>
+        ) : null}
+      </RowActions>
     </td>
   )
 
@@ -1011,8 +1024,12 @@ export default function SolicitudMaterialFormacionPage() {
                       </td>
                       <td>{linea.cantidad}</td>
                       <td>
-                        {valorDe(linea.material) != null
-                          ? pesos(linea.cantidad * (valorDe(linea.material) ?? 0))
+                        {linea.material.caracter === 'consumo' && linea.material.valorUnitario != null
+                          ? (linea.cantidad * linea.material.valorUnitario).toLocaleString('es-CO', {
+                              style: 'currency',
+                              currency: 'COP',
+                              maximumFractionDigits: 0,
+                            })
                           : '—'}
                       </td>
                       <td>{linea.material.cantidadBase}</td>
@@ -1041,16 +1058,19 @@ export default function SolicitudMaterialFormacionPage() {
               Valor aproximado del pedido:{' '}
               <strong>
                 {carrito
-                  .reduce((suma, linea) => suma + linea.cantidad * (valorDe(linea.material) ?? 0), 0)
+                  .filter((linea) => linea.material.caracter === 'consumo')
+                  .reduce((suma, linea) => suma + linea.cantidad * (linea.material.valorUnitario ?? 0), 0)
                   .toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
               </strong>
               . Promedio por material:{' '}
               <strong>
                 {(() => {
-                  const conValor = carrito.filter((linea) => valorDe(linea.material) != null)
+                  const conValor = carrito.filter(
+                    (linea) => linea.material.caracter === 'consumo' && linea.material.valorUnitario != null,
+                  )
                   if (!conValor.length) return '—'
                   const promedio =
-                    conValor.reduce((suma, linea) => suma + (valorDe(linea.material) ?? 0), 0) / conValor.length
+                    conValor.reduce((suma, linea) => suma + (linea.material.valorUnitario ?? 0), 0) / conValor.length
                   return promedio.toLocaleString('es-CO', {
                     style: 'currency',
                     currency: 'COP',
@@ -1114,7 +1134,9 @@ export default function SolicitudMaterialFormacionPage() {
                       {ya > 0 ? ` · ya autorizados ${ya}` : ''}
                       {` · faltan ${restante}`}
                       {tope !== null ? ` · lista maestra ${tope}` : ''}
-                      {valorDe(item.material) != null ? ` · ${pesos(valorDe(item.material) ?? 0)} c/u` : ''}
+                      {item.material?.caracter === 'consumo' && item.material.valorUnitario != null
+                        ? ` · ${item.material.valorUnitario.toLocaleString('es-CO')} c/u`
+                        : ''}
                     </p>
                     {pideMas ? (
                       <p className="mt-1 text-sm text-sena-warn-text">
@@ -1235,10 +1257,10 @@ export default function SolicitudMaterialFormacionPage() {
                   {autorizadoDe(item) > 0 ? ` · autorizado ${autorizadoDe(item)}` : ''}
                   {item.estado === 'pendiente' ? ` · faltan ${restanteDe(item)}` : ''}
                   {topeDe(item) !== null ? ` · lista maestra ${topeDe(item)}` : ''}
-                  {valorDe(item.material) != null
-                    ? ` · ${pesos(valorDe(item.material) ?? 0)} c/u · total ${pesos(
-                        item.cantidadSolicitada * (valorDe(item.material) ?? 0),
-                      )}`
+                  {item.material?.caracter === 'consumo' && item.material.valorUnitario != null
+                    ? ` · ${item.material.valorUnitario.toLocaleString('es-CO')} c/u · total ${(
+                        item.cantidadSolicitada * item.material.valorUnitario
+                      ).toLocaleString('es-CO')}`
                     : ''}
                   {item.material?.lote ? ` · lote ${item.material.lote.nombre}` : ''}
                 </p>

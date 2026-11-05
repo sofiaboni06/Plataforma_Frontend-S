@@ -17,11 +17,18 @@ import { ProgramIcon } from '@/shared/components/icons/AppIcons'
 import { ApiError } from '@/shared/lib/api'
 import { useAuth } from '@/modules/auth/context/auth'
 import { getVigencias } from '@/modules/vigencias/data/vigencia'
-import {
-  asignarAreaEspecial,
-  especialesParaRepartir,
-  type EspecialParaRepartir,
-} from '@/modules/vigencias/data/vigencia'
+// ============================================================================
+// TEMPORAL (excepción autorizada): la sección "Vigencia especial" está
+// DESHABILITADA porque falta definir/implementar el contrato backend.
+// Los símbolos `asignarAreaEspecial`, `especialesParaRepartir` y
+// `EspecialParaRepartir` nunca existieron en el frontend ni en el backend.
+// PARA REVERTIR: descomentar este import y los dos puntos de render
+// <RepartoEspecial /> (marcados con TEMPORAL) cuando exista el contrato.
+// import {
+//   asignarAreaEspecial,
+//   especialesParaRepartir,
+//   type EspecialParaRepartir,
+// } from '@/modules/vigencias/data/vigencia'
 import {
   asignarCoordinador,
   asignarArea,
@@ -392,20 +399,20 @@ function ResumenView() {
           cta: 'Asignar monto',
         },
         {
-          titulo: 'Reparto a coordinadores',
+          titulo: 'Distribución a coordinadores',
           detalle: `${coordinadores} coordinador${coordinadores === 1 ? '' : 'es'}`,
-          texto: resumen ? `${pesos(resumen.repartido)} repartidos · ${pesos(resumen.sinRepartir)} sin asignar` : '',
+          texto: resumen ? `${pesos(resumen.repartido)} distribuidos · ${pesos(resumen.sinRepartir)} sin asignar` : '',
           to: '/presupuesto-formacion/reparto',
-          cta: 'Repartir',
+          cta: 'Distribuir',
         },
       ]
     : [
         {
-          titulo: 'Reparto a redes de conocimiento',
+          titulo: 'Distribución a redes de conocimiento',
           detalle: `${fichas} red${fichas === 1 ? '' : 'es'}`,
-          texto: 'La red de conocimiento es el área. Reparte tu monto entre las redes que te asignaron.',
+          texto: 'La red de conocimiento es el área. Distribuye tu monto entre las redes que te asignaron.',
           to: '/presupuesto-formacion/reparto',
-          cta: 'Repartir',
+          cta: 'Distribuir',
         },
         {
           titulo: 'Vigencia especial',
@@ -433,8 +440,8 @@ function ResumenView() {
         title="Presupuesto de formación"
         description={
           esAdmin
-            ? 'El monto es del centro y de la vigencia. De ahí se reparte a cada coordinador.'
-            : 'Te asignaron un monto. Cada red de conocimiento es un área: reparte el monto entre tus redes.'
+            ? 'El monto es del centro y de la vigencia. De ahí se distribuye a cada coordinador.'
+            : 'Te asignaron un monto. Cada red de conocimiento es un área: distribuye el monto entre tus redes.'
         }
         action={
           <div className="flex flex-wrap gap-2">
@@ -471,7 +478,8 @@ function ResumenView() {
           </article>
         ))}
       </div>
-      {!esAdmin && resumen ? <RepartoEspecial anio={resumen.anio} /> : null}
+      {/* TEMPORAL: sección "Vigencia especial" deshabilitada (falta contrato backend) — REVERTIR descomentando */}
+      {/* {!esAdmin && resumen ? <RepartoEspecial anio={resumen.anio} /> : null} */}
     </AppLayout>
   )
 }
@@ -515,7 +523,7 @@ function MontoView() {
             />
             {resumen ? (
               <div className="rounded-2xl bg-white px-4 py-3">
-                <p className="form-label">Sin repartir</p>
+                <p className="form-label">Sin distribuir</p>
                 <p className="mt-1 text-lg font-bold text-[#145c3e]">{pesos(resumen.sinRepartir)}</p>
               </div>
             ) : null}
@@ -556,7 +564,7 @@ function RepartoView() {
     <AppLayout title="Presupuesto" showCenterBanner={false}>
       <PageHeader
         icon={<ProgramIcon />}
-        title={esAdmin ? 'Reparto a coordinadores' : 'Reparto a redes de conocimiento'}
+        title={esAdmin ? 'Distribución a coordinadores' : 'Distribución a redes de conocimiento'}
         description={
           esAdmin
             ? 'Cada asignación se descuenta del monto del centro.'
@@ -657,12 +665,19 @@ function RepartoView() {
             </table>
           </div>
         </section>
-        {!esAdmin && resumen ? <RepartoEspecial anio={resumen.anio} /> : null}
+        {/* TEMPORAL: sección "Vigencia especial" deshabilitada (falta contrato backend) — REVERTIR descomentando */}
+        {/* {!esAdmin && resumen ? <RepartoEspecial anio={resumen.anio} /> : null} */}
       </Cuerpo>
     </AppLayout>
   )
 }
 
+/* TEMPORAL: componente "Vigencia especial" DESHABILITADO porque falta definir/implementar
+   su contrato backend (nunca existió en el frontend ni en el backend).
+   PARA REVERTIR: descomentar este bloque JUNTO CON el import y los dos renders
+   <RepartoEspecial /> (los 4 puntos están marcados con TEMPORAL).
+   El código del componente se conserva íntegro, sin modificar. */
+/*
 function RepartoEspecial({ anio }: { anio: number }) {
   const [filas, setFilas] = useState<EspecialParaRepartir[]>([])
   const [montos, setMontos] = useState<Record<string, string>>({})
@@ -731,6 +746,8 @@ function RepartoEspecial({ anio }: { anio: number }) {
     </section>
   )
 }
+
+*/
 
 function LotesView() {
   const { puedeVerLotes, puedeCrearLote, lotes, loteNombre, setLoteNombre, saving, guardarLote, resumen } =

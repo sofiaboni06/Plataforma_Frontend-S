@@ -26,6 +26,7 @@ import {
 } from '@/shared/components/DataTable'
 import {
   CalendarIcon,
+  EyeIcon,
   PencilIcon,
   PlusIcon,
   TrashIcon,
@@ -98,6 +99,7 @@ export default function FichasPage() {
   const [saving, setSaving] = useState(false)
   const [toDelete, setToDelete] = useState<Ficha | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [detalle, setDetalle] = useState<Ficha | null>(null)
 
   useEffect(() => {
     const previousTitle = document.title
@@ -452,6 +454,12 @@ export default function FichasPage() {
 
                         <td>
                           <RowActions>
+                            {can('fichas', 'view') ? (
+                              <ActionButton title="Ver ficha" onClick={() => setDetalle(ficha)}>
+                                <EyeIcon className="size-4.5" />
+                              </ActionButton>
+                            ) : null}
+
                             {can('fichas', 'edit') ? (
                               <ActionButton title="Editar ficha" onClick={() => openEdit(ficha)}>
                                 <PencilIcon className="size-4.5" />
@@ -586,6 +594,80 @@ export default function FichasPage() {
               </Button>
             </div>
           </form>
+        </Modal>
+      ) : null}
+
+      {detalle ? (
+        <Modal
+          title="Detalle de la ficha"
+          description={`${detalle.numeroFicha} · ${detalle.programa?.nombre ?? 'Programa'}`}
+          onClose={() => setDetalle(null)}
+          wide
+        >
+          <ul className="grid gap-3 sm:grid-cols-2">
+            <li className="rounded-2xl border border-sena-line px-4 py-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-sena-text-soft">
+                Ficha
+              </p>
+              <p className="mt-1 font-semibold text-sena-text">{detalle.numeroFicha}</p>
+              <span className="mt-1 inline-block">
+                <StatusPill tone={detalle.estado ? 'ok' : 'danger'}>
+                  {detalle.estado ? 'Activa' : 'Inactiva'}
+                </StatusPill>
+              </span>
+            </li>
+
+            <li className="rounded-2xl border border-sena-line px-4 py-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-sena-text-soft">
+                Programa
+              </p>
+              <p className="mt-1 font-semibold text-sena-text">
+                {detalle.programa?.nombre ?? '—'}
+              </p>
+              <p className="text-xs text-sena-text-soft">
+                {detalle.programa?.codigo ?? '—'}
+                {detalle.programa?.nivel ? ` · ${detalle.programa.nivel.nombre}` : ''}
+              </p>
+            </li>
+
+            <li className="rounded-2xl border border-sena-line px-4 py-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-sena-text-soft">
+                Centro
+              </p>
+              <p className="mt-1 font-semibold text-sena-text">
+                {detalle.centroFormacion?.nombre ?? '—'}
+              </p>
+            </li>
+
+            <li className="rounded-2xl border border-sena-line px-4 py-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-sena-text-soft">
+                Jornada
+              </p>
+              <p className="mt-1 font-semibold text-sena-text">
+                {detalle.jornada?.nombre ?? 'Sin jornada'}
+              </p>
+            </li>
+
+            <li className="rounded-2xl border border-sena-line px-4 py-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-sena-text-soft">
+                Fechas
+              </p>
+              <p className="mt-1 font-semibold text-sena-text">
+                {formatDate(detalle.fechaInicio) ?? '—'}
+                <span className="text-sena-text-soft"> → </span>
+                {formatDate(detalle.fechaFin) ?? '—'}
+              </p>
+            </li>
+
+            <li className="rounded-2xl border border-sena-line px-4 py-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-sena-text-soft">
+                Cupo
+              </p>
+              <p className="mt-1 font-semibold text-sena-text">
+                {detalle.cupoAprendices} aprendices
+              </p>
+            </li>
+          </ul>
         </Modal>
       ) : null}
 

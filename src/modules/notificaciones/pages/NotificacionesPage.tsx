@@ -7,7 +7,9 @@ import {
   ErrorBanner,
   PageHeader,
   TableCard,
+  TableHeader,
   TableLoading,
+  TableRow,
 } from '@/shared/components/DataTable'
 import { ApiError } from '@/shared/lib/api'
 import { useNotifications } from '@/modules/notificaciones/context/notifications'
@@ -31,29 +33,49 @@ function Lineas({
   mostrarMotivo?: boolean
 }) {
   if (!lineas.length) return null
+
+  /*
+   * Las columnas salen de lo que cada sección realmente trae: lo ausente se
+   * muestra con guion, el cero sí se muestra, y ningún valor se calcula.
+   */
+  const hay = {
+    cantidad: lineas.some((linea) => linea.cantidad != null),
+    pedida: lineas.some((linea) => linea.pedida != null),
+    autorizada: lineas.some((linea) => linea.autorizada != null),
+    queda: lineas.some((linea) => linea.queda != null),
+  }
+  const conMotivo = Boolean(mostrarMotivo) && lineas.some((linea) => Boolean(linea.motivo))
+  const celda = (valor: number | null | undefined) => (valor != null ? String(valor) : '—')
+
   return (
     <section className="grid gap-4">
       <h3 className="text-xl font-bold text-sena-text">{titulo}</h3>
-      <ul className="grid gap-4">
-        {lineas.map((linea) => (
-          <li key={`${titulo}-${linea.producto}`} className="grid gap-2">
-            <p className="text-lg font-semibold text-sena-text">{linea.producto}</p>
-            <p className="text-base text-sena-strong">
-              {linea.pedida != null && linea.autorizada != null
-                ? `Pediste ${linea.pedida} y se autorizaron ${linea.autorizada}`
-                : linea.cantidad != null
-                  ? `${linea.cantidad}`
-                  : null}
-              {linea.queda != null && linea.queda > 0 ? ` · quedan ${linea.queda} pendientes` : ''}
-            </p>
-            {mostrarMotivo && linea.motivo ? (
-              <p className="max-w-3xl text-[1.35rem] leading-snug font-semibold text-sena-text">
-                {linea.motivo}
-              </p>
-            ) : null}
-          </li>
-        ))}
-      </ul>
+      <div className="overflow-x-auto rounded-2xl border border-sena-hairline bg-white/45">
+        <table className="data-table w-full min-w-[560px] text-sm">
+          <thead>
+            <tr className="border-b border-sena-hairline bg-sena-soft/85">
+              <TableHeader>Elemento</TableHeader>
+              {hay.cantidad ? <TableHeader align="center">Cantidad</TableHeader> : null}
+              {hay.pedida ? <TableHeader align="center">Solicitada</TableHeader> : null}
+              {hay.autorizada ? <TableHeader align="center">Autorizada</TableHeader> : null}
+              {hay.queda ? <TableHeader align="center">Pendiente</TableHeader> : null}
+              {conMotivo ? <TableHeader>Motivo</TableHeader> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {lineas.map((linea) => (
+              <TableRow key={`${titulo}-${linea.producto}`}>
+                <td className="font-semibold text-sena-text">{linea.producto}</td>
+                {hay.cantidad ? <td className="text-center">{celda(linea.cantidad)}</td> : null}
+                {hay.pedida ? <td className="text-center">{celda(linea.pedida)}</td> : null}
+                {hay.autorizada ? <td className="text-center">{celda(linea.autorizada)}</td> : null}
+                {hay.queda ? <td className="text-center">{celda(linea.queda)}</td> : null}
+                {conMotivo ? <td className="text-sena-strong">{linea.motivo ? linea.motivo : '—'}</td> : null}
+              </TableRow>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   )
 }
