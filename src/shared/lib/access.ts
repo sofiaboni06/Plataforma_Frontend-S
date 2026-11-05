@@ -140,7 +140,9 @@ export function canOpenPath(
     return (
       permissions?.includes('presupuesto.ver') === true ||
       permissions?.includes('presupuesto.editar') === true ||
-      permissions?.includes('solicitud_programa.editar') === true
+      permissions?.includes('solicitud_programa.editar') === true ||
+      permissions?.includes('lote.ver') === true ||
+      permissions?.includes('lote.crear') === true
     )
   }
 

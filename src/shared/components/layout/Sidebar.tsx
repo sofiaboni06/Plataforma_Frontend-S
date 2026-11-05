@@ -51,7 +51,9 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
     !isAdmin &&
     (user?.permissions?.includes('presupuesto.ver') === true ||
       user?.permissions?.includes('presupuesto.editar') === true ||
-      user?.permissions?.includes('solicitud_programa.editar') === true)
+      user?.permissions?.includes('solicitud_programa.editar') === true ||
+      user?.permissions?.includes('lote.ver') === true ||
+      user?.permissions?.includes('lote.crear') === true)
   const canAlertas = canFormacionAction('alertas', 'list', formacionAccess)
   const inventoryScreens = visibleInventoryScreens({
     isAdmin,

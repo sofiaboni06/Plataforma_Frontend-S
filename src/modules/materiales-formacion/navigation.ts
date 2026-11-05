@@ -165,11 +165,7 @@ export function canFormacionAction(
   }
   if (code === 'compras') return allowsFormacionPermission(access, 'proceso_compra.ver')
   if (code === 'alertas') {
-    return (
-      allowsFormacionPermission(access, 'solicitud_programa.editar') ||
-      allowsFormacionPermission(access, 'presupuesto.ver') ||
-      allowsFormacionPermission(access, 'presupuesto.editar')
-    )
+    return allowsFormacionPermission(access, 'alerta_formacion.ver')
   }
   if (!isPermissionScreen(code)) return access.isAdmin === true
   if (!canSeeFormacionScreen(code, access)) return false
@@ -213,7 +209,7 @@ export function visibleFormacionScreens(access: FormacionCaller = {}) {
       isPermissionScreen(screen.code) &&
       allowsFormacionPermission(access, VIEW_CODE[screen.code]),
   )
-  for (const extra of ['listas', 'solicitudes', 'compras'] as const) {
+  for (const extra of ['listas', 'solicitudes', 'compras', 'alertas'] as const) {
     if (canFormacionAction(extra, 'list', access)) {
       const screen = FORMACION_SCREENS.find((item) => item.code === extra)
       if (screen && !base.some((item) => item.code === extra)) base.push(screen)
