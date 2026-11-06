@@ -80,6 +80,8 @@ function MontoGrande({
 
 type PresupuestoState = {
   puedeEditar: boolean
+  puedeVerLotes: boolean
+  puedeCrearLote: boolean
   anios: number[]
   anio: number
   setAnio: (anio: number) => void
@@ -122,6 +124,10 @@ function montosDesde(filas: Array<{ id: number; monto: number }>) {
 export default function PresupuestoPage() {
   const { user } = useAuth()
   const puedeEditar = user?.permissions?.includes('solicitud_programa.editar') === true
+  const puedeVerLotes =
+    user?.permissions?.includes('lote.ver') === true ||
+    user?.permissions?.includes('lote.crear') === true
+  const puedeCrearLote = user?.permissions?.includes('lote.crear') === true
   const esAdmin = user?.permissions?.includes('presupuesto.editar') === true
   const [anios, setAnios] = useState<number[]>([])
   const [anio, setAnio] = useState(new Date().getFullYear())
@@ -282,6 +288,8 @@ export default function PresupuestoPage() {
 
   const value: PresupuestoState = {
     puedeEditar,
+    puedeVerLotes,
+    puedeCrearLote,
     esAdmin,
     anios,
     anio,
@@ -369,13 +377,19 @@ function Cuerpo({ children }: { children: ReactNode }) {
 }
 
 function ResumenView() {
-  const { resumen, lotes, descargar, esAdmin } = usePresupuesto()
+  const { resumen, lotes, descargar, esAdmin, puedeVerLotes } = usePresupuesto()
   const navigate = useNavigate()
   const coordinadores = resumen?.coordinadores?.length ?? 0
   const fichas = resumen?.areas?.length ?? 0
   const totalLotes = lotes?.length ?? 0
 
-  const acciones = esAdmin
+  const acciones: Array<{
+    titulo: string
+    detalle: string
+    texto: string
+    to: string
+    cta: string
+  }> = esAdmin
     ? [
         {
           titulo: 'Monto del centro',
@@ -391,13 +405,6 @@ function ResumenView() {
           to: '/presupuesto-formacion/reparto',
           cta: 'Distribuir',
         },
-        {
-          titulo: 'Lotes',
-          detalle: `${totalLotes} lote${totalLotes === 1 ? '' : 's'}`,
-          texto: 'Informática, papelería, herramientas. Se eligen en cada material.',
-          to: '/presupuesto-formacion/lotes',
-          cta: 'Administrar lotes',
-        },
       ]
     : [
         {
@@ -408,13 +415,23 @@ function ResumenView() {
           cta: 'Distribuir',
         },
         {
-          titulo: 'Lotes',
-          detalle: `${totalLotes} lote${totalLotes === 1 ? '' : 's'}`,
-          texto: 'Informática, papelería, herramientas. Se eligen en cada material.',
-          to: '/presupuesto-formacion/lotes',
-          cta: 'Administrar lotes',
+          titulo: 'Vigencia especial',
+          detalle: 'Monto aparte',
+          texto: 'Programas que llegaron después del reparto. Reparte ese monto en tus redes.',
+          to: '/vigencias/especial',
+          cta: 'Ver especial',
         },
       ]
+
+  if (puedeVerLotes) {
+    acciones.push({
+      titulo: 'Lotes',
+      detalle: `${totalLotes} lote${totalLotes === 1 ? '' : 's'}`,
+      texto: 'Informática, papelería, herramientas. Se eligen en cada material.',
+      to: '/presupuesto-formacion/lotes',
+      cta: 'Administrar lotes',
+    })
+  }
 
   return (
     <AppLayout title="Presupuesto" showCenterBanner={false}>
@@ -733,7 +750,9 @@ function RepartoEspecial({ anio }: { anio: number }) {
 */
 
 function LotesView() {
-  const { puedeEditar, lotes, loteNombre, setLoteNombre, saving, guardarLote, resumen } = usePresupuesto()
+  const { puedeVerLotes, puedeCrearLote, lotes, loteNombre, setLoteNombre, saving, guardarLote, resumen } =
+    usePresupuesto()
+  if (!puedeVerLotes) return <Navigate to="/presupuesto-formacion" replace />
   return (
     <AppLayout title="Presupuesto" showCenterBanner={false}>
       <PageHeader
@@ -746,7 +765,7 @@ function LotesView() {
       <SelectorVigencia />
       <Cuerpo>
         <section className="rounded-[24px] border border-sena-line bg-white p-5">
-          {puedeEditar ? (
+          {puedeCrearLote ? (
             <div className="flex flex-wrap items-end gap-3">
               <TextField
                 id="lote-nombre"

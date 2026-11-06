@@ -6,6 +6,7 @@ type LoginInput = {
   usuario: string
   password: string
   remember?: boolean
+  captchaToken?: string
 }
 
 export type UpdateProfileInput = {
@@ -114,12 +115,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       modules,
       isReady,
       isAdmin: user?.isAdmin === true || user?.role === 'Administrador',
-      login: async ({ usuario, password, remember = true }) => {
-        const payload = usuario.includes('@') ? { email: usuario, password } : { usuario, password }
-        const result = await api<{ token: string; user: UserProfile }>('/auth/login', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        })
+      login: async ({ usuario, password, remember = true, captchaToken }) => {
+      const credentials = usuario.includes('@') ? { email: usuario, password } : { usuario, password }
+      const payload = captchaToken ? { ...credentials, captchaToken } : credentials
+      const result = await api<{ token: string; user: UserProfile }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
         setToken(result.token, remember)
         const allowed = await api<AppModule[]>('/modules')
         setTokenState(result.token)
