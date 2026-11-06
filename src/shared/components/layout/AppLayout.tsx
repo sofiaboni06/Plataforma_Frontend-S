@@ -14,6 +14,7 @@ import type { NotificacionApi } from '@/modules/notificaciones/types'
 import Sidebar from './Sidebar'
 import SiteFooter from '@/modules/landing/components/SiteFooter'
 import { leaveNotice } from '@/shared/components/ui/Toast'
+import ChatLauncher from '@/modules/chatbox/components/ChatLauncher'
 
 type AppLayoutProps = {
   title: string
@@ -383,6 +384,9 @@ export default function AppLayout({
         </main>
 
         <SiteFooter className="mt-auto" />
+
+        {/* Asistente SIGMA: solo en vistas autenticadas (este layout). */}
+        <ChatLauncher />
       </div>
     </div>
   )

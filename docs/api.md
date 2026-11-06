@@ -32,3 +32,5 @@ API de usuarios (Bearer + perfil Administrador):
 - `GET /api/v1/users/:id`
 - `PATCH /api/v1/users/:id` (perfil, datos, estado; contraseña opcional)
 
+Asistente SIGMA (ChatBox): endpoint propio, **pendiente de backend** → [`docs/chat-contract.md`](chat-contract.md).
+
