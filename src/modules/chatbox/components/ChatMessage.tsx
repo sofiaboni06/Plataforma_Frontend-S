@@ -9,6 +9,7 @@
  */
 
 import { FiAlertCircle, FiFileText, FiUser } from 'react-icons/fi'
+import { FaRobot } from 'react-icons/fa'
 import type { ChatKnowledgeReference, ChatMessage as ChatMessageType } from '../types/chat.types'
 
 function formatTime(timestamp: number): string {
@@ -41,7 +42,7 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
   return (
     <article className="sigma-chat-msg" data-role={message.role} data-status={message.status}>
       <span className="sigma-chat-avatar" aria-hidden="true">
-        {isUser ? <FiUser /> : <img src="/marca-sena.svg" alt="" width={16} height={16} />}
+        {isUser ? <FiUser /> : <FaRobot />}
       </span>
 
       <div className="sigma-chat-msg-body">

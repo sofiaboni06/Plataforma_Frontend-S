@@ -71,14 +71,38 @@ export type ChatMessage = {
  */
 export type ChatServiceStatus = 'checking' | 'connected' | 'local-docs'
 
+/**
+ * Entrada del historial de conversaciones de la SESIÓN actual.
+ *
+ * Mientras el backend no exponga `GET /api/v1/chat/conversations`
+ * (docs/chat-contract.md §4), este historial vive en memoria dentro del
+ * store y queda adscrito al usuario autenticado (`ownerUserId`) para que
+ * dos cuentas nunca compartan conversaciones. NO se usa localStorage
+ * porque no es persistencia real entre dispositivos/sesiones.
+ */
+export type ChatConversation = {
+  id: string
+  /** Título derivado del primer mensaje real del usuario (nunca inventado). */
+  title: string
+  /** Epoch en milisegundos del último cambio de la conversación. */
+  updatedAt: number
+  /** Copia inmutable del hilo para restaurarlo al seleccionarla. */
+  messages: ChatMessage[]
+}
+
 export type ChatErrorKind = 'connection' | 'auth' | 'server' | 'validation' | 'network'
 
 /** Estado completo del store (lo consume la UI a través de useChat). */
 export type ChatViewState = {
   isOpen: boolean
   isMinimized: boolean
+  /** Usuario autenticado dueño del store. Si cambia, el store se limpia
+   *  para que el historial de una cuenta nunca se mezcle con otra. */
+  ownerUserId: number | null
   conversationId: string
   messages: ChatMessage[]
+  /** Historial de conversaciones (solo del `ownerUserId`). */
+  conversations: ChatConversation[]
   draft: string
   isSending: boolean
   /** Último error de conexión/validación mostrado en la UI. */

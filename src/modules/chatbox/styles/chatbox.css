@@ -1,26 +1,52 @@
 /**
  * Estilos del ChatBox "Asistente SIGMA".
  *
+ * Rediseño visual glassmorphism premium (solo presentación: ninguna regla
+ * altera lógica, eventos, textos ni estados del JSX).
+ *
  * Reglas:
  *  - Todo va bajo prefijo `.sigma-chat-*`: cero impacto en el resto de la app.
  *  - Reutiliza los tokens institucionales de `src/index.css` (@theme):
  *    --color-sena*, --shadow-card/surface/modal/hairline/brand-sm, --blur-glass.
+ *  - Capas de profundidad: ventana de cristal esmerilado (blur + saturación),
+ *    encabezado con degradado verde y reflejos, secciones separadas por
+ *    filetes translúcidos y botones de cristal.
  *  - Movimiento (estándar review-animations/improve-animations):
  *      · ease-out fuerte: cubic-bezier(0.23, 1, 0.32, 1)
- *      · duraciones < 300ms, solo transform/opacity (GPU)
+ *      · duraciones < 300ms salvo transiciones de brillo, solo
+ *        transform/opacity cuando es posible (GPU)
  *      · nunca scale(0): se entra desde scale(0.97)
  *      · origen anclado al botón (transform-origin: bottom right)
  *      · hover gateado con (hover: hover) and (pointer: fine)
  *      · prefers-reduced-motion conserva opacidad y elimina movimiento
  *  - Capas: el chat usa z-index 45 (encima de header 20 y sidebar 40,
  *    debajo de modales 50 y toasts 60/70).
+ *  - Accesibilidad: indicadores :focus-visible en todo control interactivo
+ *    y contraste de texto verificado sobre fondos translúcidos.
  */
 
 .sigma-chat-window,
 .sigma-chat-fab {
   --sigma-chat-z: 45;
   --sigma-chat-ease: cubic-bezier(0.23, 1, 0.32, 1);
-  --sigma-chat-gradient: linear-gradient(135deg, var(--color-sena-dark) 0%, #00784a 100%);
+  /* Verde institucional: burbujas de usuario, avatares y acentos suaves. */
+  --sigma-chat-gradient: linear-gradient(135deg, #00874f 0%, #004d32 100%);
+  /* Verde luminoso: botón enviar, FAB y brillos de cristal. */
+  --sigma-chat-accent: linear-gradient(135deg, #00b366 0%, #00784a 52%, #004d32 100%);
+  /* Encabezado: de verde profundo a esmeralda luminoso. */
+  --sigma-chat-header-gradient: linear-gradient(
+    125deg,
+    #00331f 0%,
+    #005233 36%,
+    #00784a 68%,
+    #00a651 100%
+  );
+  /* Cristal: fondos y filetes de las capas translúcidas. */
+  --sigma-chat-glass: rgba(255, 255, 255, 0.72);
+  --sigma-chat-glass-strong: rgba(255, 255, 255, 0.9);
+  --sigma-chat-glass-line: rgba(255, 255, 255, 0.85);
+  --sigma-chat-green-line: rgba(0, 122, 78, 0.16);
+  --sigma-chat-green-glow: rgba(0, 166, 81, 0.28);
 }
 
 /* ============================== LANZADOR ============================== */
@@ -34,15 +60,42 @@
   place-items: center;
   width: 58px;
   height: 58px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 999px;
-  background: var(--sigma-chat-gradient);
+  background: var(--sigma-chat-accent);
   color: #ffffff;
   font-size: 26px;
   cursor: pointer;
-  box-shadow: 0 12px 28px rgba(0, 92, 59, 0.3), 0 4px 10px rgba(0, 70, 35, 0.18);
+  backdrop-filter: blur(10px) saturate(165%);
+  -webkit-backdrop-filter: blur(10px) saturate(165%);
+  box-shadow:
+    0 16px 32px rgba(0, 92, 59, 0.34),
+    0 0 0 1px rgba(0, 166, 81, 0.18),
+    0 0 26px rgba(0, 166, 81, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -6px 14px rgba(0, 45, 28, 0.35);
   transition: transform 180ms var(--sigma-chat-ease), box-shadow 180ms var(--sigma-chat-ease),
     opacity 160ms ease-out;
+}
+
+/* Destello de cristal que barre el botón al interactuar. */
+.sigma-chat-fab::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 34%,
+    rgba(255, 255, 255, 0.5) 47%,
+    rgba(255, 255, 255, 0.12) 55%,
+    transparent 66%
+  );
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: background-position 420ms var(--sigma-chat-ease), opacity 220ms ease-out;
 }
 
 .sigma-chat-fab:focus-visible {
@@ -59,6 +112,8 @@
 .sigma-chat-fab__icon {
   display: grid;
   place-items: center;
+  position: relative;
+  z-index: 1;
   transition: transform 220ms var(--sigma-chat-ease);
 }
 
@@ -66,14 +121,18 @@
   position: absolute;
   right: calc(100% + 10px);
   top: 50%;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: var(--color-sena-text);
+  padding: 6px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(6, 48, 33, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #ffffff;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
+  box-shadow: 0 8px 18px rgba(0, 60, 40, 0.3);
   opacity: 0;
   pointer-events: none;
   transform: translateY(-50%) translateX(4px);
@@ -82,8 +141,22 @@
 
 @media (hover: hover) and (pointer: fine) {
   .sigma-chat-fab:hover {
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 16px 34px rgba(0, 92, 59, 0.36), 0 6px 14px rgba(0, 70, 35, 0.2);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow:
+      0 22px 42px rgba(0, 92, 59, 0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.32),
+      0 0 34px rgba(0, 166, 81, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -6px 14px rgba(0, 45, 28, 0.32);
+  }
+
+  .sigma-chat-fab:hover::after {
+    background-position: -40% 0;
+    opacity: 1;
+  }
+
+  .sigma-chat-fab:hover .sigma-chat-fab__icon {
+    transform: translateY(-1px);
   }
 
   .sigma-chat-fab:hover .sigma-chat-fab__label {
@@ -101,16 +174,25 @@
   z-index: var(--sigma-chat-z);
   display: flex;
   flex-direction: column;
-  width: min(384px, calc(100vw - 32px));
-  height: min(600px, calc(100dvh - 180px));
-  padding: 6px;
+  width: min(504px, calc(100vw - 32px));
+  height: min(648px, calc(100dvh - 180px));
+  padding: 8px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(var(--blur-glass));
-  -webkit-backdrop-filter: blur(var(--blur-glass));
-  box-shadow: var(--shadow-modal);
+  border: 1px solid var(--sigma-chat-glass-line);
+  border-radius: 24px;
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.84) 0%,
+    rgba(244, 252, 248, 0.72) 48%,
+    rgba(255, 255, 255, 0.8) 100%
+  );
+  backdrop-filter: blur(var(--blur-glass)) saturate(165%);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(165%);
+  box-shadow:
+    0 34px 68px rgba(0, 60, 40, 0.26),
+    0 10px 26px rgba(0, 70, 45, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -118,6 +200,18 @@
   transform-origin: bottom right;
   transition: opacity 200ms var(--sigma-chat-ease), transform 200ms var(--sigma-chat-ease),
     visibility 0s linear 200ms;
+}
+
+/* Tinte ambiental esmeralda detrás de las capas de cristal. */
+.sigma-chat-window::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(130% 55% at 112% -12%, rgba(0, 166, 81, 0.18), transparent 62%),
+    radial-gradient(120% 50% at -12% 112%, rgba(0, 92, 59, 0.12), transparent 58%);
 }
 
 .sigma-chat-window[data-open='true'] {
@@ -138,11 +232,19 @@
   transform: translateY(0) scale(0.985);
 }
 
+/* Con el cuerpo colapsado, la cabecera redondea también su borde inferior. */
+.sigma-chat-window[data-minimized='true'] .sigma-chat-header {
+  border-radius: 16px;
+}
+
 .sigma-chat-window__body {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  /* El panel de historial se desliza dentro del cuerpo, nunca desborda. */
+  overflow: hidden;
 }
 
 .sigma-chat-window[data-minimized='true'] .sigma-chat-window__body {
@@ -152,23 +254,91 @@
 /* =============================== ENCABEZADO ============================ */
 
 .sigma-chat-header {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 12px 12px 14px;
-  border-radius: 12px 12px 0 0;
-  background: var(--sigma-chat-gradient);
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+  overflow: hidden;
+  border-radius: 16px 16px 0 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--sigma-chat-header-gradient);
   color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -8px 24px -16px rgba(0, 40, 25, 0.8),
+    0 12px 26px -18px rgba(0, 60, 40, 0.9);
+}
+
+/* Capas decorativas: reflejo de luz + resplandor esmeralda ambiental. */
+.sigma-chat-header::before,
+.sigma-chat-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sigma-chat-header::before {
+  background:
+    radial-gradient(
+      120% 170% at 8% -55%,
+      rgba(255, 255, 255, 0.36) 0%,
+      rgba(255, 255, 255, 0.08) 40%,
+      transparent 66%
+    ),
+    radial-gradient(85% 130% at 108% 128%, rgba(0, 214, 130, 0.55) 0%, transparent 58%);
+}
+
+/* Banda diagonal de cristal que respira suavemente. */
+.sigma-chat-header::after {
+  background: linear-gradient(
+    112deg,
+    transparent 32%,
+    rgba(255, 255, 255, 0.16) 45%,
+    rgba(255, 255, 255, 0.05) 53%,
+    transparent 66%
+  );
+  transform: translate3d(-4%, 0, 0);
+  animation: sigma-chat-sheen 9s var(--sigma-chat-ease) infinite alternate;
+}
+
+/* El contenido del encabezado siempre por encima de los reflejos. */
+.sigma-chat-header > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes sigma-chat-sheen {
+  from {
+    transform: translate3d(-5%, 0, 0);
+  }
+  to {
+    transform: translate3d(5%, 0, 0);
+  }
 }
 
 .sigma-chat-brand {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 6px 16px rgba(0, 40, 25, 0.24);
+}
+
+/* Identidad vectorial del asistente: icono limpio, sin imágenes rotas. */
+.sigma-chat-brand svg {
+  font-size: 20px;
 }
 
 .sigma-chat-titles {
@@ -182,41 +352,53 @@
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(0, 40, 25, 0.32);
 }
 
 .sigma-chat-subtitle {
   margin: 1px 0 0;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 2px rgba(0, 40, 25, 0.26);
 }
 
 .sigma-chat-status {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 5px 0 0;
+  margin: 6px 0 0;
   font-size: 0.6875rem;
-  color: rgba(255, 255, 255, 0.86);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 40, 25, 0.26);
 }
 
 .sigma-chat-status-dot {
   width: 7px;
   height: 7px;
+  flex-shrink: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.55);
 }
 
 .sigma-chat-status[data-state='connected'] .sigma-chat-status-dot {
   background: var(--color-sena-bright);
-  box-shadow: 0 0 0 3px rgba(22, 185, 85, 0.28);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.22),
+    0 0 10px rgba(22, 185, 85, 0.9);
 }
 
 .sigma-chat-status[data-state='local'] .sigma-chat-status-dot {
   background: var(--color-sena-orange);
-  box-shadow: 0 0 0 3px rgba(247, 147, 30, 0.25);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.2),
+    0 0 10px rgba(247, 147, 30, 0.75);
 }
 
 .sigma-chat-status[data-state='checking'] .sigma-chat-status-dot {
+  background: rgba(255, 255, 255, 0.85);
   animation: sigma-chat-pulse 1.4s ease-in-out infinite;
 }
 
@@ -232,21 +414,28 @@
 
 .sigma-chat-actions {
   display: flex;
-  gap: 6px;
+  gap: 7px;
 }
 
+/* Botones del encabezado: cristal translúcido sobre el degradado verde. */
 .sigma-chat-iconbtn {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
   color: #ffffff;
   font-size: 15px;
   cursor: pointer;
-  transition: background-color 160ms ease-out, transform 160ms var(--sigma-chat-ease);
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 4px 10px rgba(0, 45, 28, 0.2);
+  transition: background-color 160ms ease-out, border-color 160ms ease-out,
+    box-shadow 160ms ease-out, transform 160ms var(--sigma-chat-ease);
 }
 
 .sigma-chat-iconbtn:focus-visible {
@@ -261,7 +450,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .sigma-chat-iconbtn:hover {
-    background: rgba(255, 255, 255, 0.26);
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.58);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      0 0 14px rgba(255, 255, 255, 0.3),
+      0 6px 14px rgba(0, 45, 28, 0.24);
   }
 }
 
@@ -270,10 +464,36 @@
 .sigma-chat-messages {
   flex: 1;
   min-height: 0;
-  padding: 14px 12px;
+  padding: 16px 14px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: var(--color-sena-surface);
+  background: linear-gradient(
+    180deg,
+    rgba(240, 250, 246, 0.76) 0%,
+    rgba(252, 255, 254, 0.66) 100%
+  );
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 92, 59, 0.32) transparent;
+}
+
+.sigma-chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sigma-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sigma-chat-messages::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(0, 92, 59, 0.3);
+  background-clip: padding-box;
+}
+
+.sigma-chat-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 92, 59, 0.46);
+  background-clip: padding-box;
 }
 
 .sigma-chat-messages__list {
@@ -284,9 +504,9 @@
 
 .sigma-chat-msg {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  gap: 9px;
+  margin-bottom: 14px;
   opacity: 1;
   transform: none;
   transition: opacity 220ms var(--sigma-chat-ease), transform 220ms var(--sigma-chat-ease);
@@ -307,20 +527,28 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--sigma-chat-gradient);
   color: #ffffff;
   font-size: 13px;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 4px 10px rgba(0, 80, 50, 0.2);
+}
+
+.sigma-chat-msg[data-role='user'] .sigma-chat-avatar {
+  background: linear-gradient(135deg, #00b366 0%, #00784a 100%);
 }
 
 .sigma-chat-msg-body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-width: 80%;
+  gap: 5px;
+  max-width: 82%;
+  min-width: 0;
 }
 
 .sigma-chat-msg[data-role='user'] .sigma-chat-msg-body {
@@ -335,6 +563,7 @@
   margin: 0;
   padding: 0 4px;
   font-size: 0.625rem;
+  letter-spacing: 0.02em;
   color: var(--color-sena-text-soft);
 }
 
@@ -343,37 +572,51 @@
 }
 
 .sigma-chat-author {
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   color: var(--color-sena-strong);
+}
+
+.sigma-chat-msg[data-role='user'] .sigma-chat-author {
+  color: var(--color-sena);
 }
 
 .sigma-chat-time {
   font-variant-numeric: tabular-nums;
+  opacity: 0.85;
 }
 
 .sigma-chat-bubble {
-  padding: 9px 12px;
-  border-radius: 14px;
+  padding: 10px 14px;
+  border-radius: 16px;
   font-size: 0.875rem;
-  line-height: 1.5;
-  box-shadow: var(--shadow-hairline);
+  line-height: 1.55;
 }
 
 .sigma-chat-msg[data-role='assistant'] .sigma-chat-bubble {
-  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 16px 16px 16px 6px;
+  background: rgba(255, 255, 255, 0.88);
   color: var(--color-sena-text);
-  border-radius: 14px 14px 14px 4px;
+  box-shadow:
+    0 8px 20px rgba(0, 80, 50, 0.09),
+    0 1px 2px rgba(0, 80, 50, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
 .sigma-chat-msg[data-role='user'] .sigma-chat-bubble {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 16px 16px 6px 16px;
   background: var(--sigma-chat-gradient);
   color: #ffffff;
-  border-radius: 14px 14px 4px 14px;
-  box-shadow: var(--shadow-brand-sm);
+  box-shadow:
+    0 10px 22px rgba(0, 92, 59, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
 /* Estado: fallo de envío (ámbar institucional, sin borde grueso). */
 .sigma-chat-msg[data-status='error'] .sigma-chat-bubble {
+  border-color: var(--color-sena-warn-line);
   background: var(--color-sena-warn-soft);
   color: var(--color-sena-warn-text);
   box-shadow: none;
@@ -411,16 +654,20 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
+  padding: 3px 9px;
+  border: 1px solid rgba(0, 166, 81, 0.16);
   border-radius: 999px;
-  background: var(--color-sena-muted);
-  color: var(--color-sena-text-soft);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--color-sena-strong);
   font-size: 0.625rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 .sigma-chat-flag--error {
-  background: var(--color-sena-danger-soft);
+  border-color: var(--color-sena-danger-line);
+  background: rgba(253, 231, 231, 0.94);
   color: var(--color-sena-danger-text);
 }
 
@@ -438,11 +685,25 @@
   align-items: center;
   gap: 6px;
   max-width: 100%;
-  padding: 4px 9px;
-  border-radius: 8px;
-  background: var(--color-sena-muted);
+  padding: 5px 10px;
+  border: 1px solid rgba(0, 122, 78, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.8);
   color: var(--color-sena-strong);
   font-size: 0.6875rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.sigma-chat-file svg {
+  flex-shrink: 0;
+  color: var(--color-sena);
+}
+
+.sigma-chat-file > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sigma-chat-file__name {
@@ -455,19 +716,27 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: inherit;
   font-size: 13px;
   cursor: pointer;
+  transition: background-color 160ms ease-out, color 160ms ease-out;
 }
 
 .sigma-chat-file button:focus-visible {
   outline: 2px solid var(--color-sena-dark);
   outline-offset: 1px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sigma-chat-file button:hover {
+    background: rgba(0, 92, 59, 0.12);
+    color: var(--color-sena-dark);
+  }
 }
 
 /* ==================== REFERENCIAS DOCUMENTALES ==================== */
@@ -484,15 +753,24 @@
 .sigma-chat-ref {
   display: flex;
   flex-direction: column;
+  gap: 2px;
   max-width: 100%;
-  padding: 5px 9px;
-  border-radius: 10px;
-  background: var(--color-sena-soft);
+  padding: 7px 11px;
+  border: 1px solid rgba(0, 166, 81, 0.14);
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(233, 247, 239, 0.8) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 3px 10px rgba(0, 80, 50, 0.06);
 }
 
 .sigma-chat-ref-title {
   font-size: 0.6875rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-sena-strong);
   overflow-wrap: anywhere;
 }
@@ -510,13 +788,14 @@
   align-items: flex-start;
   gap: 8px;
   margin-bottom: 10px;
-  padding: 8px 10px;
+  padding: 9px 11px;
   border: 1px solid var(--color-sena-warn-line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--color-sena-warn-soft);
   color: var(--color-sena-warn-text);
   font-size: 0.75rem;
   line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(183, 110, 0, 0.08);
 }
 
 .sigma-chat-notice__text {
@@ -542,12 +821,13 @@
   align-items: center;
   gap: 8px;
   margin-top: 8px;
-  padding: 8px 10px;
+  padding: 9px 11px;
   border: 1px solid var(--color-sena-danger-line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--color-sena-danger-soft);
   color: var(--color-sena-danger-text);
   font-size: 0.75rem;
+  box-shadow: 0 4px 12px rgba(180, 35, 24, 0.08);
 }
 
 .sigma-chat-error__text {
@@ -558,15 +838,19 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 9px;
+  padding: 5px 11px;
   border: 1px solid var(--color-sena-danger-line);
   border-radius: 999px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.92);
   color: var(--color-sena-danger-text);
   font-size: 0.6875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 160ms ease-out, transform 160ms var(--sigma-chat-ease);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 2px 6px rgba(180, 35, 24, 0.1);
+  transition: background-color 160ms ease-out, border-color 160ms ease-out,
+    transform 160ms var(--sigma-chat-ease), box-shadow 160ms ease-out;
 }
 
 .sigma-chat-error__retry:focus-visible {
@@ -580,57 +864,78 @@
 
 @media (hover: hover) and (pointer: fine) {
   .sigma-chat-error__retry:hover {
-    background: var(--color-sena-danger-soft);
+    border-color: rgba(180, 35, 24, 0.4);
+    background: #ffffff;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      0 6px 14px rgba(180, 35, 24, 0.16);
   }
 }
 
 .sigma-chat-typingrow {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .sigma-chat-typing {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 }
 
 .sigma-chat-typing__avatar {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--sigma-chat-gradient);
+  color: #ffffff;
+  font-size: 13px;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 4px 10px rgba(0, 80, 50, 0.2);
 }
 
 .sigma-chat-typing__bubble {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   min-width: 52px;
   justify-content: center;
-  padding: 10px 12px;
-  border-radius: 14px 14px 14px 4px;
-  background: #ffffff;
-  box-shadow: var(--shadow-hairline);
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 16px 16px 16px 6px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 8px 18px rgba(0, 80, 50, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
+/* Tres puntos que aparecen EN SECUENCIA (1 → 2 → 3) y vuelven a empezar,
+   al estilo ChatGPT. El retardo escalonado + el estado inicial oculto
+   hacen que cada punto "aparezca" tras el anterior y el ciclo reinicie. */
 .sigma-chat-typing__bubble i {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   background: var(--color-sena);
-  animation: sigma-chat-dot 1.2s var(--sigma-chat-ease) infinite;
+  box-shadow: 0 0 6px rgba(0, 166, 81, 0.55);
+  opacity: 0;
+  animation: sigma-chat-dot-seq 1.3s var(--sigma-chat-ease) infinite;
+}
+
+.sigma-chat-typing__bubble i:nth-child(1) {
+  animation-delay: 0s;
 }
 
 .sigma-chat-typing__bubble i:nth-child(2) {
-  animation-delay: 140ms;
+  animation-delay: 260ms;
 }
 
 .sigma-chat-typing__bubble i:nth-child(3) {
-  animation-delay: 280ms;
+  animation-delay: 520ms;
 }
 
 .sigma-chat-typing__label {
@@ -638,90 +943,444 @@
   color: var(--color-sena-text-soft);
 }
 
-@keyframes sigma-chat-dot {
-  0%,
-  70%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.4;
+@keyframes sigma-chat-dot-seq {
+  0% {
+    opacity: 0;
+    transform: scale(0.55);
   }
-  35% {
-    transform: translateY(-3px);
+  14% {
     opacity: 1;
+    transform: scale(1);
+  }
+  76% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.55);
   }
 }
 
-/* ========================= PREGUNTAS SUGERIDAS ========================= */
+/* ========================= PANTALLA INICIAL ============================
+   Conversación vacía: saludo personalizado en el centro + carrusel de
+   sugerencias. Sin mensaje automático del asistente y sin lista de FAQs
+   pegada debajo de un mensaje. El campo de escritura sigue visible. */
 
-.sigma-chat-suggestions {
-  max-height: 152px;
-  padding: 10px 12px;
+.sigma-chat-hero {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 22px 14px 14px;
   overflow-y: auto;
-  border-top: 1px solid var(--color-sena-line-soft);
-  background: var(--color-sena-surface);
+  overscroll-behavior: contain;
+  text-align: center;
+  background: linear-gradient(
+    180deg,
+    rgba(240, 250, 246, 0.76) 0%,
+    rgba(252, 255, 254, 0.66) 100%
+  );
 }
 
-.sigma-chat-suggestions-label {
-  margin: 0 0 7px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+/* Doodle del asistente: cristal verde con resplandor institucional. */
+.sigma-chat-hero__badge {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: var(--sigma-chat-accent);
+  color: #ffffff;
+  font-size: 22px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 12px 26px rgba(0, 92, 59, 0.26),
+    0 0 22px rgba(0, 166, 81, 0.3);
+}
+
+.sigma-chat-hero__title {
+  margin: 0;
+  font-size: clamp(1.375rem, 4.4vw, 1.6875rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  background: linear-gradient(115deg, #004d33 0%, #00864c 55%, #00a651 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.sigma-chat-hero__subtitle {
+  margin: 5px 0 0;
+  font-size: 0.9375rem;
   color: var(--color-sena-text-soft);
 }
 
-.sigma-chat-suggestions ul {
+/* =========================== CARRUSEL ================================
+   Preguntas sugeridas existentes en formato de tarjetas deslizables
+   (scroll-snap + swipe táctil) con controles anterior/siguiente. */
+
+.sigma-chat-carousel {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  margin-top: 18px;
+}
+
+.sigma-chat-carousel__list {
   display: flex;
-  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 4px 38px 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  list-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sigma-chat-carousel__list::-webkit-scrollbar {
+  display: none;
+}
+
+.sigma-chat-carousel__item {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+.sigma-chat-carousel__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: min(224px, 64vw);
+  min-height: 84px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  border-radius: 16px;
+  background: linear-gradient(
+    152deg,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(234, 248, 241, 0.86) 100%
+  );
+  color: var(--color-sena-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 6px 16px rgba(0, 80, 50, 0.1);
+  transition: border-color 160ms ease-out, box-shadow 160ms ease-out,
+    background 160ms ease-out, transform 160ms var(--sigma-chat-ease);
+}
+
+.sigma-chat-carousel__card svg {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--color-sena);
+}
+
+.sigma-chat-carousel__card:focus-visible {
+  outline: 2px solid var(--color-sena);
+  outline-offset: 2px;
+}
+
+.sigma-chat-carousel__card:active {
+  transform: scale(0.97);
+  transition-duration: 100ms;
+}
+
+.sigma-chat-carousel__nav {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--color-sena-strong);
+  font-size: 17px;
+  cursor: pointer;
+  transform: translateY(-50%);
+  box-shadow: 0 6px 14px rgba(0, 80, 50, 0.18);
+  transition: opacity 160ms ease-out, box-shadow 160ms ease-out;
+}
+
+.sigma-chat-carousel__nav--prev {
+  left: 0;
+}
+
+.sigma-chat-carousel__nav--next {
+  right: 0;
+}
+
+.sigma-chat-carousel__nav:focus-visible {
+  outline: 2px solid var(--color-sena);
+  outline-offset: 2px;
+}
+
+.sigma-chat-carousel__nav:disabled {
+  opacity: 0.32;
+  cursor: default;
+  box-shadow: none;
+}
+
+/* ======================= HISTORIAL (PANEL) ============================
+   Se desliza SOBRE el cuerpo de la conversación dentro de la ventana:
+   no tapa la aplicación, no provoca desbordamientos (la ventana ya recorta
+   con overflow: hidden) y en móvil ocupa casi todo el ancho de la ventana. */
+
+.sigma-chat-history {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(300px, 84%);
+  padding: 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.9);
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(240, 250, 246, 0.94) 100%
+  );
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: 18px 0 44px rgba(0, 60, 40, 0.2);
+  transform: translateX(-102%);
+  visibility: hidden;
+  transition: transform 220ms var(--sigma-chat-ease), visibility 0s linear 220ms;
+}
+
+.sigma-chat-history.is-open {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 220ms var(--sigma-chat-ease), visibility 0s linear 0s;
+}
+
+.sigma-chat-history__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sigma-chat-history__title {
+  flex: 1;
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-sena-strong);
+}
+
+.sigma-chat-history__new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid rgba(0, 166, 81, 0.32);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(0, 166, 81, 0.14) 0%, rgba(0, 92, 59, 0.08) 100%);
+  color: var(--color-sena-dark);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out,
+    box-shadow 160ms ease-out, transform 160ms var(--sigma-chat-ease);
+}
+
+.sigma-chat-history__new:focus-visible {
+  outline: 2px solid var(--color-sena);
+  outline-offset: 2px;
+}
+
+.sigma-chat-history__new:active {
+  transform: scale(0.98);
+}
+
+.sigma-chat-history__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 92, 59, 0.28) transparent;
+}
+
+.sigma-chat-history__scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sigma-chat-history__scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sigma-chat-history__scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(0, 92, 59, 0.26);
+  background-clip: padding-box;
+}
+
+.sigma-chat-history__list {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.sigma-chat-suggestion {
-  display: inline-flex;
+.sigma-chat-history__item {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  max-width: 100%;
-  padding: 6px 11px;
-  border: 1px solid var(--color-sena-line);
-  border-radius: 999px;
-  background: #ffffff;
-  color: var(--color-sena-strong);
-  font-size: 0.75rem;
-  font-weight: 500;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.66);
+  color: var(--color-sena-text);
+  font-size: 0.8125rem;
   text-align: left;
   cursor: pointer;
-  transition: background-color 160ms ease-out, border-color 160ms ease-out,
-    transform 160ms var(--sigma-chat-ease), box-shadow 160ms ease-out;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: background-color 150ms ease-out, border-color 150ms ease-out,
+    box-shadow 150ms ease-out, transform 150ms var(--sigma-chat-ease);
 }
 
-.sigma-chat-suggestion svg {
+.sigma-chat-history__item > svg {
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 14px;
+  color: var(--color-sena);
 }
 
-.sigma-chat-suggestion:focus-visible {
+.sigma-chat-history__item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sigma-chat-history__item-title {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sigma-chat-history__item-time {
+  font-size: 0.6875rem;
+  color: var(--color-sena-text-soft);
+}
+
+/* Conversación visible en el hilo: diferenciada con fondo + borde + peso. */
+.sigma-chat-history__item.is-active {
+  border-color: rgba(0, 166, 81, 0.4);
+  background: linear-gradient(135deg, rgba(0, 166, 81, 0.16) 0%, rgba(0, 92, 59, 0.1) 100%);
+  color: var(--color-sena-dark);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 5px 14px rgba(0, 92, 59, 0.12);
+}
+
+.sigma-chat-history__item:focus-visible {
   outline: 2px solid var(--color-sena);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
-.sigma-chat-suggestion:disabled {
-  opacity: 0.5;
-  cursor: default;
+.sigma-chat-history__item:active {
+  transform: scale(0.98);
 }
 
-.sigma-chat-suggestion:active:not(:disabled) {
-  transform: scale(0.97);
-  transition-duration: 100ms;
+.sigma-chat-history__empty {
+  margin: 4px 2px;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--color-sena-text-soft);
+}
+
+.sigma-chat-history__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  background: rgba(4, 44, 30, 0.34);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  visibility: hidden;
+  cursor: pointer;
+  transition: opacity 200ms ease-out, visibility 0s linear 200ms;
+}
+
+.sigma-chat-history__scrim.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 200ms ease-out, visibility 0s linear 0s;
+}
+
+.sigma-chat-history__scrim:focus-visible {
+  outline: 2px solid var(--color-sena);
+  outline-offset: -3px;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .sigma-chat-suggestion:hover:not(:disabled) {
-    background: var(--color-sena-soft);
-    border-color: var(--color-sena-line);
-    box-shadow: var(--shadow-hairline);
-    transform: translateY(-1px);
+  .sigma-chat-carousel__card:hover {
+    border-color: rgba(0, 166, 81, 0.42);
+    background: linear-gradient(
+      152deg,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(236, 250, 243, 0.95) 100%
+    );
+    color: var(--color-sena-dark);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      0 12px 24px rgba(0, 92, 59, 0.16),
+      0 0 0 3px rgba(0, 166, 81, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .sigma-chat-carousel__card:hover svg {
+    color: var(--color-sena-dark);
+  }
+
+  .sigma-chat-carousel__nav:hover:not(:disabled) {
+    box-shadow:
+      0 8px 18px rgba(0, 80, 50, 0.24),
+      0 0 0 3px rgba(0, 166, 81, 0.14);
+  }
+
+  .sigma-chat-history__new:hover {
+    border-color: rgba(0, 166, 81, 0.5);
+    background: linear-gradient(135deg, rgba(0, 166, 81, 0.2) 0%, rgba(0, 92, 59, 0.12) 100%);
+    box-shadow: 0 6px 16px rgba(0, 92, 59, 0.16);
+  }
+
+  .sigma-chat-history__item:hover:not(.is-active) {
+    border-color: rgba(0, 166, 81, 0.3);
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--color-sena-dark);
   }
 }
 
@@ -730,30 +1389,41 @@
 .sigma-chat-input {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  border-top: 1px solid var(--color-sena-line-soft);
-  border-radius: 0 0 12px 12px;
-  background: rgba(255, 255, 255, 0.92);
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--sigma-chat-green-line);
+  border-radius: 0 0 16px 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.68) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  backdrop-filter: blur(16px) saturate(155%);
+  -webkit-backdrop-filter: blur(16px) saturate(155%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .sigma-chat-input__row {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: 9px;
 }
 
 .sigma-chat-input__attach {
   flex-shrink: 0;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   font-size: 16px;
 }
 
-/* Variante clara: el botón vive sobre fondo blanco, no sobre la cabecera. */
+/* Variante clara: el botón vive sobre fondo de cristal, no sobre la cabecera. */
 .sigma-chat-input .sigma-chat-iconbtn {
-  background: var(--color-sena-soft);
+  border-color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.72);
   color: var(--color-sena-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 3px 10px rgba(0, 80, 50, 0.1);
 }
 
 .sigma-chat-input .sigma-chat-iconbtn:focus-visible {
@@ -767,7 +1437,13 @@
 
 @media (hover: hover) and (pointer: fine) {
   .sigma-chat-input .sigma-chat-iconbtn:hover:not(:disabled) {
-    background: var(--color-sena-active-soft);
+    border-color: rgba(0, 166, 81, 0.4);
+    background: rgba(255, 255, 255, 0.97);
+    color: var(--color-sena-dark);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      0 0 14px rgba(0, 166, 81, 0.18),
+      0 5px 14px rgba(0, 80, 50, 0.12);
   }
 }
 
@@ -780,12 +1456,12 @@
 .sigma-chat-field {
   flex: 1;
   min-width: 0;
-  min-height: 38px;
-  max-height: 104px;
-  padding: 9px 12px;
-  border: 1px solid var(--color-sena-line);
-  border-radius: 12px;
-  background: var(--color-sena-surface);
+  min-height: 40px;
+  max-height: 108px;
+  padding: 10px 14px;
+  border: 1px solid rgba(0, 122, 78, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
   color: var(--color-sena-text);
   font-family: inherit;
   font-size: 0.875rem;
@@ -793,18 +1469,27 @@
   field-sizing: content;
   resize: none;
   overflow-y: auto;
-  caret-color: var(--color-sena-dark);
-  transition: border-color 160ms ease-out, box-shadow 160ms ease-out;
+  caret-color: var(--color-sena);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 2px 8px rgba(0, 80, 50, 0.06);
+  transition: border-color 160ms ease-out, box-shadow 160ms ease-out,
+    background-color 160ms ease-out;
 }
 
 .sigma-chat-field::placeholder {
   color: var(--color-sena-text-soft);
 }
 
+/* Borde luminoso al recibir el foco. */
 .sigma-chat-field:focus {
   outline: none;
-  border-color: var(--color-sena);
-  box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.16);
+  border-color: rgba(0, 166, 81, 0.75);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow:
+    0 0 0 3px rgba(0, 166, 81, 0.18),
+    0 0 18px rgba(0, 166, 81, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
 .sigma-chat-field:disabled {
@@ -841,15 +1526,19 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 38px;
-  height: 38px;
-  border: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 999px;
-  background: var(--sigma-chat-gradient);
+  background: var(--sigma-chat-accent);
   color: #ffffff;
   font-size: 16px;
   cursor: pointer;
-  box-shadow: var(--shadow-brand-sm);
+  box-shadow:
+    0 8px 18px rgba(0, 120, 74, 0.32),
+    0 0 14px rgba(0, 166, 81, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -4px 10px rgba(0, 45, 28, 0.3);
   transition: transform 160ms var(--sigma-chat-ease), opacity 160ms ease-out,
     box-shadow 160ms ease-out;
 }
@@ -860,6 +1549,7 @@
 }
 
 .sigma-chat-send:disabled {
+  border-color: transparent;
   background: var(--color-sena-muted);
   color: var(--color-sena-text-soft);
   box-shadow: none;
@@ -875,7 +1565,11 @@
 @media (hover: hover) and (pointer: fine) {
   .sigma-chat-send:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 8px 18px rgba(0, 92, 59, 0.26);
+    box-shadow:
+      0 12px 24px rgba(0, 120, 74, 0.36),
+      0 0 20px rgba(0, 166, 81, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -4px 10px rgba(0, 45, 28, 0.28);
   }
 }
 
@@ -895,15 +1589,140 @@
   }
 
   .sigma-chat-window {
-    right: 12px;
-    left: 12px;
-    bottom: 82px;
+    right: 10px;
+    left: 10px;
+    bottom: 80px;
     width: auto;
-    height: min(560px, calc(100dvh - 156px));
+    height: min(600px, calc(100dvh - 148px));
+    padding: 6px;
+    border-radius: 20px;
+  }
+
+  .sigma-chat-window[data-minimized='true'] .sigma-chat-header {
+    border-radius: 14px;
+  }
+
+  .sigma-chat-header {
+    gap: 10px;
+    padding: 12px;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .sigma-chat-brand {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+  }
+
+  .sigma-chat-actions {
+    gap: 5px;
+  }
+
+  .sigma-chat-iconbtn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .sigma-chat-messages {
+    padding: 12px 10px;
+  }
+
+  .sigma-chat-msg {
+    gap: 7px;
+    margin-bottom: 13px;
   }
 
   .sigma-chat-msg-body {
     max-width: 86%;
+  }
+
+  .sigma-chat-bubble {
+    padding: 9px 12px;
+  }
+
+  /* Pantalla inicial compacta en móvil: saludo + carrusel sin desbordar. */
+  .sigma-chat-hero {
+    padding: 16px 10px 10px;
+  }
+
+  .sigma-chat-carousel {
+    margin-top: 14px;
+  }
+
+  .sigma-chat-carousel__list {
+    gap: 8px;
+    padding: 4px 34px 8px;
+  }
+
+  .sigma-chat-carousel__card {
+    width: min(200px, 68vw);
+    min-height: 78px;
+    padding: 11px 12px;
+  }
+
+  .sigma-chat-history {
+    width: min(280px, 88%);
+    padding: 12px;
+  }
+
+  .sigma-chat-input {
+    gap: 7px;
+    padding: 10px;
+    border-radius: 0 0 14px 14px;
+  }
+
+  .sigma-chat-input__row {
+    gap: 7px;
+  }
+
+  .sigma-chat-input__attach,
+  .sigma-chat-send {
+    width: 38px;
+    height: 38px;
+  }
+
+  .sigma-chat-field {
+    min-height: 38px;
+    padding: 9px 12px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .sigma-chat-window {
+    right: 6px;
+    left: 6px;
+  }
+
+  .sigma-chat-header {
+    gap: 8px;
+    padding: 10px 8px 10px 10px;
+  }
+
+  .sigma-chat-brand {
+    width: 32px;
+    height: 32px;
+  }
+
+  .sigma-chat-title {
+    font-size: 0.875rem;
+  }
+
+  .sigma-chat-subtitle {
+    font-size: 0.6875rem;
+  }
+
+  .sigma-chat-status {
+    font-size: 0.625rem;
+  }
+
+  .sigma-chat-actions {
+    gap: 4px;
+  }
+
+  .sigma-chat-iconbtn {
+    width: 30px;
+    height: 30px;
   }
 }
 
@@ -930,16 +1749,52 @@
   .sigma-chat-fab,
   .sigma-chat-fab__icon,
   .sigma-chat-iconbtn,
-  .sigma-chat-suggestion,
+  .sigma-chat-carousel__card,
+  .sigma-chat-history__new,
+  .sigma-chat-history__item,
   .sigma-chat-error__retry,
   .sigma-chat-send {
     transform: none !important;
-    transition: opacity 120ms linear, background-color 120ms linear;
+    transition: opacity 120ms linear, background-color 120ms linear, box-shadow 120ms linear;
+  }
+
+  /* El panel se muestra sin deslizar (solo opacidad/transiciones cortas). */
+  .sigma-chat-history {
+    transform: none !important;
+    transition: opacity 120ms linear, visibility 0s linear 120ms;
+    opacity: 0;
+  }
+
+  .sigma-chat-history.is-open {
+    opacity: 1;
+    transition: opacity 120ms linear, visibility 0s linear 0s;
+  }
+
+  .sigma-chat-history__scrim {
+    transition: opacity 120ms linear, visibility 0s linear 120ms;
+  }
+
+  .sigma-chat-history__scrim.is-open {
+    transition: opacity 120ms linear, visibility 0s linear 0s;
+  }
+
+  /* Los controles del carrusel solo cambian opacidad (siguen centrados). */
+  .sigma-chat-carousel__nav {
+    transition: opacity 120ms linear, box-shadow 120ms linear;
+  }
+
+  .sigma-chat-fab::after {
+    display: none;
   }
 
   .sigma-chat-fab__label {
     transform: translateY(-50%) !important;
     transition: opacity 120ms linear;
+  }
+
+  .sigma-chat-header::after {
+    animation: none;
+    transform: translate3d(-4%, 0, 0);
   }
 
   .sigma-chat-msg {

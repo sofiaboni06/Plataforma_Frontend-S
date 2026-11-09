@@ -2,7 +2,10 @@
  * ChatHeader.tsx
  *
  * Cabecera de la ventana: identidad del asistente, indicador honesto
- * de disponibilidad y acciones (nueva conversación, minimizar, cerrar).
+ * de disponibilidad y acciones (historial, nueva conversación, minimizar).
+ *
+ * El cierre NO tiene botón aquí: lo gestiona el botón flotante (FAB),
+ * que alterna abrir/cerrar/restaurar desde un único estado en el store.
  *
  * El indicador NUNCA afirma "Conectado" sin haberlo verificado:
  *   - checking    → "Verificando conexión…" (gris)
@@ -10,14 +13,16 @@
  *   - local-docs  → "IA no conectada · modo documentación" (ámbar)
  */
 
-import { FiMinus, FiRotateCcw, FiX } from 'react-icons/fi'
+import { FiClock, FiMinus, FiRotateCcw } from 'react-icons/fi'
+import { FaRobot } from 'react-icons/fa'
 import { useChatBackendState } from '../hooks/useChat'
 import type { ChatServiceStatus } from '../types/chat.types'
 
 type Props = {
   isMinimized: boolean
+  isHistoryOpen: boolean
   onMinimize: () => void
-  onClose: () => void
+  onToggleHistory: () => void
   onReset: () => void
   canReset: boolean
 }
@@ -28,13 +33,20 @@ const STATUS: Record<ChatServiceStatus, { label: string; state: string }> = {
   'local-docs': { label: 'IA no conectada · modo documentación', state: 'local' },
 }
 
-export function ChatHeader({ isMinimized, onMinimize, onClose, onReset, canReset }: Props) {
+export function ChatHeader({
+  isMinimized,
+  isHistoryOpen,
+  onMinimize,
+  onToggleHistory,
+  onReset,
+  canReset,
+}: Props) {
   const status = STATUS[useChatBackendState()]
 
   return (
     <header className="sigma-chat-header">
       <span className="sigma-chat-brand" aria-hidden="true">
-        <img src="/marca-sena.svg" alt="" width={22} height={22} />
+        <FaRobot />
       </span>
 
       <div className="sigma-chat-titles">
@@ -47,6 +59,17 @@ export function ChatHeader({ isMinimized, onMinimize, onClose, onReset, canReset
       </div>
 
       <div className="sigma-chat-actions">
+        <button
+          type="button"
+          id="sigma-chat-history-toggle"
+          className="sigma-chat-iconbtn"
+          onClick={onToggleHistory}
+          aria-expanded={isHistoryOpen}
+          aria-label="Historial de conversaciones"
+          title="Historial"
+        >
+          <FiClock aria-hidden="true" />
+        </button>
         {canReset && (
           <button
             type="button"
@@ -70,15 +93,6 @@ export function ChatHeader({ isMinimized, onMinimize, onClose, onReset, canReset
             aria-hidden="true"
             style={isMinimized ? { transform: 'rotate(180deg)' } : undefined}
           />
-        </button>
-        <button
-          type="button"
-          className="sigma-chat-iconbtn"
-          onClick={onClose}
-          aria-label="Cerrar el Asistente SIGMA"
-          title="Cerrar"
-        >
-          <FiX aria-hidden="true" />
         </button>
       </div>
     </header>
