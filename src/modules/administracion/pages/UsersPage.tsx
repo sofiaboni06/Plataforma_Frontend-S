@@ -511,19 +511,25 @@ export default function UsersPage() {
                 {formError}
               </div>
             ) : null}
+            {!isFormValid(form, options, editing) ? (
+  <p className="text-sm text-sena-text/60 sm:col-span-2">
+    Completa los campos obligatorios con datos válidos para continuar.
+  </p>
+) : null}
             <div className="mt-2 flex flex-wrap justify-end gap-2 sm:col-span-2">
               <Button type="button" variant="secondary" onClick={closeModal} disabled={saving}>
                 Cancelar
               </Button>
               <Button
-                type="submit"
-                disabled={
-                  saving ||
-                  (isProgramasRole(form.idPerfil, options) && programsLoading)
-                }
-              >
-                {editing ? 'Guardar cambios' : 'Crear usuario'}
-              </Button>
+  type="submit"
+  disabled={
+    saving ||
+    (isProgramasRole(form.idPerfil, options) && programsLoading) ||
+    !isFormValid(form, options, editing)
+  }
+>
+  {editing ? 'Guardar cambios' : 'Crear usuario'}
+</Button>
             </div>
           </form>
         </Modal>
@@ -652,8 +658,187 @@ function isAdministratorRole(roleId: string, options: UserFormOptions) {
   return options.roles.find((role) => String(role.id) === roleId)?.name === 'Administrador'
 }
 
+const DOCUMENT_RULES: Record<string, { min: number; max: number; pattern: RegExp }> = {
+  CC:  { min: 6,  max: 10, pattern: /^\d+$/ },
+  TI:  { min: 8,  max: 11, pattern: /^\d+$/ },
+  CE:  { min: 6,  max: 12, pattern: /^\d+$/ },
+  PPT: { min: 6,  max: 12, pattern: /^\d+$/ },
+  PA:  { min: 6,  max: 12, pattern: /^[A-Za-z0-9]+$/ },
+}
+
+function isValidName(value: string) {
+  const trimmed = value.trim()
+  if (trimmed.length < 2 || trimmed.length > 80) return false
+  // Solo letras (con tildes/ñ/ü), espacios y guiones/apóstrofes
+  if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+$/.test(trimmed)) return false
+  // Debe contener al menos una vocal (rechaza "jsjfjs")
+  if (!/[aeiouáéíóúü]/i.test(trimmed)) return false
+  return true
+}
+
+function isValidDocument(type: string, value: string) {
+  const rule = DOCUMENT_RULES[type]
+  if (!rule) return false
+  const trimmed = value.trim()
+  if (trimmed.length < rule.min || trimmed.length > rule.max) return false
+  return rule.pattern.test(trimmed)
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+}
+
+function isFormValid(
+  form: typeof EMPTY_FORM,
+  options: UserFormOptions,
+  editing: boolean,
+) {
+  if (!isValidName(form.nombres)) return false
+  if (!isValidName(form.apellidos)) return false
+  if (!isValidDocument(form.tipoDocumento, form.numeroDocumento)) return false
+  if (!isValidEmail(form.email)) return false
+  if (!form.idPerfil) return false
+  if (!form.idCformacion) return false
+
+  // Contraseñas
+    // Contraseñas
+  const needsPassword = !editing || Boolean(form.password)
+  if (needsPassword) {
+    if (form.password.length < 6) return false
+    if (form.password !== form.passwordConfirmation) return false
+    if (COMMON_PASSWORDS.includes(form.password.toLowerCase())) return false // <--- NUEVO
+  }
+
+  // Perfil programas: al menos 1 programa
+  if (isProgramasRole(form.idPerfil, options) && form.programaIds.length === 0) {
+    return false
+  }
+
+  return true
+}
+
+function PasswordField({
+  id,
+  label,
+  value,
+  confirmValue,
+  onChange,
+  required,
+  autoComplete,
+}: {
+  id: string
+  label: string
+  value: string
+  confirmValue?: string
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+  required?: boolean
+  autoComplete?: string
+}) {
+  const [visible, setVisible] = useState(false)
+  const strength = getPasswordStrength(value)
+  
+  // Solo mostrar error si ya escribió algo o si es la confirmación y no coinciden
+  const error = 
+    (id === 'password' && value && COMMON_PASSWORDS.includes(value.toLowerCase())) ? 'Esta contraseña es muy insegura.' :
+    (id === 'passwordConfirmation' && value && confirmValue && value !== confirmValue) ? 'Las contraseñas no coinciden.' :
+    null
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="form-label">{label}</label>
+      <div className="relative">
+        <input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={onChange}
+          required={required}
+          autoComplete={autoComplete}
+          className={`form-field w-full pr-10 ${error ? 'ring-1 ring-red-400 focus:ring-red-400' : ''}`}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          className="absolute inset-y-0 right-2 flex items-center text-sena-text/60 hover:text-sena-dark"
+          tabIndex={-1}
+        >
+          {visible ? ( /* Ojo tachado */
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+          ) : ( /* Ojo abierto */
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+          )}
+        </button>
+      </div>
+      
+      {/* Barra de seguridad (Solo en el campo principal de contraseña) */}
+      {id === 'password' && value.length > 0 && (
+        <div className="mt-1 flex items-center gap-2">
+          <div className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-sena-line">
+            <div className={`h-full transition-all duration-300 ${strength.color}`} style={{ width: `${(strength.score / 5) * 100}%` }} />
+          </div>
+          <span className="text-xs font-medium text-sena-text/60">{strength.label}</span>
+        </div>
+      )}
+      
+      {/* Mensaje de Error */}
+      {error && <span className="text-xs text-red-500 font-medium">{error}</span>}
+    </div>
+  )
+}
+
 function isProgramasRole(roleId: string, options: UserFormOptions) {
   return esPerfilProgramas(options.roles.find((role) => String(role.id) === roleId)?.name)
+}
+
+// Lista de contraseñas muy comunes en Colombia y el mundo
+const COMMON_PASSWORDS = [
+  '123456', '123456789', '12345678', '12345', 'password', 'asdfgh', 
+  'qwerty', '10203040', 'colombia', 'sena', 'admin', '1234567'
+]
+
+function getPasswordStrength(password: string) {
+  if (!password) return { score: 0, label: '', color: 'bg-transparent' }
+  
+  let score = 0
+  if (password.length >= 6) score++
+  if (password.length >= 8) score++
+  if (/[A-Z]/.test(password)) score++
+  if (/[0-9]/.test(password)) score++
+  if (/[^A-Za-z0-9]/.test(password)) score++
+
+  if (score <= 2) return { score, label: 'Débil', color: 'bg-red-500' }
+  if (score === 3 || score === 4) return { score, label: 'Media', color: 'bg-yellow-400' }
+  return { score, label: 'Fuerte', color: 'bg-green-500' }
+}
+
+// Validaciones con mensajes
+function getNombreError(value: string) {
+  if (!value.trim()) return 'Este campo es obligatorio.'
+  if (value.trim().length < 3) return 'Debe tener al menos 3 letras.'
+  if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+$/.test(value)) return 'Solo se permiten letras y espacios.'
+  if (!/[aeiouáéíóúü]/i.test(value)) return 'El nombre no parece válido (parece texto al azar).'
+  return null
+}
+
+function getDocumentoError(type: string, value: string) {
+  if (!value.trim()) return 'El número de documento es obligatorio.'
+  const rule = DOCUMENT_RULES[type]
+  if (!rule) return 'Tipo de documento no válido.'
+  
+  if (value.length < rule.min) return `Faltan dígitos (mínimo ${rule.min}).`
+  if (value.length > rule.max) return `Excede el límite (máximo ${rule.max}).`
+  if (!rule.pattern.test(value)) return 'Solo se permiten números.'
+  return null
+}
+
+function getPasswordError(password: string, confirm: string) {
+  if (!password) return 'La contraseña es obligatoria.'
+  if (password.length < 6) return 'Debe tener al menos 6 caracteres.'
+  if (COMMON_PASSWORDS.includes(password.toLowerCase())) {
+    return 'Esta contraseña es muy insegura. Elige otra.'
+  }
+  if (password !== confirm) return 'Las contraseñas no coinciden.'
+  return null
 }
 
 function UserFields({
@@ -695,37 +880,78 @@ function UserFields({
       })),
     [programs],
   )
+  const [nombreError, setNombreError] = useState<string | null>(null)
+  const [apellidoError, setApellidoError] = useState<string | null>(null)
+  const [documentoError, setDocumentoError] = useState<string | null>(null)
 
   return (
     <>
-      <TextField
-        id="nombres"
-        label="Nombres"
-        value={form.nombres}
-        onChange={(event) => onChange('nombres', event.target.value)}
-        required
-      />
-      <TextField
-        id="apellidos"
-        label="Apellidos"
-        value={form.apellidos}
-        onChange={(event) => onChange('apellidos', event.target.value)}
-        required
-      />
+            {/* NOMBRES */}
+      <div className="flex flex-col gap-1.5">
+        <TextField
+          id="nombres"
+          label="Nombres"
+          value={form.nombres}
+          onChange={(event) => {
+            onChange('nombres', event.target.value)
+            if (nombreError) setNombreError(getNombreError(event.target.value))
+          }}
+          onBlur={() => setNombreError(getNombreError(form.nombres))}
+          required
+          className={nombreError ? 'ring-1 ring-red-400' : ''}
+        />
+        {nombreError && <span className="text-xs text-red-500 font-medium">{nombreError}</span>}
+      </div>
+
+      {/* APELLIDOS */}
+      <div className="flex flex-col gap-1.5">
+        <TextField
+          id="apellidos"
+          label="Apellidos"
+          value={form.apellidos}
+          onChange={(event) => {
+            onChange('apellidos', event.target.value)
+            if (apellidoError) setApellidoError(getNombreError(event.target.value))
+          }}
+          onBlur={() => setApellidoError(getNombreError(form.apellidos))}
+          required
+          className={apellidoError ? 'ring-1 ring-red-400' : ''}
+        />
+        {apellidoError && <span className="text-xs text-red-500 font-medium">{apellidoError}</span>}
+      </div>
+
       <SelectField
         id="tipoDocumento"
         label="Tipo de documento"
         value={form.tipoDocumento}
-        onChange={(value) => onChange('tipoDocumento', value)}
+        onChange={(value) => {
+          onChange('tipoDocumento', value)
+          setDocumentoError(getDocumentoError(value, form.numeroDocumento))
+        }}
         options={documentOptions.map((type) => ({ value: type, label: type }))}
       />
-      <TextField
-        id="numeroDocumento"
-        label="Número de documento"
-        value={form.numeroDocumento}
-        onChange={(event) => onChange('numeroDocumento', event.target.value)}
-        required
-      />
+
+      {/* NUMERO DE DOCUMENTO */}
+      <div className="flex flex-col gap-1.5">
+        <TextField
+          id="numeroDocumento"
+          label="Número de documento"
+          value={form.numeroDocumento}
+          onChange={(event) => {
+            // Solo permitir números si no es Pasaporte (PA)
+            const val = form.tipoDocumento === 'PA' 
+              ? event.target.value 
+              : event.target.value.replace(/\D/g, '')
+            onChange('numeroDocumento', val)
+            if (documentoError) setDocumentoError(getDocumentoError(form.tipoDocumento, val))
+          }}
+          onBlur={() => setDocumentoError(getDocumentoError(form.tipoDocumento, form.numeroDocumento))}
+          required
+          maxLength={DOCUMENT_RULES[form.tipoDocumento]?.max}
+          className={documentoError ? 'ring-1 ring-red-400' : ''}
+        />
+        {documentoError && <span className="text-xs text-red-500 font-medium">{documentoError}</span>}
+      </div>
       <TextField
         id="email"
         label="Correo"
@@ -816,24 +1042,21 @@ function UserFields({
           )}
         </div>
       ) : null}
-      <TextField
+            <PasswordField
         id="password"
         label={editing ? 'Nueva contraseña (opcional)' : 'Contraseña'}
-        type="password"
         value={form.password}
         onChange={(event) => onChange('password', event.target.value)}
         required={!editing}
-        minLength={6}
         autoComplete="new-password"
       />
-      <TextField
+      <PasswordField
         id="passwordConfirmation"
         label="Confirmar contraseña"
-        type="password"
         value={form.passwordConfirmation}
+        confirmValue={form.password} // <--- NUEVO: Para validar que coincidan
         onChange={(event) => onChange('passwordConfirmation', event.target.value)}
         required={!editing || Boolean(form.password)}
-        minLength={6}
         autoComplete="new-password"
       />
     </>

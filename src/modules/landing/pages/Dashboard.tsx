@@ -213,13 +213,12 @@ function Modules() {
           <p className="lp-eyebrow">SIGMA</p>
 
           <h2
-            id="modulos-titulo"
-            className="lp-h2 mt-2 text-[27px] lg:text-[32px]"
-          >
-            Módulos disponibles
+             id="modulos-titulo"
+            className="lp-h2 mt-2 text-[27px] lg:text-[32px] text-left">
+                Módulos disponibles
           </h2>
 
-          <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-7 text-[#5b7368]">
+          <p className="mt-3 max-w-2xl text-[15px] text-left leading-7 text-[#5b7368]">
             Accede a las herramientas que integran la gestión administrativa institucional.
           </p>
         </div>
@@ -290,10 +289,10 @@ function Categories() {
 
 function Programs() {
   return (
-    <section id="programas" className="mx-auto max-w-7xl px-5 pb-16 pt-16 lg:px-10 lg:pt-20">
+    <section id="oferta" className="mx-auto max-w-7xl px-5 pb-16 pt-16 lg:px-10 lg:pt-20">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <h2 className="lp-h2 text-[27px] lg:text-[32px]">Nuestros programas destacados</h2>
-        <a href="#programas" className="lp-section-link mt-2">
+        <a href="#oferta" className="lp-section-link mt-2">
           Ver todos los programas
           <ArrowGlyph />
         </a>
