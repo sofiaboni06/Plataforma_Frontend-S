@@ -321,8 +321,8 @@ function Colombia() {
         <div>
           <h2 className="lp-h2 text-[27px] lg:text-[32px]">El SENA en Colombia</h2>
           <p className="mt-6 max-w-90 text-[16px] leading-7 text-[#5b7368]">
-            Estamos presentes en todo el territorio nacional, llevando formación de calidad
-            a cada región del país y contribuyendo al desarrollo de las comunidades.
+            Nuestra casa está en Popayán, Cauca, en el CTPI. Desde ahí cubrimos todo el
+            territorio nacional con formación de calidad en cada región.
           </p>
           <a href="#contacto" className="lp-btn lp-btn-ghost mt-6">
             Conoce más sobre el SENA

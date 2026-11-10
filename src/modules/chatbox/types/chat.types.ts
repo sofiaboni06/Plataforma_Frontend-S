@@ -1,11 +1,9 @@
 /**
  * Tipos del ChatBox / Asistente SIGMA.
  *
- * Este archivo define también el CONTRATO con el backend que aún no existe
- * (ver `docs/chat-contract.md`). No se inventan respuestas de IA: mientras
- * el servicio no esté conectado, las respuestas provienen de la base de
- * conocimiento local (`knowledge/knowledgeSources.ts`) y se etiquetan como
- * tales (`origin: 'local'`).
+ * El chat pregunta a POST /api/v1/assistant/preguntar. Si el servidor no
+ * responde, las respuestas salen de la base local (`knowledge/knowledgeSources.ts`)
+ * y se etiquetan con `origin: 'local'`.
  */
 
 export type ChatRole = 'user' | 'assistant'
@@ -27,9 +25,10 @@ export type ChatReference = {
   route?: string
   /** Etiqueta corta de procedencia (módulo o área funcional). */
   source?: string
-  version: string
+  /** Las guías del servidor no traen versión; la base local sí. */
+  version?: string
   /** Fecha ISO (YYYY-MM-DD) de última actualización de la fuente. */
-  updatedAt: string
+  updatedAt?: string
 }
 
 /** Alias usado por la capa de conocimiento local. */

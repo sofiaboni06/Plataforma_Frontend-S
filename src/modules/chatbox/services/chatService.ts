@@ -4,31 +4,37 @@
  * Servicio del asistente. Es el ÚNICO punto de contacto con el backend
  * del chat y el único consumidor de la base de conocimiento local.
  *
- * Estado de la integración (documentado en docs/chat-contract.md):
- *   POST /api/v1/chat/messages  →  PENDIENTE DE BACKEND.
+ * El chat pregunta a las guías que el administrador carga:
+ *   POST /api/v1/assistant/preguntar  { pregunta }
+ *   → { respuesta, fuentes: [{ id, titulo, modulo }] }
  *
  * Estrategia (siempre honesta con el usuario):
- *   1. Se intenta la petición al backend con el token de sesión.
- *   2. Si el endpoint aún no existe (404/500) o el backend no responde,
- *      se responde con la base de conocimiento local y se marca el
- *      mensaje con origin: 'local'. La primera vez se notifica al
- *      usuario que la IA conectada aún no está disponible.
- *   3. Si la falla impide responder honestamente (401/403 sin sesión, 400
- *      por validación), se lanza ChatServiceError y la UI muestra el
- *      aviso de error.
+ *   1. Se envía la pregunta al backend con el token de sesión.
+ *   2. Si el backend no responde (404/500 o red caída), se usa la base
+ *      de conocimiento local y se marca el mensaje con origin: 'local'.
+ *      La primera vez se avisa que las guías del servidor no están disponibles.
+ *   3. Si la falla impide responder (401/403 sin sesión, 400/422 de
+ *      validación), se lanza ChatServiceError y la UI muestra el aviso.
  *
  * Prohibido: simular respuestas de IA, inventar datos o exponer claves.
  */
 
 import { api, ApiError } from '@/shared/lib/api'
 import { answerFromKnowledge } from '../knowledge/knowledgeSources'
+import { focusAssistantReply } from './focusReply'
 import type {
-  BackendChatResponse,
   ChatErrorKind,
+  ChatReference,
   ChatRequest,
   ChatResponse,
   ChatServiceStatus,
 } from '../types/chat.types'
+
+/** Respuesta de POST /assistant/preguntar, ya sin el envoltorio { data }. */
+type AssistantAskResponse = {
+  respuesta: string
+  fuentes?: Array<{ id: number; titulo: string; modulo: string }>
+}
 
 /** Error tipado que consume la UI del asistente. */
 export class ChatServiceError extends Error {
@@ -71,10 +77,10 @@ export function resetChatServiceStatus(): void {
   setStatus('checking')
 }
 
-const ENDPOINT = '/chat/messages'
+const ENDPOINT = '/assistant/preguntar'
 const OFFLINE_NOTICE =
-  'La IA conectada de SIGMA aún no está disponible en este entorno. ' +
-  'Estoy respondiendo con la documentación oficial de la plataforma.'
+  'No pude consultar las guías del servidor. ' +
+  'Estoy respondiendo con la documentación local de la plataforma.'
 
 /** Traduce el error crudo de api.ts a un error de negocio del chat. */
 function toChatServiceError(error: unknown): ChatServiceError {
@@ -99,12 +105,30 @@ function toChatServiceError(error: unknown): ChatServiceError {
 }
 
 /** Respuesta local etiquetada, usada cuando el backend aún no existe. */
+function presentReply(
+  question: string,
+  reply: string,
+  references: ChatReference[],
+): { reply: string; references: ChatReference[] } {
+  const focused = focusAssistantReply(
+    question,
+    reply,
+    references.map((reference) => reference.title),
+  )
+  const visible = references.filter((reference) => focused.titles.includes(reference.title))
+  return {
+    reply: focused.text,
+    references: (visible.length > 0 ? visible : references).slice(0, 1),
+  }
+}
+
 function localAnswer(request: ChatRequest): ChatResponse {
   const answer = answerFromKnowledge(request.message)
+  const presented = presentReply(request.message, answer.text, answer.references)
   return {
     conversationId: request.conversationId,
-    reply: answer.text,
-    references: answer.references,
+    reply: presented.reply,
+    references: presented.references,
     origin: 'local',
     offline: true,
     createdAt: new Date().toISOString(),
@@ -143,33 +167,32 @@ export async function sendMessage(request: ChatRequest): Promise<ChatResponse> {
   }
 
   try {
-    const data = await api<BackendChatResponse>(ENDPOINT, {
+    const data = await api<AssistantAskResponse>(ENDPOINT, {
       method: 'POST',
-      body: JSON.stringify({
-        conversationId: request.conversationId,
-        message,
-        attachments: request.attachments?.map((file) => ({
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        })),
-        context: { source: 'chatbox' },
-      }),
+      body: JSON.stringify({ pregunta: message }),
     })
 
-    if (!data || typeof data.reply !== 'string') {
+    if (!data || typeof data.respuesta !== 'string') {
       throw new ChatServiceError('network', 'Respuesta inválida del servidor.')
     }
 
     setStatus('connected')
 
+    const references: ChatReference[] = (data.fuentes ?? []).map((fuente) => ({
+      id: String(fuente.id),
+      title: fuente.titulo,
+      kind: 'procedimiento',
+      source: fuente.modulo,
+    }))
+    const presented = presentReply(message, data.respuesta, references)
+
     return {
-      conversationId: data.conversationId || request.conversationId,
-      reply: data.reply,
-      references: data.references ?? [],
+      conversationId: request.conversationId,
+      reply: presented.reply,
+      references: presented.references,
       origin: 'backend',
       offline: false,
-      createdAt: data.createdAt ?? new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     }
   } catch (error) {
     if (error instanceof ChatServiceError) {

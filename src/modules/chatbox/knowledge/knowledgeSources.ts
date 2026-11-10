@@ -1105,65 +1105,29 @@ export type KnowledgeAnswer = {
   references: ChatReference[]
 }
 
-function formatAnswer(source: KnowledgeSource): string {
-  const lines: string[] = [source.summary]
-
-  if (source.steps?.length) {
-    lines.push('')
-    lines.push('Pasos:')
-    source.steps.forEach((step, index) => lines.push(`${index + 1}. ${step}`))
-  }
-
-  if (source.permissions?.length) {
-    lines.push('')
-    lines.push(`Permisos necesarios: ${source.permissions.join(', ')}.`)
-  }
-
-  if (source.roles?.length) {
-    lines.push(`Aplica para: ${source.roles.join(' / ')}.`)
-  }
-
-  if (source.route) {
-    lines.push(`Ruta en SIGMA: ${source.route}`)
-  }
-
-  return lines.join('\n')
-}
-
 /**
- * Construye la respuesta local a partir de la documentación. Si no hay
- * coincidencia suficiente, lo declara en lugar de inventar contenido.
+ * Respuesta local breve: solo el resumen de la guía que mejor coincide.
+ * Los pasos, permisos y rutas siguen en la fuente, pero no se vuelcan
+ * enteros en la burbuja.
  */
 export function answerFromKnowledge(query: string): KnowledgeAnswer {
-  const hits = searchKnowledge(query, 2)
+  const hits = searchKnowledge(query, 1)
   const cleanQuery = query.trim()
 
   if (!hits.length) {
     return {
       found: false,
       text:
-        `No encontré documentación oficial de SIGMA sobre «${cleanQuery}». ` +
-        'No voy a inventar un procedimiento que no existe.\n\n' +
-        'Puedo ayudarte con los módulos documentados: inventario, bodegas, stands, ítems y elementos, ' +
-        'solicitudes y devoluciones, materiales de formación, programas, fichas, redes, líneas, niveles, ' +
-        'aprobaciones y compras, perfiles, usuarios, notificaciones, vigencias, presupuesto, reportes y actividades. ' +
-        'Prueba a reformular la pregunta con el nombre del módulo.',
+        `No encontré una guía sobre «${cleanQuery}». ` +
+        'Prueba con el nombre del módulo, por ejemplo inventario, solicitudes o materiales de formación.',
       references: [],
     }
   }
 
-  const [top, second] = hits
-  const text = formatAnswer(top.source)
-  const references = [toReference(top.source)]
-
-  if (second && second.score >= top.score * 0.6) {
-    references.push(toReference(second.source))
-    return {
-      found: true,
-      text: `${text}\n\nVer también: ${second.source.title}.`,
-      references,
-    }
+  const top = hits[0]
+  return {
+    found: true,
+    text: top.source.summary,
+    references: [toReference(top.source)],
   }
-
-  return { found: true, text, references }
 }

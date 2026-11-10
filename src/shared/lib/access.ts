@@ -159,7 +159,10 @@ export function canOpenPath(
 
   if (
     isAdmin &&
-    (path === '/usuarios' || path === '/perfiles' || path === '/programas-formacion')
+    (path === '/usuarios' ||
+      path === '/perfiles' ||
+      path === '/asistente/guias' ||
+      path === '/programas-formacion')
   ) {
     return true
   }

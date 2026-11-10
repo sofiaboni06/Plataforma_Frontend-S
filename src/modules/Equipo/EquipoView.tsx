@@ -57,7 +57,7 @@ const equipoActual: Miembro[] = [
     nombre: 'Alex Jhoan Chaguendo',
     rol: 'Tech Lead & Scrum Master | Solution Architect',
     github: 'ALexjh117',
-    avatar: '/avatars/alex_fotogit.jpeg',
+    avatar: '/avatars/alex-perfil.jpeg?v=2',
     etiquetas: ['Scrum Master', 'Lógica de negocio', 'Full Stack'],
   },
   {

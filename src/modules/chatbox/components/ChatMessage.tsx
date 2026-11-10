@@ -26,8 +26,13 @@ function ReferenceList({ references }: { references: ChatKnowledgeReference[] })
         <li key={`${reference.id}-${reference.title}`} className="sigma-chat-ref">
           <span className="sigma-chat-ref-title">{reference.title}</span>
           <span className="sigma-chat-ref-meta">
-            {reference.source ?? reference.route ?? reference.kind} · v{reference.version} ·{' '}
-            {reference.updatedAt}
+            {[
+              reference.source ?? reference.route ?? reference.kind,
+              reference.version ? `v${reference.version}` : null,
+              reference.updatedAt || null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </span>
         </li>
       ))}
@@ -81,7 +86,7 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
         )}
 
         <p className="sigma-chat-flags">
-          {!isUser && message.origin === 'local' && (
+          {!isUser && message.origin === 'local' && message.id !== 'welcome' && (
             <span className="sigma-chat-flag">Documentación local</span>
           )}
           {failed && (

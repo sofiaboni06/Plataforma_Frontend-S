@@ -364,6 +364,12 @@ export default function Sidebar({ isOpen, isDesktopOpen, onClose }: SidebarProps
             Perfiles
           </SideLink>
         ) : null}
+
+        {isAdmin ? (
+          <SideLink to="/asistente/guias" icon="settings" onClose={onClose}>
+            Guías del asistente
+          </SideLink>
+        ) : null}
       </nav>
 
       <div

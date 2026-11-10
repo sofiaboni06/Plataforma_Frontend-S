@@ -16,6 +16,7 @@ import ActivitiesPage from '@/modules/actividades/pages/ActivitiesPage'
 import RoleModuleCreatePage from '@/modules/administracion/pages/RoleModuleCreatePage'
 import RoleModulesPage from '@/modules/administracion/pages/RoleModulesPage'
 import RolesPage from '@/modules/administracion/pages/RolesPage'
+import AssistantGuidesPage from '@/modules/administracion/pages/AssistantGuidesPage'
 import UsersPage from '@/modules/administracion/pages/UsersPage'
 import FormacionHomePage from '@/modules/materiales-formacion/pages/FormacionHomePage'
 import ProgramasFormacionPage from '@/modules/materiales-formacion/pages/ProgramasFormacionPage'
@@ -361,6 +362,15 @@ function App() {
             element={
               <AdminRoute>
                 <UsersPage />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/asistente/guias"
+            element={
+              <AdminRoute>
+                <AssistantGuidesPage />
               </AdminRoute>
             }
           />

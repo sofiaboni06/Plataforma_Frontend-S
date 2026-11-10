@@ -34,7 +34,7 @@ export function ChatInput({ ref, value, isSending, onChange, onSend }: Props) {
   const counterId = useId()
 
   const tooLong = value.length > MAX_LENGTH
-  const canSend = !isSending && !tooLong && (value.trim().length > 0 || attachments.length > 0)
+  const canSend = !isSending && !tooLong && value.trim().length > 0
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== 'Enter' || event.shiftKey) return
