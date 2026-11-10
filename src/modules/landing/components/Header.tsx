@@ -3,9 +3,8 @@ import { Link, useLocation } from 'react-router-dom'
 
 const navigation = [
   { label: 'Inicio', href: '#inicio' },
-  { label: 'Oferta de formación', href: '#oferta' },
+  { label: 'Oferta de formación', href: '#oferta' },  // ✅
   { label: 'Sedes', href: '#sedes' },
-  { label: 'Noticias', href: '#noticias' },
   { label: 'Contacto', href: '#contacto' },
 ]
 
