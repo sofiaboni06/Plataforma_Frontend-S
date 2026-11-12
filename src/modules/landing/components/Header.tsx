@@ -3,8 +3,9 @@ import { Link, useLocation } from 'react-router-dom'
 
 const navigation = [
   { label: 'Inicio', href: '#inicio' },
-  { label: 'Oferta de formación', href: '#oferta' },  // ✅
-  { label: 'Sedes', href: '#sedes' },
+  { label: 'Módulos', href: '#modulos' },
+  { label: 'Misión y visión', href: '#mision-vision' },
+  { label: 'Cobertura', href: '#sedes' },
   { label: 'Contacto', href: '#contacto' },
 ]
 
@@ -19,7 +20,7 @@ const ACTIVE_LINK_STYLE = { color: '#fff', fontWeight: 600 } as const
    estaba y se deslice, en vez de aparecer de la nada. */
 let lastIndicatorX: number | null = null
 
-/** Devuelve la opción del menú que corresponde a un hash ("#oferta" → "Oferta de formación"). */
+/** Devuelve la opción del menú que corresponde a un hash ("#mision-vision" → "Misión y visión"). */
 function labelFromHash(hash: string) {
   return navigation.find((item) => item.href === hash)?.label ?? 'Inicio'
 }
